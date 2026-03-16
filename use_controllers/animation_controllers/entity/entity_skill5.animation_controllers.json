@@ -1,0 +1,177 @@
+{
+  "animation_controllers": {
+    "controller.animation.entity_skill5.default": {
+      "states": {
+        "skill3": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill3"
+          ]
+        },
+        "skill2": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill2"
+          ]
+        },
+        "skill1": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill1"
+          ]
+        },
+        "skill5": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill5"
+          ]
+        },
+        "skill4": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill4"
+          ]
+        },
+        "idle": {
+          "transitions": [
+            {
+              "walk": "query.modified_move_speed > 0.05"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idle"
+          ]
+        },
+        "walk": {
+          "transitions": [
+            {
+              "idle": "query.modified_move_speed < 0.05"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walk"
+          ]
+        }
+      },
+      "initial_state": "idle"
+    }
+  },
+  "format_version": "1.10.0"
+}

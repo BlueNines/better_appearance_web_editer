@@ -1,0 +1,1 @@
+{"animation_controllers":{"controller.animation.entity_idle_skill1.default":{"states":{"skill1":{"transitions":[{"idle":"query.mod.entity_skill == 0"}],"blend_transition":0.05,"animations":["skill1"]},"idle":{"transitions":[{"skill1":"query.mod.entity_skill == 1"}],"blend_transition":0.1,"animations":["idle"]}},"initial_state":"idle"}},"format_version":"1.10.0"}

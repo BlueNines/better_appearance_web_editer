@@ -1,0 +1,1 @@
+{"animation_controllers":{"controller.animation.entity_idle.default":{"states":{"idle":{"animations":["idle"]}},"initial_state":"idle"}},"format_version":"1.10.0"}

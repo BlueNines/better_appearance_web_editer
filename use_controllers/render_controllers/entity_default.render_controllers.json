@@ -1,0 +1,1 @@
+{"render_controllers":{"controller.render.entity_default.third_person":{"geometry":"Geometry.default","textures":["Texture.default"],"materials":[{"*":"Material.default"}],"part_visibility":[{"*":true}]}},"format_version":"1.8.0"}
