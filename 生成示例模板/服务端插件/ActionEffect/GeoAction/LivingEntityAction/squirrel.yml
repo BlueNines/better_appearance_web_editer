@@ -1,0 +1,19 @@
+squirrel:
+  entityIdentifier: netease:squirrel
+  geometry:
+  - key: default
+    name: geometry.squirrel
+  texture:
+  - key: default
+    name: textures/entity/monster/squirrel
+  render:
+  - controller: controller.render.entity_default.third_person
+    condition: ''
+  animate:
+  - key: idle
+    name: animation.squirrel.idle
+  - key: walk
+    name: animation.squirrel.walk
+  animate_controller:
+  - key: default
+    name: controller.animation.entity_idle_walk.default

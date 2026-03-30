@@ -1,0 +1,36 @@
+{
+  "minecraft:client_entity": {
+    "description": {
+      "textures": {
+        "default": "textures/entity/squirrel/red"
+      },
+      "render_controllers":
+      [
+        "controller.render.entity_default.third_person"
+      ],
+      "geometry": {
+        "default": "geometry.squirrel"
+      },
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "animations": {
+        "idle": "animation.squirrel.idle",
+        "walk": "animation.squirrel.move",
+
+
+        "scale": "animation.entity.auto.scale"
+      },
+      "animation_controllers": [
+        {
+          "default": "controller.animation.entity_idle_walk.default"
+        },
+        {
+          "scale": "controller.animation.auto.scale"
+        }
+      ],
+      "identifier": "netease:squirrel"
+    }
+  },
+  "format_version": "1.8.0"
+}

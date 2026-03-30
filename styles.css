@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --bg-accent: radial-gradient(circle at top left, rgba(255, 255, 255, 0.75), transparent 36%),
         linear-gradient(135deg, #f7f2e6 0%, #e6dfce 50%, #d7d4c7 100%);
     --panel-border: rgba(24, 47, 38, 0.12);
@@ -206,7 +206,7 @@ select {
 .status-strip {
     margin-top: 18px;
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     align-items: center;
     padding: 16px 20px;
@@ -518,3 +518,4 @@ select {
         padding: 18px;
     }
 }
+

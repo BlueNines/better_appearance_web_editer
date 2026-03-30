@@ -1,15 +1,9 @@
-(function () {
+﻿(function () {
     "use strict";
 
     const ROOT_DIR = "生成模型";
-    const CONFIG_RELATIVE_PATH = "客户端组件/betterappearance/behavior_packs/better_appearance_beh/better_appearance_scripts/config/living_entity/Config.py";
-    const PROJECT_CONFIG_HINT_PATH = "betterappearance/behavior_packs/better_appearance_beh/better_appearance_scripts/config/living_entity/Config.py";
-    const PROJECT_CONFIG_CANDIDATE_PATHS = [
-        CONFIG_RELATIVE_PATH,
-        PROJECT_CONFIG_HINT_PATH,
-        "behavior_packs/better_appearance_beh/better_appearance_scripts/config/living_entity/Config.py",
-    ];
     const RESOURCE_ROOT = "客户端组件/betterappearance/resource_packs/better_appearance_res";
+    const CLIENT_ENTITY_ROOT = `${RESOURCE_ROOT}/entity`;
     const ENTITY_ROOT = "客户端组件/betterappearance/behavior_packs/better_appearance_beh/entities";
     const SERVER_ROOT = "服务端插件/ActionEffect/GeoAction/LivingEntityAction";
     const DEFAULT_SUBDIR = "monster";
@@ -22,17 +16,14 @@
     const state = {
         entities: [],
         selectedEntityId: null,
-        projectConfig: null,
         messages: [],
         pendingAssignment: null,
     };
 
     const elements = {
         resourceInput: document.getElementById("resourceInput"),
-        projectInput: document.getElementById("projectInput"),
         newEntityButton: document.getElementById("newEntityButton"),
         exportButton: document.getElementById("exportButton"),
-        clearProjectButton: document.getElementById("clearProjectButton"),
         projectStatus: document.getElementById("projectStatus"),
         statusText: document.getElementById("statusText"),
         entityCount: document.getElementById("entityCount"),
@@ -42,16 +33,12 @@
         outputPreview: document.getElementById("outputPreview"),
         messageList: document.getElementById("messageList"),
         assignInput: document.getElementById("assignInput"),
-        requireProjectOverlay: document.getElementById("requireProjectOverlay"),
-        requireProjectButton: document.getElementById("requireProjectButton"),
     };
 
     init();
 
     function init() {
-        if (!hasProjectConfig()) {
-            setStatus("请先选择现有工程目录。");
-        }
+        setStatus("等待导入资源文件。");
         bindEvents();
         render();
     }
@@ -62,19 +49,7 @@
             event.target.value = "";
         });
 
-        elements.projectInput.addEventListener("change", async (event) => {
-            await loadProjectDirectory(event.target.files);
-            event.target.value = "";
-        });
-
-        elements.requireProjectButton.addEventListener("click", () => {
-            elements.projectInput.click();
-        });
-
         elements.newEntityButton.addEventListener("click", () => {
-            if (!ensureProjectSelected("新建实体")) {
-                return;
-            }
             const entity = createEntity("");
             state.entities.unshift(entity);
             selectEntity(entity.id);
@@ -84,12 +59,6 @@
 
         elements.exportButton.addEventListener("click", async () => {
             await exportZip();
-        });
-
-        elements.clearProjectButton.addEventListener("click", () => {
-            state.projectConfig = null;
-            setStatus("已清除工程基底，将使用内置模板生成 Config.py。");
-            render();
         });
 
         elements.assignInput.addEventListener("change", async (event) => {
@@ -114,9 +83,6 @@
 
         ["dragenter", "dragover"].forEach((eventName) => {
             elements.dropZone.addEventListener(eventName, (event) => {
-                if (!hasProjectConfig()) {
-                    return;
-                }
                 event.preventDefault();
                 elements.dropZone.classList.add("is-dragging");
             });
@@ -124,17 +90,10 @@
 
         ["dragleave", "drop"].forEach((eventName) => {
             elements.dropZone.addEventListener(eventName, (event) => {
-                if (!hasProjectConfig()) {
-                    if (eventName === "drop") {
-                        event.preventDefault();
-                        ensureProjectSelected("导入资源");
-                    }
-                    return;
-                }
                 event.preventDefault();
                 if (eventName === "drop") {
                     elements.dropZone.classList.remove("is-dragging");
-                    void importFiles(event.dataTransfer.files);
+                    void importFiles(event.dataTransfer.files, { preferSelectedEntityForDroppedFiles: true });
                     return;
                 }
                 const relatedTarget = event.relatedTarget;
@@ -145,19 +104,21 @@
         });
     }
 
-    async function importFiles(fileList) {
-        if (!ensureProjectSelected("导入资源")) {
-            return;
-        }
+    async function importFiles(fileList, options) {
         const files = Array.from(fileList || []);
         if (!files.length) {
             return;
         }
 
+        const normalizedOptions = options || {};
+        const preferredEntity = normalizedOptions.preferSelectedEntityForDroppedFiles
+            ? getSelectedEntity()
+            : null;
+
         let imported = 0;
         let skipped = 0;
         for (const file of files) {
-            const success = await autoAssignFile(file);
+            const success = await autoAssignFile(file, { preferredEntity });
             if (success) {
                 imported += 1;
             } else {
@@ -174,43 +135,21 @@
         render();
     }
 
-    async function loadProjectDirectory(fileList) {
-        const files = Array.from(fileList || []);
-        if (!files.length) {
-            return;
-        }
 
-        const configFile = files.find((file) => {
-            const relativePath = (file.webkitRelativePath || file.name).replace(/\\/g, "/");
-            return matchesProjectConfigPath(relativePath);
-        });
-
-        if (!configFile) {
-            state.projectConfig = null;
-            setStatus(`选择的目录中没有找到工程文件，请确认包含 ${PROJECT_CONFIG_HINT_PATH}。`);
-            addMessage(`目录缺少工程文件，常见路径是 ${PROJECT_CONFIG_HINT_PATH}。`, "error");
-            render();
-            return;
-        }
-
-        const text = await configFile.text();
-        const relativePath = (configFile.webkitRelativePath || configFile.name).replace(/\\/g, "/");
-        state.projectConfig = {
-            text,
-            relativePath,
-            rootName: relativePath.split("/")[0] || configFile.name,
-        };
-        setStatus(`已载入工程基底：${state.projectConfig.rootName}`);
-        addMessage(`已读取现有 Config.py：${relativePath}`, "info");
-        render();
-    }
-
-    async function autoAssignFile(file) {
+    async function autoAssignFile(file, options) {
         try {
             const detected = await detectFilePayload(file);
             if (!detected) {
                 addMessage(`未识别文件类型：${file.name}`, "warn");
                 return false;
+            }
+
+            const preferredEntity = options && options.preferredEntity;
+            if (preferredEntity && ["texture", "geometry", "animation"].includes(detected.type)) {
+                await applyRecordToEntity(preferredEntity, detected);
+                selectEntity(preferredEntity.id);
+                addMessage(`已将${typeLabel(detected.type)}优先赋予当前选中实体：${preferredEntity.baseName || "未命名实体"}。`, "info");
+                return true;
             }
 
             const candidateBaseName = deriveBaseNameFromFile(file.name, detected.type);
@@ -328,9 +267,6 @@
     }
 
     async function exportZip() {
-        if (!ensureProjectSelected("导出 ZIP")) {
-            return;
-        }
         if (typeof window.JSZip === "undefined") {
             addMessage("JSZip 未加载，当前无法导出 ZIP。", "error");
             render();
@@ -347,32 +283,29 @@
         }
 
         const zip = new window.JSZip();
-        const configEntries = {};
 
         for (const entity of state.entities) {
             const normalized = buildNormalizedPayload(entity);
             const geometryPath = `${ROOT_DIR}/${RESOURCE_ROOT}/models/entity/${entity.resourceSubdir}/${entity.baseName}.geo.json`;
             const texturePath = `${ROOT_DIR}/${RESOURCE_ROOT}/textures/entity/${entity.resourceSubdir}/${entity.baseName}.png`;
             const animationPath = `${ROOT_DIR}/${RESOURCE_ROOT}/animations/${entity.resourceSubdir}/${entity.baseName}.animation.json`;
+            const clientEntityPath = `${ROOT_DIR}/${CLIENT_ENTITY_ROOT}/${entity.baseName}.entity.json`;
             const entityPath = `${ROOT_DIR}/${ENTITY_ROOT}/${entity.baseName}.entity.json`;
             const ymlPath = `${ROOT_DIR}/${SERVER_ROOT}/${entity.baseName}.yml`;
 
             zip.file(texturePath, entity.files.texture.buffer);
             zip.file(geometryPath, JSON.stringify(normalized.geometryJson));
             zip.file(animationPath, JSON.stringify(normalized.animationJson));
+            zip.file(clientEntityPath, JSON.stringify(normalized.clientEntityJson));
             zip.file(entityPath, JSON.stringify(normalized.entityJson));
             zip.file(ymlPath, normalized.ymlText);
-            configEntries[entity.identifier] = normalized.configEntry;
         }
-
-        const mergedConfig = mergeConfigText(state.projectConfig ? state.projectConfig.text : "", configEntries);
-        zip.file(`${ROOT_DIR}/${CONFIG_RELATIVE_PATH}`, mergedConfig);
 
         const blob = await zip.generateAsync({ type: "blob" });
         const downloadName = `betterappearance-export-${createTimestamp()}.zip`;
         downloadBlob(blob, downloadName);
         setStatus(`导出完成：${downloadName}`);
-        addMessage(`已导出 ${state.entities.length} 个实体的完整 ZIP。`, "info");
+        addMessage(`已导出 ${state.entities.length} 个实体的 ZIP，未更新 Config.py。`, "info");
         render();
     }
 
@@ -411,22 +344,16 @@
     function buildNormalizedPayload(entity) {
         const geometryJson = normalizeGeometryJson(entity);
         const animationJson = normalizeAnimationJson(entity);
-        const entityJson = createEntityJson(entity);
         const animateList = createAnimateList(entity);
         const renderBindings = collectRenderBindings(entity);
-        const configEntry = {
-            geometry: renderBindings.geometryKeys.map((key) => ({ key, name: `geometry.${entity.baseName}` })),
-            texture: renderBindings.textureKeys.map((key) => ({ key, name: `textures/entity/${entity.resourceSubdir}/${entity.baseName}` })),
-            render: [{ controller: entity.renderController, condition: "" }],
-            animate: animateList,
-            animate_controller: [{ key: "default", name: entity.animateController }],
-        };
+        const entityJson = createEntityJson(entity);
+        const clientEntityJson = createClientEntityJson(entity, animateList, renderBindings);
 
         return {
             geometryJson,
             animationJson,
             entityJson,
-            configEntry,
+            clientEntityJson,
             ymlText: createYmlText(entity, animateList, renderBindings),
         };
     }
@@ -482,6 +409,54 @@
         };
     }
 
+    function createClientEntityJson(entity, animateList, renderBindings) {
+        const animations = {
+            scale: "animation.entity.auto.scale",
+        };
+        animateList.forEach((item) => {
+            animations[item.key] = item.name;
+        });
+
+        const materials = {};
+        (renderBindings.materialKeys.length ? renderBindings.materialKeys : ["default"]).forEach((key) => {
+            materials[key] = "entity_alphatest";
+        });
+
+        const textures = {};
+        renderBindings.textureKeys.forEach((key) => {
+            textures[key] = `textures/entity/${entity.resourceSubdir}/${entity.baseName}`;
+        });
+
+        const geometry = {};
+        renderBindings.geometryKeys.forEach((key) => {
+            geometry[key] = `geometry.${entity.baseName}`;
+        });
+
+        return {
+            format_version: "1.8.0",
+            "minecraft:client_entity": {
+                description: {
+                    identifier: entity.identifier,
+                    materials,
+                    textures,
+                    geometry,
+                    animations,
+                    animation_controllers: [
+                        {
+                            default: entity.animateController,
+                        },
+                        {
+                            scale: "controller.animation.auto.scale",
+                        },
+                    ],
+                    render_controllers: [
+                        entity.renderController,
+                    ],
+                },
+            },
+        };
+    }
+
     function createAnimateList(entity) {
         return getControllerSlots(entity.animateController)
             .filter((slotName) => entity.animationMappings[slotName])
@@ -530,213 +505,6 @@
         return lines.join("\n");
     }
 
-    function mergeConfigText(existingText, generatedEntries) {
-        const orderedEntries = Object.keys(generatedEntries).sort().reduce((accumulator, identifier) => {
-            accumulator[identifier] = generatedEntries[identifier];
-            return accumulator;
-        }, {});
-
-        if (!existingText.trim()) {
-            return buildDefaultConfigText(orderedEntries);
-        }
-
-        const dictRange = locateConfigDictRange(existingText);
-        if (!dictRange) {
-            return buildDefaultConfigText(orderedEntries);
-        }
-
-        const dictLiteral = existingText.slice(dictRange.startBrace, dictRange.endBrace + 1);
-        let existingEntries;
-        try {
-            existingEntries = parseConfigLiteral(dictLiteral);
-        } catch (error) {
-            addMessage(`现有 Config.py 解析失败，已回退为新模板：${error.message}`, "warn");
-            return buildDefaultConfigText(orderedEntries);
-        }
-
-        const mergedEntries = { ...existingEntries };
-        Object.keys(orderedEntries).forEach((identifier) => {
-            mergedEntries[identifier] = orderedEntries[identifier];
-        });
-
-        const leadingTrivia = extractDictPrelude(dictLiteral);
-        const serializedDict = serializeConfigDict(mergedEntries, leadingTrivia);
-        return `${existingText.slice(0, dictRange.startBrace)}${serializedDict}${existingText.slice(dictRange.endBrace + 1)}`;
-    }
-
-    function buildDefaultConfigText(entries) {
-        return [
-            "# coding=utf-8",
-            "",
-            "InitRenderNameToConfigDict = {}",
-            "InitRenderConfigIdToConfigDict = {}",
-            "",
-            `InitRenderIdentifierToConfigDict = ${serializeConfigDict(entries)}`,
-            "",
-        ].join("\n");
-    }
-
-    function locateConfigDictRange(text) {
-        const anchor = "InitRenderIdentifierToConfigDict";
-        const anchorIndex = text.indexOf(anchor);
-        if (anchorIndex === -1) {
-            return null;
-        }
-
-        const braceStart = text.indexOf("{", anchorIndex);
-        if (braceStart === -1) {
-            return null;
-        }
-
-        let depth = 0;
-        let quote = "";
-        let escaped = false;
-        for (let index = braceStart; index < text.length; index += 1) {
-            const character = text[index];
-            if (quote) {
-                if (escaped) {
-                    escaped = false;
-                    continue;
-                }
-                if (character === "\\") {
-                    escaped = true;
-                    continue;
-                }
-                if (character === quote) {
-                    quote = "";
-                }
-                continue;
-            }
-            if (character === "'" || character === "\"") {
-                quote = character;
-                continue;
-            }
-            if (character === "{") {
-                depth += 1;
-            } else if (character === "}") {
-                depth -= 1;
-                if (depth === 0) {
-                    return { startBrace: braceStart, endBrace: index };
-                }
-            }
-        }
-        return null;
-    }
-
-    function parseConfigLiteral(dictLiteral) {
-        const withoutComments = stripHashComments(dictLiteral);
-        return Function(`"use strict"; return (${withoutComments});`)();
-    }
-
-    function stripHashComments(text) {
-        let result = "";
-        let quote = "";
-        let escaped = false;
-        for (let index = 0; index < text.length; index += 1) {
-            const character = text[index];
-            if (quote) {
-                result += character;
-                if (escaped) {
-                    escaped = false;
-                    continue;
-                }
-                if (character === "\\") {
-                    escaped = true;
-                    continue;
-                }
-                if (character === quote) {
-                    quote = "";
-                }
-                continue;
-            }
-            if (character === "'" || character === "\"") {
-                quote = character;
-                result += character;
-                continue;
-            }
-            if (character === "#") {
-                while (index < text.length && text[index] !== "\n") {
-                    index += 1;
-                }
-                if (index < text.length) {
-                    result += "\n";
-                }
-                continue;
-            }
-            result += character;
-        }
-        return result;
-    }
-
-    function extractDictPrelude(dictLiteral) {
-        const body = dictLiteral.slice(1, -1);
-        let quote = "";
-        let escaped = false;
-        for (let index = 0; index < body.length; index += 1) {
-            const character = body[index];
-            if (quote) {
-                if (escaped) {
-                    escaped = false;
-                    continue;
-                }
-                if (character === "\\") {
-                    escaped = true;
-                    continue;
-                }
-                if (character === quote) {
-                    quote = "";
-                }
-                continue;
-            }
-            if (character === "'" || character === "\"") {
-                return body.slice(0, index);
-            }
-        }
-        return body;
-    }
-
-    function serializeConfigDict(entries, leadingTrivia) {
-        const orderedKeys = Object.keys(entries);
-        if (!orderedKeys.length) {
-            return "{\n}";
-        }
-
-        const lines = ["{"];
-        if (leadingTrivia && leadingTrivia.trim()) {
-            leadingTrivia.replace(/\r\n/g, "\n").replace(/\n+$/, "").split("\n").forEach((line) => {
-                lines.push(line);
-            });
-        }
-
-        orderedKeys.forEach((identifier, index) => {
-            const suffix = index === orderedKeys.length - 1 ? "" : ",";
-            lines.push(`    ${JSON.stringify(identifier)}: ${serializeLiteral(entries[identifier], 1)}${suffix}`);
-        });
-        lines.push("}");
-        return lines.join("\n");
-    }
-
-    function serializeLiteral(value, depth) {
-        const indent = "    ".repeat(depth);
-        const nextIndent = "    ".repeat(depth + 1);
-        if (Array.isArray(value)) {
-            if (!value.length) {
-                return "[]";
-            }
-            const items = value.map((item) => `${nextIndent}${serializeLiteral(item, depth + 1)}`);
-            return `[\n${items.join(",\n")}\n${indent}]`;
-        }
-        if (value && typeof value === "object") {
-            const entries = Object.entries(value);
-            if (!entries.length) {
-                return "{}";
-            }
-            const lines = entries.map(([key, nestedValue]) => `${nextIndent}${JSON.stringify(key)}: ${serializeLiteral(nestedValue, depth + 1)}`);
-            return `{\n${lines.join(",\n")}\n${indent}}`;
-        }
-        return JSON.stringify(value);
-    }
-
     function render() {
         syncSelection();
         renderProjectStatus();
@@ -745,42 +513,10 @@
         renderOutputPreview();
         renderMessages();
         elements.entityCount.textContent = String(state.entities.length);
-        const locked = !hasProjectConfig();
-        elements.resourceInput.disabled = locked;
-        elements.newEntityButton.disabled = locked;
-        elements.exportButton.disabled = locked || state.entities.length === 0;
-        elements.clearProjectButton.disabled = locked;
-        elements.dropZone.classList.toggle("is-locked", locked);
-        elements.requireProjectOverlay.hidden = !locked;
+        elements.exportButton.disabled = state.entities.length === 0;
     }
-
     function renderProjectStatus() {
-        if (state.projectConfig) {
-            elements.projectStatus.textContent = `已载入 ${state.projectConfig.relativePath}，导出时会合并已有 Config.py。`;
-            return;
-        }
-        elements.projectStatus.textContent = `未载入现有工程，页面当前处于锁定状态。常见路径：${PROJECT_CONFIG_HINT_PATH}`;
-    }
-
-    function hasProjectConfig() {
-        return Boolean(state.projectConfig);
-    }
-
-    function ensureProjectSelected(actionLabel) {
-        if (hasProjectConfig()) {
-            return true;
-        }
-        setStatus(`请先选择现有工程目录，再执行${actionLabel}。常见路径：${PROJECT_CONFIG_HINT_PATH}`);
-        addMessage(`未绑定现有工程目录，无法执行${actionLabel}。`, "warn");
-        render();
-        return false;
-    }
-
-    function matchesProjectConfigPath(relativePath) {
-        if (relativePath === "Config.py" || relativePath.endsWith("/Config.py")) {
-            return true;
-        }
-        return PROJECT_CONFIG_CANDIDATE_PATHS.some((candidatePath) => relativePath.endsWith(candidatePath));
+        elements.projectStatus.textContent = "导出 ZIP 时不会更新 better_appearance_scripts/config/living_entity/Config.py";
     }
 
     function renderEntityList() {
@@ -883,6 +619,25 @@
             </section>
 
             <section class="section-card">
+                <h3>动作槽位映射</h3>
+                ${slots.length ? `
+                    <div class="slot-grid">
+                        ${slots.map((slotName) => `
+                            <div class="slot-card">
+                                <h4>${slotName}</h4>
+                                <select data-slot-select="${slotName}">
+                                    <option value="">不导出这个槽位</option>
+                                    ${availableAnimations.map((animationName) => `<option value="${escapeAttribute(animationName)}" ${entity.animationMappings[slotName] === animationName ? "selected" : ""}>${escapeHtml(animationName)}</option>`).join("")}
+                                </select>
+                                <p>${entity.animationMappings[slotName] ? `导出后会改写为 animation.${entity.baseName || "实体名"}.${slotName}` : "当前槽位未映射"}</p>
+                            </div>
+                        `).join("")}
+                    </div>
+                ` : '<p class="empty-state">当前控制器没有可用槽位。</p>'}
+                ${unusedAnimations.length ? `<div class="chip-row">${unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint">当前动作文件中的动画块都已被使用。</p>'}
+            </section>
+
+            <section class="section-card">
                 <h3>已载入文件</h3>
                 <div class="file-stack">
                     ${renderFileCard("贴图文件", "texture", entity.files.texture ? entity.files.texture.sourceName : "")}
@@ -915,24 +670,6 @@
                 </div>
             </section>
 
-            <section class="section-card">
-                <h3>动作槽位映射</h3>
-                ${slots.length ? `
-                    <div class="slot-grid">
-                        ${slots.map((slotName) => `
-                            <div class="slot-card">
-                                <h4>${slotName}</h4>
-                                <select data-slot-select="${slotName}">
-                                    <option value="">不导出这个槽位</option>
-                                    ${availableAnimations.map((animationName) => `<option value="${escapeAttribute(animationName)}" ${entity.animationMappings[slotName] === animationName ? "selected" : ""}>${escapeHtml(animationName)}</option>`).join("")}
-                                </select>
-                                <p>${entity.animationMappings[slotName] ? `导出后会改写为 animation.${entity.baseName || "实体名"}.${slotName}` : "当前槽位未映射"}</p>
-                            </div>
-                        `).join("")}
-                    </div>
-                ` : '<p class="empty-state">当前控制器没有可用槽位。</p>'}
-                ${unusedAnimations.length ? `<div class="chip-row">${unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint">当前动作文件中的动画块都已被使用。</p>'}
-            </section>
         `;
 
         bindInspectorEvents(entity);
@@ -1074,9 +811,9 @@
             `${ROOT_DIR}/${RESOURCE_ROOT}/textures/entity/${entity.resourceSubdir}/${name}.png`,
             `${ROOT_DIR}/${RESOURCE_ROOT}/models/entity/${entity.resourceSubdir}/${name}.geo.json`,
             `${ROOT_DIR}/${RESOURCE_ROOT}/animations/${entity.resourceSubdir}/${name}.animation.json`,
+            `${ROOT_DIR}/${CLIENT_ENTITY_ROOT}/${name}.entity.json`,
             `${ROOT_DIR}/${ENTITY_ROOT}/${name}.entity.json`,
             `${ROOT_DIR}/${SERVER_ROOT}/${name}.yml`,
-            `${ROOT_DIR}/${CONFIG_RELATIVE_PATH}`,
         ];
         elements.outputPreview.innerHTML = lines.map((line) => `<div class="output-line">${escapeHtml(line)}</div>`).join("");
     }
@@ -1492,3 +1229,10 @@
         return escapeHtml(value);
     }
 })();
+
+
+
+
+
+
+

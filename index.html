@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
@@ -14,17 +14,12 @@
                 <h1>本地实体外观整理器</h1>
                 <p class="hero-text">
                     拖入贴图、模型、动作文件，按参考规范整理成可导出的目录结构。
-                    第一版只负责资源归档和配置生成，不做模型预览与骨骼编辑。
                 </p>
             </div>
             <div class="hero-actions">
                 <label class="button primary file-button">
                     导入资源文件
                     <input id="resourceInput" type="file" multiple accept=".png,.json">
-                </label>
-                <label class="button secondary file-button">
-                    选择现有工程目录
-                    <input id="projectInput" type="file" multiple webkitdirectory directory>
                 </label>
                 <button id="newEntityButton" class="button secondary" type="button">新建空实体</button>
                 <button id="exportButton" class="button primary" type="button">导出 ZIP</button>
@@ -33,14 +28,13 @@
 
         <section class="status-strip">
             <div class="status-block">
-                <span class="status-label">工程基底</span>
-                <strong id="projectStatus">未载入现有工程。常见路径：betterappearance\behavior_packs\better_appearance_beh\better_appearance_scripts\config\living_entity\Config.py</strong>
+                <span class="status-label">导出说明</span>
+                <strong id="projectStatus">最新版组件已经不需要更新 betterappearance\behavior_packs\better_appearance_beh\better_appearance_scripts\config\living_entity\Config.py</strong>
             </div>
             <div class="status-block">
                 <span class="status-label">当前状态</span>
                 <strong id="statusText">等待导入资源文件。</strong>
             </div>
-            <button id="clearProjectButton" class="button ghost" type="button">清除工程基底</button>
         </section>
 
         <main class="workspace">
@@ -86,7 +80,7 @@
                         <li>贴图：`textures/entity/{子目录}/{实体名}.png`</li>
                         <li>模型：`models/entity/{子目录}/{实体名}.geo.json`</li>
                         <li>动作：`animations/{子目录}/{实体名}.animation.json`</li>
-                        <li>自动生成：`entity.json`、`LivingEntityAction yml`、`Config.py`</li>
+                        <li>自动生成：`entity.json`、`LivingEntityAction yml`</li>
                     </ul>
                 </section>
 
@@ -101,20 +95,6 @@
                 </section>
             </aside>
         </main>
-    </div>
-
-    <div id="requireProjectOverlay" class="startup-overlay" role="dialog" aria-modal="true" aria-labelledby="startupTitle">
-        <div class="startup-card">
-            <p class="eyebrow">Required Step</p>
-            <h2 id="startupTitle">先选择现有工程目录</h2>
-            <p class="startup-text">
-                编辑器启动后必须先绑定一个已有工程目录，且目录中需要包含 <code>Config.py</code>。
-                绑定成功后，导入资源、创建实体和导出功能才会解锁。
-            </p>
-            <p class="startup-hint">常见工程文件路径</p>
-            <code class="startup-path">betterappearance\behavior_packs\better_appearance_beh\better_appearance_scripts\config\living_entity\Config.py</code>
-            <button id="requireProjectButton" class="button primary" type="button">选择现有工程目录</button>
-        </div>
     </div>
 
     <input id="assignInput" type="file" hidden>
