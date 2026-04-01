@@ -9,6 +9,11 @@
     const DEFAULT_SUBDIR = "monster";
     const DEFAULT_RENDER_CONTROLLER = "controller.render.entity_default.third_person";
     const DEFAULT_CONTROLLER = "controller.animation.entity_idle.default";
+    const DEFAULT_ENTITY_PROFILE = {
+        width: 1,
+        height: 2,
+        scale: 1,
+    };
     const CONTROLLER_DATA = getControllerData();
     const CONTROLLER_PRESETS = buildAnimationControllerPresets();
     const RENDER_CONTROLLER_PRESETS = buildRenderControllerPresets();
@@ -325,6 +330,15 @@
             if (!/^[a-z0-9_/-]+$/i.test(entity.resourceSubdir.trim())) {
                 errors.push({ entityId: entity.id, message: `${name} 的资源子目录只允许字母、数字、下划线、短横线、斜杠。` });
             }
+            if (!Number.isFinite(entity.entityProfile.width) || entity.entityProfile.width <= 0) {
+                errors.push({ entityId: entity.id, message: `${name} 的碰撞箱宽度必须大于 0。` });
+            }
+            if (!Number.isFinite(entity.entityProfile.height) || entity.entityProfile.height <= 0) {
+                errors.push({ entityId: entity.id, message: `${name} 的碰撞箱高度必须大于 0。` });
+            }
+            if (!Number.isFinite(entity.entityProfile.scale) || entity.entityProfile.scale <= 0) {
+                errors.push({ entityId: entity.id, message: `${name} 的模型缩放必须大于 0。` });
+            }
             if (!entity.files.texture) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少贴图文件。` });
             }
@@ -502,7 +516,27 @@
         lines.push("  - key: default");
         lines.push(`    name: ${entity.animateController}`);
 
+        if (hasCustomEntityProfile(entity)) {
+            lines.push("  entity_profile:");
+            lines.push("    # 碰撞箱");
+            lines.push(`    width: ${entity.entityProfile.width}`);
+            lines.push(`    height: ${entity.entityProfile.height}`);
+            lines.push("    # 模型缩放");
+            lines.push(`    scale: ${entity.entityProfile.scale}`);
+        }
+
         return lines.join("\n");
+    }
+
+    function hasCustomEntityProfile(entity) {
+        return entity.entityProfile.width !== DEFAULT_ENTITY_PROFILE.width
+            || entity.entityProfile.height !== DEFAULT_ENTITY_PROFILE.height
+            || entity.entityProfile.scale !== DEFAULT_ENTITY_PROFILE.scale;
+    }
+
+    function parseEntityProfileValue(value, fallback) {
+        const parsed = Number.parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
     }
 
     function render() {
@@ -615,7 +649,34 @@
                         </select>
                         <p class="field-hint">动画 key 来自 <code>use_controllers/animation_controllers</code>。</p>
                     </div>
+
                 </div>
+            </section>
+
+            <section class="section-card">
+                <h3>碰撞箱和缩放</h3>
+                ${slots.length ? `
+                    <div class="slot-grid">
+                        ${slots.map((slotName) => `
+                            <div class="field">
+                                <label for="profileWidthInput">碰撞箱宽度</label>
+                                <input id="profileWidthInput" type="number" min="0.01" step="0.1" value="${escapeAttribute(entity.entityProfile.width)}">
+                                <p class="field-hint">默认值为 <code>1</code>，仅在服务端插件配置中使用。</p>
+                            </div>
+                            <div class="field">
+                                <label for="profileHeightInput">碰撞箱高度</label>
+                                <input id="profileHeightInput" type="number" min="0.01" step="0.1" value="${escapeAttribute(entity.entityProfile.height)}">
+                                <p class="field-hint">默认值为 <code>2</code>，仅在服务端插件配置中使用。</p>
+                            </div>
+                            <div class="field">
+                                <label for="profileScaleInput">模型缩放</label>
+                                <input id="profileScaleInput" type="number" min="0.01" step="0.1" value="${escapeAttribute(entity.entityProfile.scale)}">
+                                <p class="field-hint">默认值为 <code>1</code>。</p>
+                            </div>
+                        `).join("")}
+                    </div>
+                ` : '<p class="empty-state"></p>'}
+                ${unusedAnimations.length ? `<div class="chip-row">${unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint"></p>'}
             </section>
 
             <section class="section-card">
@@ -681,6 +742,9 @@
         const resourceSubdirInput = document.getElementById("resourceSubdirInput");
         const renderControllerSelect = document.getElementById("renderControllerSelect");
         const controllerSelect = document.getElementById("controllerSelect");
+        const profileWidthInput = document.getElementById("profileWidthInput");
+        const profileHeightInput = document.getElementById("profileHeightInput");
+        const profileScaleInput = document.getElementById("profileScaleInput");
 
         baseNameInput.addEventListener("input", (event) => {
             const focusState = captureInspectorFocus();
@@ -719,6 +783,27 @@
             render();
         });
 
+        profileWidthInput.addEventListener("input", (event) => {
+            const focusState = captureInspectorFocus();
+            entity.entityProfile.width = parseEntityProfileValue(event.target.value, DEFAULT_ENTITY_PROFILE.width);
+            render();
+            restoreInspectorFocus(focusState);
+        });
+
+        profileHeightInput.addEventListener("input", (event) => {
+            const focusState = captureInspectorFocus();
+            entity.entityProfile.height = parseEntityProfileValue(event.target.value, DEFAULT_ENTITY_PROFILE.height);
+            render();
+            restoreInspectorFocus(focusState);
+        });
+
+        profileScaleInput.addEventListener("input", (event) => {
+            const focusState = captureInspectorFocus();
+            entity.entityProfile.scale = parseEntityProfileValue(event.target.value, DEFAULT_ENTITY_PROFILE.scale);
+            render();
+            restoreInspectorFocus(focusState);
+        });
+
         elements.inspector.querySelectorAll("[data-file-assign]").forEach((button) => {
             button.addEventListener("click", () => {
                 const type = button.dataset.fileAssign;
@@ -755,6 +840,7 @@
             clone.renderController = entity.renderController;
             clone.animateController = entity.animateController;
             clone.controllerManual = entity.controllerManual;
+            clone.entityProfile = { ...entity.entityProfile };
             clone.files = {
                 texture: entity.files.texture ? { ...entity.files.texture } : null,
                 geometry: entity.files.geometry ? { sourceName: entity.files.geometry.sourceName, json: deepClone(entity.files.geometry.json) } : null,
@@ -870,6 +956,7 @@
                 geometry: null,
                 animation: null,
             },
+            entityProfile: { ...DEFAULT_ENTITY_PROFILE },
             animationMappings: {},
         };
     }
@@ -1229,10 +1316,3 @@
         return escapeHtml(value);
     }
 })();
-
-
-
-
-
-
-
