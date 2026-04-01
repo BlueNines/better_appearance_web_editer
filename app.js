@@ -539,6 +539,18 @@
         return Number.isFinite(parsed) ? parsed : fallback;
     }
 
+    function bindEntityProfileInput(input, entity, key, fallback) {
+        input.addEventListener("input", (event) => {
+            entity.entityProfile[key] = parseEntityProfileValue(event.target.value, fallback);
+        });
+
+        input.addEventListener("change", (event) => {
+            entity.entityProfile[key] = parseEntityProfileValue(event.target.value, fallback);
+            event.target.value = String(entity.entityProfile[key]);
+            render();
+        });
+    }
+
     function render() {
         syncSelection();
         renderProjectStatus();
@@ -655,27 +667,23 @@
 
             <section class="section-card">
                 <h3>碰撞箱和缩放</h3>
-                ${slots.length ? `
                     <div class="slot-grid">
-                        ${slots.map((slotName) => `
-                            <div class="field">
-                                <label for="profileWidthInput">碰撞箱宽度</label>
-                                <input id="profileWidthInput" type="number" min="0.01" step="0.1" value="${escapeAttribute(entity.entityProfile.width)}">
-                                <p class="field-hint">默认值为 <code>1</code>，仅在服务端插件配置中使用。</p>
-                            </div>
-                            <div class="field">
-                                <label for="profileHeightInput">碰撞箱高度</label>
-                                <input id="profileHeightInput" type="number" min="0.01" step="0.1" value="${escapeAttribute(entity.entityProfile.height)}">
-                                <p class="field-hint">默认值为 <code>2</code>，仅在服务端插件配置中使用。</p>
-                            </div>
-                            <div class="field">
-                                <label for="profileScaleInput">模型缩放</label>
-                                <input id="profileScaleInput" type="number" min="0.01" step="0.1" value="${escapeAttribute(entity.entityProfile.scale)}">
-                                <p class="field-hint">默认值为 <code>1</code>。</p>
-                            </div>
-                        `).join("")}
+                    <div class="field">
+                                                    <label for="profileWidthInput">碰撞箱宽度</label>
+                                                    <input id="profileWidthInput" type="number" min="0.01" step="any" value="${escapeAttribute(entity.entityProfile.width)}">
+                                                    <p class="field-hint">默认值为 <code>1</code>，支持小数，仅在服务端插件配置中使用。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileHeightInput">碰撞箱高度</label>
+                                                    <input id="profileHeightInput" type="number" min="0.01" step="any" value="${escapeAttribute(entity.entityProfile.height)}">
+                                                    <p class="field-hint">默认值为 <code>2</code>，支持小数，仅在服务端插件配置中使用。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileScaleInput">模型缩放</label>
+                                                    <input id="profileScaleInput" type="number" min="0.01" step="any" value="${escapeAttribute(entity.entityProfile.scale)}">
+                                                    <p class="field-hint">默认值为 <code>1</code>，支持小数。</p>
+                                                </div>
                     </div>
-                ` : '<p class="empty-state"></p>'}
                 ${unusedAnimations.length ? `<div class="chip-row">${unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint"></p>'}
             </section>
 
@@ -783,26 +791,9 @@
             render();
         });
 
-        profileWidthInput.addEventListener("input", (event) => {
-            const focusState = captureInspectorFocus();
-            entity.entityProfile.width = parseEntityProfileValue(event.target.value, DEFAULT_ENTITY_PROFILE.width);
-            render();
-            restoreInspectorFocus(focusState);
-        });
-
-        profileHeightInput.addEventListener("input", (event) => {
-            const focusState = captureInspectorFocus();
-            entity.entityProfile.height = parseEntityProfileValue(event.target.value, DEFAULT_ENTITY_PROFILE.height);
-            render();
-            restoreInspectorFocus(focusState);
-        });
-
-        profileScaleInput.addEventListener("input", (event) => {
-            const focusState = captureInspectorFocus();
-            entity.entityProfile.scale = parseEntityProfileValue(event.target.value, DEFAULT_ENTITY_PROFILE.scale);
-            render();
-            restoreInspectorFocus(focusState);
-        });
+        bindEntityProfileInput(profileWidthInput, entity, "width", DEFAULT_ENTITY_PROFILE.width);
+        bindEntityProfileInput(profileHeightInput, entity, "height", DEFAULT_ENTITY_PROFILE.height);
+        bindEntityProfileInput(profileScaleInput, entity, "scale", DEFAULT_ENTITY_PROFILE.scale);
 
         elements.inspector.querySelectorAll("[data-file-assign]").forEach((button) => {
             button.addEventListener("click", () => {
