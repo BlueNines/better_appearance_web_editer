@@ -14,6 +14,8 @@
         height: 2,
         scale: 1,
     };
+    const ANIMATION_TRACK_NAMES = ["scale", "position", "rotation"];
+    const TIME_EPSILON = 1e-6;
     const CONTROLLER_DATA = getControllerData();
     const CONTROLLER_PRESETS = buildAnimationControllerPresets();
     const RENDER_CONTROLLER_PRESETS = buildRenderControllerPresets();
@@ -406,7 +408,100 @@
         if (!baseJson.format_version) {
             baseJson.format_version = "1.8.0";
         }
+        padAnimationTracksToTail(baseJson);
         return baseJson;
+    }
+
+    function padAnimationTracksToTail(animationJson) {
+        const animations = animationJson && animationJson.animations;
+        if (!animations || typeof animations !== "object") {
+            return;
+        }
+
+        Object.values(animations).forEach((animationBody) => {
+            if (!animationBody || typeof animationBody !== "object") {
+                return;
+            }
+
+            const animationLength = animationBody.animation_length;
+            if (typeof animationLength !== "number" || !Number.isFinite(animationLength)) {
+                return;
+            }
+
+            const bones = animationBody.bones;
+            if (!bones || typeof bones !== "object") {
+                return;
+            }
+
+            Object.values(bones).forEach((boneBody) => {
+                if (!boneBody || typeof boneBody !== "object") {
+                    return;
+                }
+
+                ANIMATION_TRACK_NAMES.forEach((trackName) => {
+                    const channel = boneBody[trackName];
+                    if (!isKeyframedAnimationChannel(channel)) {
+                        return;
+                    }
+
+                    const frames = getNumericKeyframes(channel);
+                    if (!frames.length) {
+                        return;
+                    }
+
+                    const lastFrame = frames[frames.length - 1];
+                    if (Math.abs(lastFrame.time - animationLength) <= TIME_EPSILON || lastFrame.time > animationLength) {
+                        return;
+                    }
+
+                    const finalKey = formatAnimationTimeKey(animationLength, frames.map((frame) => frame.key));
+                    channel[finalKey] = deepClone(channel[lastFrame.key]);
+                });
+            });
+        });
+    }
+
+    function isKeyframedAnimationChannel(channel) {
+        if (!channel || typeof channel !== "object" || Array.isArray(channel)) {
+            return false;
+        }
+
+        return Object.keys(channel).some((key) => isNumericTimeKey(key));
+    }
+
+    function getNumericKeyframes(channel) {
+        return Object.keys(channel)
+            .filter((key) => isNumericTimeKey(key))
+            .map((key) => ({ time: Number.parseFloat(key), key }))
+            .sort((left, right) => left.time - right.time);
+    }
+
+    function isNumericTimeKey(value) {
+        if (typeof value !== "string" && typeof value !== "number") {
+            return false;
+        }
+
+        const text = String(value).trim();
+        if (!text) {
+            return false;
+        }
+
+        const parsed = Number(text);
+        return Number.isFinite(parsed);
+    }
+
+    function formatAnimationTimeKey(animationLength, existingKeys) {
+        const hasDecimalKey = existingKeys.some((key) => String(key).includes("."));
+        if (Math.abs(animationLength - Math.round(animationLength)) <= TIME_EPSILON) {
+            const rounded = Math.round(animationLength);
+            return hasDecimalKey ? `${rounded}.0` : String(rounded);
+        }
+
+        let text = animationLength.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+        if (!text.includes(".") && hasDecimalKey) {
+            text += ".0";
+        }
+        return text;
     }
 
     function createEntityJson(entity) {
