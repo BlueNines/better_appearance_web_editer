@@ -391,6 +391,10 @@ select {
     gap: 10px;
 }
 
+.field.field-wide {
+    grid-column: 1 / -1;
+}
+
 .field label {
     font-weight: 700;
 }
@@ -404,6 +408,43 @@ select {
     border: 1px solid rgba(22, 50, 39, 0.14);
     background: rgba(255, 255, 255, 0.92);
     color: var(--text);
+}
+
+.color-editor,
+.alpha-editor {
+    display: grid;
+    gap: 10px;
+}
+
+.color-editor-main {
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 10px;
+    align-items: stretch;
+}
+
+.color-picker-input {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    padding: 4px;
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+.alpha-editor {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+}
+
+.alpha-label {
+    font-size: 0.84rem;
+    color: var(--text-soft);
+    white-space: nowrap;
+}
+
+.alpha-input {
+    width: 100%;
 }
 
 .section-card,
@@ -506,7 +547,9 @@ select {
     .hero,
     .status-strip,
     .form-grid,
-    .slot-grid {
+    .slot-grid,
+    .color-editor-main,
+    .alpha-editor {
         grid-template-columns: 1fr;
     }
 

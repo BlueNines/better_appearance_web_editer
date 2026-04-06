@@ -14,6 +14,15 @@
         height: 2,
         scale: 1,
     };
+    const DEFAULT_TITLE_PROFILE = {
+        text: "",
+        textColor: "1.0,1.0,1.0,1.0",
+        backgroundColor: "0,0,0,0.33",
+        offset: "0.0,0.6,0.0",
+        rotation: "0.0,0.0,0.0",
+        scale: "1.5",
+        depthTest: true,
+    };
     const ANIMATION_TRACK_NAMES = ["scale", "position", "rotation"];
     const TIME_EPSILON = 1e-6;
     const CONTROLLER_DATA = getControllerData();
@@ -611,8 +620,24 @@
         lines.push("  - key: default");
         lines.push(`    name: ${entity.animateController}`);
 
-        if (hasCustomEntityProfile(entity)) {
+        const entityProfileLines = buildEntityProfileLines(entity);
+        if (entityProfileLines.length) {
             lines.push("  entity_profile:");
+            entityProfileLines.forEach((line) => lines.push(line));
+        }
+
+        return lines.join("\n");
+    }
+
+    /**
+     * 只组装需要导出的实体服务端 profile 字段，避免把空标题或无效字段写进 yml。
+     */
+    function buildEntityProfileLines(entity) {
+        const lines = [];
+        const titleProfile = getEntityTitleProfile(entity);
+        const changedTitleEntries = getChangedTitleProfileEntries(titleProfile);
+
+        if (hasCustomNumericEntityProfile(entity)) {
             lines.push("    # 碰撞箱");
             lines.push(`    width: ${entity.entityProfile.width}`);
             lines.push(`    height: ${entity.entityProfile.height}`);
@@ -620,18 +645,110 @@
             lines.push(`    scale: ${entity.entityProfile.scale}`);
         }
 
-        return lines.join("\n");
+        if (hasEntityTitleProfile(entity) && changedTitleEntries.length) {
+            lines.push("    title:");
+            changedTitleEntries.forEach((entry) => {
+                lines.push(`      ${entry.key}: ${entry.value}`);
+            });
+        }
+
+        return lines;
     }
 
-    function hasCustomEntityProfile(entity) {
+    /**
+     * 标题 profile 采用“按默认值导出差异”的策略，避免把默认参数重复写进 yml。
+     */
+    function getChangedTitleProfileEntries(titleProfile) {
+        const entries = [];
+
+        if (isTitleTextChanged(titleProfile.text)) {
+            entries.push({ key: "text", value: quoteYamlString(titleProfile.text) });
+        }
+        if (isNormalizedTitleFieldChanged(titleProfile.textColor, DEFAULT_TITLE_PROFILE.textColor, normalizeTitleColorValue)) {
+            entries.push({ key: "textColor", value: quoteYamlString(titleProfile.textColor) });
+        }
+        if (isNormalizedTitleFieldChanged(titleProfile.backgroundColor, DEFAULT_TITLE_PROFILE.backgroundColor, normalizeTitleColorValue)) {
+            entries.push({ key: "backgroundColor", value: quoteYamlString(titleProfile.backgroundColor) });
+        }
+        if (isNormalizedTitleFieldChanged(titleProfile.offset, DEFAULT_TITLE_PROFILE.offset, normalizeTitleVector3Value)) {
+            entries.push({ key: "offset", value: quoteYamlString(titleProfile.offset) });
+        }
+        if (isNormalizedTitleFieldChanged(titleProfile.rotation, DEFAULT_TITLE_PROFILE.rotation, normalizeTitleVector3Value)) {
+            entries.push({ key: "rotation", value: quoteYamlString(titleProfile.rotation) });
+        }
+        if (isNormalizedTitleFieldChanged(titleProfile.scale, DEFAULT_TITLE_PROFILE.scale, normalizeTitleBoardScaleValue)) {
+            entries.push({ key: "scale", value: quoteYamlString(titleProfile.scale) });
+        }
+        if (isNormalizedTitleDepthTestChanged(titleProfile.depthTest)) {
+            entries.push({ key: "depthTest", value: String(Boolean(titleProfile.depthTest)) });
+        }
+
+        return entries;
+    }
+
+    /**
+     * 保持旧逻辑：只要碰撞箱或模型缩放有任意一个被改过，就一起导出三项基础数值。
+     */
+    function hasCustomNumericEntityProfile(entity) {
         return entity.entityProfile.width !== DEFAULT_ENTITY_PROFILE.width
             || entity.entityProfile.height !== DEFAULT_ENTITY_PROFILE.height
             || entity.entityProfile.scale !== DEFAULT_ENTITY_PROFILE.scale;
     }
 
+    /**
+     * 标题只在存在文本时才导出，和服务端解析逻辑保持一致。
+     */
+    function hasEntityTitleProfile(entity) {
+        const titleProfile = getEntityTitleProfile(entity);
+        return isTitleTextChanged(titleProfile.text);
+    }
+
+    /**
+     * 标题文本是 title 块的锚点，仍然必须非空。
+     */
+    function isTitleTextChanged(value) {
+        const text = normalizeTitleTextValue(value);
+        return text !== normalizeTitleTextValue(DEFAULT_TITLE_PROFILE.text);
+    }
+
+    /**
+     * 普通字符串字段走“规范化后比较”的逻辑，兼容 0 和 0.0 这种等价写法。
+     */
+    function isNormalizedTitleFieldChanged(currentValue, defaultValue, normalizer) {
+        const current = normalizer(currentValue);
+        const fallback = normalizer(defaultValue);
+        if (!current) {
+            return false;
+        }
+        return current !== fallback;
+    }
+
+    /**
+     * `depthTest` 默认是 true；null 视为“使用默认值”，因此不参与导出。
+     */
+    function isNormalizedTitleDepthTestChanged(value) {
+        if (value == null) {
+            return false;
+        }
+        return Boolean(value) !== DEFAULT_TITLE_PROFILE.depthTest;
+    }
+
     function parseEntityProfileValue(value, fallback) {
         const parsed = Number.parseFloat(value);
         return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    /**
+     * 把标题深度测试下拉框的值转成三态布尔。
+     */
+    function parseOptionalBoolean(value) {
+        if (value === "true") {
+            return true;
+        }
+        if (value === "false") {
+            return false;
+        }
+        return null;
     }
 
     function bindEntityProfileInput(input, entity, key, fallback) {
@@ -642,6 +759,30 @@
         input.addEventListener("change", (event) => {
             entity.entityProfile[key] = parseEntityProfileValue(event.target.value, fallback);
             event.target.value = String(entity.entityProfile[key]);
+            render();
+        });
+    }
+
+    /**
+     * 绑定标题 profile 的普通文本输入框。
+     */
+    function bindTitleProfileInput(input, entity, key) {
+        input.addEventListener("input", (event) => {
+            getEntityTitleProfile(entity)[key] = event.target.value;
+        });
+
+        input.addEventListener("change", (event) => {
+            getEntityTitleProfile(entity)[key] = event.target.value;
+            render();
+        });
+    }
+
+    /**
+     * 绑定标题 profile 的深度测试下拉框。
+     */
+    function bindTitleDepthTestSelect(select, entity) {
+        select.addEventListener("change", (event) => {
+            getEntityTitleProfile(entity).depthTest = parseOptionalBoolean(event.target.value);
             render();
         });
     }
@@ -711,6 +852,14 @@
         elements.inspector.className = "inspector";
         const slots = getControllerSlots(entity.animateController);
         const renderBindings = collectRenderBindings(entity);
+        const titleProfile = getEntityTitleProfile(entity);
+        const titleTextColorState = getColorEditorState(titleProfile.textColor);
+        const titleBackgroundColorState = getColorEditorState(titleProfile.backgroundColor);
+        const titleDepthTestValue = titleProfile.depthTest === true
+            ? "true"
+            : titleProfile.depthTest === false
+                ? "false"
+                : "";
         const availableAnimations = entity.files.animation ? entity.files.animation.animationNames : [];
         const usedAnimationNames = new Set(Object.values(entity.animationMappings).filter(Boolean));
         const unusedAnimations = availableAnimations.filter((name) => !usedAnimationNames.has(name));
@@ -783,6 +932,63 @@
             </section>
 
             <section class="section-card">
+                <h3>头顶标题</h3>
+                <div class="form-grid">
+                    <div class="field field-wide">
+                        <label for="titleTextInput">标题文本</label>
+                        <input id="titleTextInput" type="text" value="${escapeAttribute(titleProfile.text)}" placeholder="例如 松鼠">
+                        <p class="field-hint">默认标题配置只有改动项会导出；标题文本仍然必须非空才会生成 <code>entity_profile.title</code>。</p>
+                    </div>
+
+                    ${renderTitleColorField({
+                        idPrefix: "titleTextColor",
+                        label: "文字颜色",
+                        value: titleProfile.textColor,
+                        placeholder: DEFAULT_TITLE_PROFILE.textColor,
+                        hint: "默认值是白色；可直接用色盘选色，透明度单独调，下方原始 RGBA 仍可手改。",
+                        colorState: titleTextColorState,
+                    })}
+
+                    ${renderTitleColorField({
+                        idPrefix: "titleBackgroundColor",
+                        label: "背景颜色",
+                        value: titleProfile.backgroundColor,
+                        placeholder: DEFAULT_TITLE_PROFILE.backgroundColor,
+                        hint: "默认值是半透明黑底；支持色盘与透明度，只有改动项才会导出。",
+                        colorState: titleBackgroundColorState,
+                    })}
+
+                    <div class="field">
+                        <label for="titleOffsetInput">偏移</label>
+                        <input id="titleOffsetInput" type="text" value="${escapeAttribute(titleProfile.offset)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.offset)}">
+                        <p class="field-hint">XYZ，默认值为 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.offset)}</code>。</p>
+                    </div>
+
+                    <div class="field">
+                        <label for="titleRotationInput">旋转</label>
+                        <input id="titleRotationInput" type="text" value="${escapeAttribute(titleProfile.rotation)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.rotation)}">
+                        <p class="field-hint">XYZ，默认值为 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.rotation)}</code>。</p>
+                    </div>
+
+                    <div class="field">
+                        <label for="titleScaleInput">标题缩放</label>
+                        <input id="titleScaleInput" type="text" value="${escapeAttribute(titleProfile.scale)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.scale)}">
+                        <p class="field-hint">默认值是 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.scale)}</code>。</p>
+                    </div>
+
+                    <div class="field">
+                        <label for="titleDepthTestSelect">深度测试</label>
+                        <select id="titleDepthTestSelect">
+                            <option value="" ${titleDepthTestValue === "" ? "selected" : ""}>使用默认值（true）</option>
+                            <option value="true" ${titleDepthTestValue === "true" ? "selected" : ""}>true</option>
+                            <option value="false" ${titleDepthTestValue === "false" ? "selected" : ""}>false</option>
+                        </select>
+                        <p class="field-hint">默认值为 <code>true</code>，只有改成 <code>false</code> 才会导出。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section-card">
                 <h3>动作槽位映射</h3>
                 ${slots.length ? `
                     <div class="slot-grid">
@@ -848,6 +1054,17 @@
         const profileWidthInput = document.getElementById("profileWidthInput");
         const profileHeightInput = document.getElementById("profileHeightInput");
         const profileScaleInput = document.getElementById("profileScaleInput");
+        const titleTextInput = document.getElementById("titleTextInput");
+        const titleTextColorInput = document.getElementById("titleTextColorInput");
+        const titleTextColorPicker = document.getElementById("titleTextColorPicker");
+        const titleTextColorAlphaInput = document.getElementById("titleTextColorAlphaInput");
+        const titleBackgroundColorInput = document.getElementById("titleBackgroundColorInput");
+        const titleBackgroundColorPicker = document.getElementById("titleBackgroundColorPicker");
+        const titleBackgroundColorAlphaInput = document.getElementById("titleBackgroundColorAlphaInput");
+        const titleOffsetInput = document.getElementById("titleOffsetInput");
+        const titleRotationInput = document.getElementById("titleRotationInput");
+        const titleScaleInput = document.getElementById("titleScaleInput");
+        const titleDepthTestSelect = document.getElementById("titleDepthTestSelect");
 
         baseNameInput.addEventListener("input", (event) => {
             const focusState = captureInspectorFocus();
@@ -889,6 +1106,13 @@
         bindEntityProfileInput(profileWidthInput, entity, "width", DEFAULT_ENTITY_PROFILE.width);
         bindEntityProfileInput(profileHeightInput, entity, "height", DEFAULT_ENTITY_PROFILE.height);
         bindEntityProfileInput(profileScaleInput, entity, "scale", DEFAULT_ENTITY_PROFILE.scale);
+        bindTitleProfileInput(titleTextInput, entity, "text");
+        bindTitleColorEditor(entity, "textColor", titleTextColorInput, titleTextColorPicker, titleTextColorAlphaInput);
+        bindTitleColorEditor(entity, "backgroundColor", titleBackgroundColorInput, titleBackgroundColorPicker, titleBackgroundColorAlphaInput);
+        bindTitleProfileInput(titleOffsetInput, entity, "offset");
+        bindTitleProfileInput(titleRotationInput, entity, "rotation");
+        bindTitleProfileInput(titleScaleInput, entity, "scale");
+        bindTitleDepthTestSelect(titleDepthTestSelect, entity);
 
         elements.inspector.querySelectorAll("[data-file-assign]").forEach((button) => {
             button.addEventListener("click", () => {
@@ -926,7 +1150,12 @@
             clone.renderController = entity.renderController;
             clone.animateController = entity.animateController;
             clone.controllerManual = entity.controllerManual;
-            clone.entityProfile = { ...entity.entityProfile };
+            clone.entityProfile = {
+                width: entity.entityProfile.width,
+                height: entity.entityProfile.height,
+                scale: entity.entityProfile.scale,
+                title: { ...getEntityTitleProfile(entity) },
+            };
             clone.files = {
                 texture: entity.files.texture ? { ...entity.files.texture } : null,
                 geometry: entity.files.geometry ? { sourceName: entity.files.geometry.sourceName, json: deepClone(entity.files.geometry.json) } : null,
@@ -968,6 +1197,48 @@
                     ${fileName ? `<button class="button danger" type="button" data-file-remove="${type}">移除</button>` : ""}
                 </div>
             </article>
+        `;
+    }
+
+    /**
+     * 渲染带色盘和透明度的标题颜色输入块，同时保留原始 RGBA 字符串输入。
+     */
+    function renderTitleColorField(options) {
+        return `
+            <div class="field">
+                <label for="${escapeAttribute(options.idPrefix)}Input">${escapeHtml(options.label)}</label>
+                <div class="color-editor">
+                    <div class="color-editor-main">
+                        <input
+                            id="${escapeAttribute(options.idPrefix)}Picker"
+                            class="color-picker-input"
+                            type="color"
+                            value="${escapeAttribute(options.colorState.hex)}"
+                            aria-label="${escapeAttribute(options.label)}色盘"
+                        >
+                        <div class="alpha-editor">
+                            <span class="alpha-label">透明度</span>
+                            <input
+                                id="${escapeAttribute(options.idPrefix)}AlphaInput"
+                                class="alpha-input"
+                                type="number"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value="${escapeAttribute(options.colorState.alpha)}"
+                                placeholder="1.0"
+                            >
+                        </div>
+                    </div>
+                    <input
+                        id="${escapeAttribute(options.idPrefix)}Input"
+                        type="text"
+                        value="${escapeAttribute(options.value)}"
+                        placeholder="${escapeAttribute(options.placeholder)}"
+                    >
+                </div>
+                <p class="field-hint">${options.hint}</p>
+            </div>
         `;
     }
 
@@ -1042,8 +1313,27 @@
                 geometry: null,
                 animation: null,
             },
-            entityProfile: { ...DEFAULT_ENTITY_PROFILE },
+            entityProfile: createDefaultEntityProfile(),
             animationMappings: {},
+        };
+    }
+
+    /**
+     * 创建默认的标题配置，避免多个实体共享同一份引用。
+     */
+    function createDefaultTitleProfile() {
+        return {
+            ...DEFAULT_TITLE_PROFILE,
+        };
+    }
+
+    /**
+     * 创建默认的服务端实体 profile。
+     */
+    function createDefaultEntityProfile() {
+        return {
+            ...DEFAULT_ENTITY_PROFILE,
+            title: createDefaultTitleProfile(),
         };
     }
 
@@ -1368,6 +1658,275 @@
         state.messages = state.messages.slice(0, 8);
     }
 
+    /**
+     * 绑定标题颜色编辑器，让色盘、透明度和原始 RGBA 文本始终保持同步。
+     */
+    function bindTitleColorEditor(entity, key, textInput, colorInput, alphaInput) {
+        if (!textInput || !colorInput || !alphaInput) {
+            return;
+        }
+
+        textInput.addEventListener("input", (event) => {
+            getEntityTitleProfile(entity)[key] = event.target.value;
+            syncTitleColorControls(textInput, colorInput, alphaInput);
+        });
+
+        textInput.addEventListener("change", (event) => {
+            getEntityTitleProfile(entity)[key] = event.target.value;
+            syncTitleColorControls(textInput, colorInput, alphaInput);
+            render();
+        });
+
+        colorInput.addEventListener("input", () => {
+            applyColorEditorValue(entity, key, textInput, colorInput, alphaInput);
+        });
+
+        colorInput.addEventListener("change", () => {
+            applyColorEditorValue(entity, key, textInput, colorInput, alphaInput);
+            render();
+        });
+
+        alphaInput.addEventListener("input", () => {
+            applyColorEditorValue(entity, key, textInput, colorInput, alphaInput);
+        });
+
+        alphaInput.addEventListener("change", (event) => {
+            event.target.value = formatColorUnit(parseColorAlpha(event.target.value, 1));
+            applyColorEditorValue(entity, key, textInput, colorInput, alphaInput);
+            render();
+        });
+
+        syncTitleColorControls(textInput, colorInput, alphaInput);
+    }
+
+    /**
+     * 用当前色盘和透明度生成规范的 RGBA 字符串，并回写到实体配置。
+     */
+    function applyColorEditorValue(entity, key, textInput, colorInput, alphaInput) {
+        const alphaValue = parseColorAlpha(alphaInput.value, 1);
+        const colorText = composeNormalizedRgbaColorFromHex(colorInput.value, alphaValue);
+        getEntityTitleProfile(entity)[key] = colorText;
+        textInput.value = colorText;
+        alphaInput.value = formatColorUnit(alphaValue);
+    }
+
+    /**
+     * 当用户直接编辑 RGBA 文本时，尽量把合法值同步回色盘和透明度控件。
+     */
+    function syncTitleColorControls(textInput, colorInput, alphaInput) {
+        const colorState = getColorEditorState(textInput.value);
+        colorInput.value = colorState.hex;
+        alphaInput.value = colorState.alpha;
+    }
+
+    /**
+     * 把 RGBA 文本解析成色盘和透明度控件可直接使用的值。
+     */
+    function getColorEditorState(value) {
+        const parsed = parseNormalizedRgbaColor(value);
+        if (!parsed) {
+            return {
+                hex: "#ffffff",
+                alpha: "1.0",
+            };
+        }
+
+        return {
+            hex: rgbUnitsToHex(parsed.red, parsed.green, parsed.blue),
+            alpha: formatColorUnit(parsed.alpha),
+        };
+    }
+
+    /**
+     * 解析 0..1 范围内的 RGBA 文本；缺少 alpha 时默认补 1。
+     */
+    function parseNormalizedRgbaColor(value) {
+        if (typeof value !== "string") {
+            return null;
+        }
+
+        const parts = value.split(",").map((item) => item.trim()).filter(Boolean);
+        if (parts.length < 3) {
+            return null;
+        }
+
+        const red = Number.parseFloat(parts[0]);
+        const green = Number.parseFloat(parts[1]);
+        const blue = Number.parseFloat(parts[2]);
+        const alpha = parts.length >= 4 ? Number.parseFloat(parts[3]) : 1;
+        if (![red, green, blue, alpha].every((item) => Number.isFinite(item))) {
+            return null;
+        }
+
+        return {
+            red: clampColorUnit(red),
+            green: clampColorUnit(green),
+            blue: clampColorUnit(blue),
+            alpha: clampColorUnit(alpha),
+        };
+    }
+
+    /**
+     * 把十六进制色值和透明度合成为插件需要的 RGBA 浮点字符串。
+     */
+    function composeNormalizedRgbaColorFromHex(hexColor, alphaValue) {
+        const rgb = hexToRgbUnits(hexColor);
+        return [
+            formatColorUnit(rgb.red),
+            formatColorUnit(rgb.green),
+            formatColorUnit(rgb.blue),
+            formatColorUnit(alphaValue),
+        ].join(",");
+    }
+
+    /**
+     * 解析透明度输入，保证始终落在 0..1 范围内。
+     */
+    function parseColorAlpha(value, fallback) {
+        const parsed = Number.parseFloat(value);
+        if (!Number.isFinite(parsed)) {
+            return fallback;
+        }
+        return clampColorUnit(parsed);
+    }
+
+    /**
+     * 把 0..1 的 RGB 三通道转成 `<input type="color">` 需要的十六进制格式。
+     */
+    function rgbUnitsToHex(red, green, blue) {
+        const channels = [red, green, blue].map((value) => {
+            const numeric = Math.round(clampColorUnit(value) * 255);
+            return numeric.toString(16).padStart(2, "0");
+        });
+        return `#${channels.join("")}`;
+    }
+
+    /**
+     * 把十六进制颜色转成 0..1 范围内的 RGB 浮点值。
+     */
+    function hexToRgbUnits(hexColor) {
+        const normalized = typeof hexColor === "string"
+            ? hexColor.trim().replace("#", "")
+            : "";
+        const hex = normalized.length === 6 ? normalized : "ffffff";
+        return {
+            red: Number.parseInt(hex.slice(0, 2), 16) / 255,
+            green: Number.parseInt(hex.slice(2, 4), 16) / 255,
+            blue: Number.parseInt(hex.slice(4, 6), 16) / 255,
+        };
+    }
+
+    /**
+     * 统一裁剪颜色分量，避免超出 0..1 范围。
+     */
+    function clampColorUnit(value) {
+        if (!Number.isFinite(value)) {
+            return 0;
+        }
+        return Math.min(1, Math.max(0, value));
+    }
+
+    /**
+     * 标题文本比较只看去首尾空白后的结果。
+     */
+    function normalizeTitleTextValue(value) {
+        if (typeof value !== "string") {
+            return "";
+        }
+        return value.trim();
+    }
+
+    /**
+     * 颜色字段比较时做 RGBA 规范化，避免 `0` 和 `0.0` 被误判成不同。
+     */
+    function normalizeTitleColorValue(value) {
+        const parsed = parseNormalizedRgbaColor(value);
+        if (!parsed) {
+            return normalizeTitleTextValue(value);
+        }
+        return [
+            formatColorUnit(parsed.red),
+            formatColorUnit(parsed.green),
+            formatColorUnit(parsed.blue),
+            formatColorUnit(parsed.alpha),
+        ].join(",");
+    }
+
+    /**
+     * XYZ 向量字段统一按三个浮点数规范化。
+     */
+    function normalizeTitleVector3Value(value) {
+        return normalizeNumericTupleValue(value, 3, false);
+    }
+
+    /**
+     * 标题缩放支持单个数字或两个数字，单个数字会展开成 `x,x` 再比较。
+     */
+    function normalizeTitleBoardScaleValue(value) {
+        return normalizeNumericTupleValue(value, 2, true);
+    }
+
+    /**
+     * 把逗号/空格分隔的数值串规范成稳定格式，供“是否改动”判断使用。
+     */
+    function normalizeNumericTupleValue(value, size, duplicateSingleValue) {
+        if (typeof value !== "string") {
+            return "";
+        }
+
+        const sanitized = value.trim().replaceAll("(", "").replaceAll(")", "");
+        if (!sanitized) {
+            return "";
+        }
+
+        const parts = sanitized.split(/[\s,]+/).filter(Boolean);
+        if (duplicateSingleValue && parts.length === 1) {
+            const singleNumber = Number.parseFloat(parts[0]);
+            if (!Number.isFinite(singleNumber)) {
+                return sanitized;
+            }
+            const normalized = formatLooseNumber(singleNumber);
+            return `${normalized},${normalized}`;
+        }
+
+        if (parts.length !== size) {
+            return sanitized;
+        }
+
+        const numbers = parts.map((part) => Number.parseFloat(part));
+        if (!numbers.every((item) => Number.isFinite(item))) {
+            return sanitized;
+        }
+
+        return numbers.map((item) => formatLooseNumber(item)).join(",");
+    }
+
+    /**
+     * 非颜色数值不做夹取，只做稳定格式化。
+     */
+    function formatLooseNumber(value) {
+        if (!Number.isFinite(value)) {
+            return "0.0";
+        }
+        let text = value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+        if (!text.includes(".")) {
+            text += ".0";
+        }
+        return text;
+    }
+
+    /**
+     * 颜色分量统一格式化为最多四位小数，同时保留至少一位小数。
+     */
+    function formatColorUnit(value) {
+        const normalized = clampColorUnit(value);
+        let text = normalized.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+        if (!text.includes(".")) {
+            text += ".0";
+        }
+        return text;
+    }
+
     function setStatus(text) {
         elements.statusText.textContent = text;
     }
@@ -1387,6 +1946,27 @@
 
     function deepClone(value) {
         return JSON.parse(JSON.stringify(value));
+    }
+
+    /**
+     * 确保实体始终持有完整的标题配置，兼容旧数据结构和复制逻辑。
+     */
+    function getEntityTitleProfile(entity) {
+        if (!entity.entityProfile) {
+            entity.entityProfile = createDefaultEntityProfile();
+        }
+        entity.entityProfile.title = {
+            ...createDefaultTitleProfile(),
+            ...(entity.entityProfile.title || {}),
+        };
+        return entity.entityProfile.title;
+    }
+
+    /**
+     * 用 JSON 字符串格式输出 YAML 字符串，足够覆盖当前标题字段的转义需求。
+     */
+    function quoteYamlString(value) {
+        return JSON.stringify(String(value));
     }
 
     function escapeHtml(value) {
