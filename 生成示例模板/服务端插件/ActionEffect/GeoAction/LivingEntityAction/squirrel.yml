@@ -17,7 +17,15 @@ squirrel:
   animate_controller:
   - key: default
     name: controller.animation.entity_idle_walk.default
+  # entity_profile 是服务端默认 profile。
+  # MythicMobs 显式传参时会优先覆盖这里，例如：
+  # peba_injectionConfig{id=squirrel;hbv=false;bbv=true;chc=20;force=true;w=1.2;h=1.0;s=1.0}
+  # 如果技能里没有显式写某个字段，则回退到这里的默认值。
   entity_profile:
+    healthBarVisible: true
+    bossBarVisible: false
+    currentHealthCount: 10000
+    force: true
     width: 1.2
     height: 1.0
     scale: 1.0

@@ -13,6 +13,10 @@
         width: 1,
         height: 2,
         scale: 1,
+        healthBarVisible: true,
+        bossBarVisible: false,
+        currentHealthCount: 10000,
+        force: true,
     };
     const DEFAULT_TITLE_PROFILE = {
         text: "",
@@ -329,6 +333,7 @@
         const errors = [];
         for (const entity of state.entities) {
             const name = entity.baseName || "未命名实体";
+            const entityProfile = getEntityProfile(entity);
             if (!entity.baseName.trim()) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少实体基础名。` });
             }
@@ -341,14 +346,17 @@
             if (!/^[a-z0-9_/-]+$/i.test(entity.resourceSubdir.trim())) {
                 errors.push({ entityId: entity.id, message: `${name} 的资源子目录只允许字母、数字、下划线、短横线、斜杠。` });
             }
-            if (!Number.isFinite(entity.entityProfile.width) || entity.entityProfile.width <= 0) {
+            if (!Number.isFinite(entityProfile.width) || entityProfile.width <= 0) {
                 errors.push({ entityId: entity.id, message: `${name} 的碰撞箱宽度必须大于 0。` });
             }
-            if (!Number.isFinite(entity.entityProfile.height) || entity.entityProfile.height <= 0) {
+            if (!Number.isFinite(entityProfile.height) || entityProfile.height <= 0) {
                 errors.push({ entityId: entity.id, message: `${name} 的碰撞箱高度必须大于 0。` });
             }
-            if (!Number.isFinite(entity.entityProfile.scale) || entity.entityProfile.scale <= 0) {
+            if (!Number.isFinite(entityProfile.scale) || entityProfile.scale <= 0) {
                 errors.push({ entityId: entity.id, message: `${name} 的模型缩放必须大于 0。` });
+            }
+            if (!Number.isInteger(entityProfile.currentHealthCount) || entityProfile.currentHealthCount < 100) {
+                errors.push({ entityId: entity.id, message: `${name} 的当前血条段数必须是大于等于 100 的整数。` });
             }
             if (!entity.files.texture) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少贴图文件。` });
@@ -634,15 +642,24 @@
      */
     function buildEntityProfileLines(entity) {
         const lines = [];
+        const entityProfile = getEntityProfile(entity);
         const titleProfile = getEntityTitleProfile(entity);
         const changedTitleEntries = getChangedTitleProfileEntries(titleProfile);
+        const changedEntityProfileEntries = getChangedExtraEntityProfileEntries(entity);
 
         if (hasCustomNumericEntityProfile(entity)) {
             lines.push("    # 碰撞箱");
-            lines.push(`    width: ${entity.entityProfile.width}`);
-            lines.push(`    height: ${entity.entityProfile.height}`);
+            lines.push(`    width: ${entityProfile.width}`);
+            lines.push(`    height: ${entityProfile.height}`);
             lines.push("    # 模型缩放");
-            lines.push(`    scale: ${entity.entityProfile.scale}`);
+            lines.push(`    scale: ${entityProfile.scale}`);
+        }
+
+        if (changedEntityProfileEntries.length) {
+            lines.push("    # 服务端显示与强制同步");
+            changedEntityProfileEntries.forEach((entry) => {
+                lines.push(`    ${entry.key}: ${entry.value}`);
+            });
         }
 
         if (hasEntityTitleProfile(entity) && changedTitleEntries.length) {
@@ -690,9 +707,31 @@
      * 保持旧逻辑：只要碰撞箱或模型缩放有任意一个被改过，就一起导出三项基础数值。
      */
     function hasCustomNumericEntityProfile(entity) {
-        return entity.entityProfile.width !== DEFAULT_ENTITY_PROFILE.width
-            || entity.entityProfile.height !== DEFAULT_ENTITY_PROFILE.height
-            || entity.entityProfile.scale !== DEFAULT_ENTITY_PROFILE.scale;
+        const entityProfile = getEntityProfile(entity);
+        return entityProfile.width !== DEFAULT_ENTITY_PROFILE.width
+            || entityProfile.height !== DEFAULT_ENTITY_PROFILE.height
+            || entityProfile.scale !== DEFAULT_ENTITY_PROFILE.scale;
+    }
+
+    /**
+     * 只导出偏离默认值的额外服务端 profile 字段，保持 yml 干净。
+     */
+    function getChangedExtraEntityProfileEntries(entity) {
+        const entityProfile = getEntityProfile(entity);
+        const entries = [];
+        if (entityProfile.healthBarVisible !== DEFAULT_ENTITY_PROFILE.healthBarVisible) {
+            entries.push({ key: "healthBarVisible", value: String(Boolean(entityProfile.healthBarVisible)) });
+        }
+        if (entityProfile.bossBarVisible !== DEFAULT_ENTITY_PROFILE.bossBarVisible) {
+            entries.push({ key: "bossBarVisible", value: String(Boolean(entityProfile.bossBarVisible)) });
+        }
+        if (entityProfile.currentHealthCount !== DEFAULT_ENTITY_PROFILE.currentHealthCount) {
+            entries.push({ key: "currentHealthCount", value: String(entityProfile.currentHealthCount) });
+        }
+        if (entityProfile.force !== DEFAULT_ENTITY_PROFILE.force) {
+            entries.push({ key: "force", value: String(Boolean(entityProfile.force)) });
+        }
+        return entries;
     }
 
     /**
@@ -739,6 +778,17 @@
     }
 
     /**
+     * 解析整数 profile 字段，并在回填时强制满足最小值要求。
+     */
+    function parseEntityProfileIntegerValue(value, fallback, minValue) {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isFinite(parsed)) {
+            return fallback;
+        }
+        return Math.max(minValue, parsed);
+    }
+
+    /**
      * 把标题深度测试下拉框的值转成三态布尔。
      */
     function parseOptionalBoolean(value) {
@@ -760,6 +810,31 @@
             entity.entityProfile[key] = parseEntityProfileValue(event.target.value, fallback);
             event.target.value = String(entity.entityProfile[key]);
             render();
+        });
+    }
+
+    /**
+     * 绑定整数型实体 profile 输入框，保证值始终不低于配置要求。
+     */
+    function bindEntityProfileIntegerInput(input, entity, key, fallback, minValue) {
+        input.addEventListener("input", (event) => {
+            entity.entityProfile[key] = parseEntityProfileIntegerValue(event.target.value, fallback, minValue);
+        });
+
+        input.addEventListener("change", (event) => {
+            entity.entityProfile[key] = parseEntityProfileIntegerValue(event.target.value, fallback, minValue);
+            event.target.value = String(entity.entityProfile[key]);
+            render();
+        });
+    }
+
+    /**
+     * 绑定布尔型实体 profile 下拉框，直接同步到当前实体。
+     */
+    function bindEntityProfileBooleanSelect(select, entity, key) {
+        select.addEventListener("change", (event) => {
+            entity.entityProfile[key] = event.target.value === "true";
+            renderOutputPreview();
         });
     }
 
@@ -850,6 +925,7 @@
         }
 
         elements.inspector.className = "inspector";
+        const entityProfile = getEntityProfile(entity);
         const slots = getControllerSlots(entity.animateController);
         const renderBindings = collectRenderBindings(entity);
         const titleProfile = getEntityTitleProfile(entity);
@@ -910,22 +986,51 @@
             </section>
 
             <section class="section-card">
-                <h3>碰撞箱和缩放</h3>
+                <h3>服务端实体 Profile</h3>
                     <div class="slot-grid">
                     <div class="field">
                                                     <label for="profileWidthInput">碰撞箱宽度</label>
-                                                    <input id="profileWidthInput" type="number" min="0.01" step="any" value="${escapeAttribute(entity.entityProfile.width)}">
+                                                    <input id="profileWidthInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.width)}">
                                                     <p class="field-hint">默认值为 <code>1</code>，支持小数，仅在服务端插件配置中使用。</p>
                                                 </div>
                                                 <div class="field">
                                                     <label for="profileHeightInput">碰撞箱高度</label>
-                                                    <input id="profileHeightInput" type="number" min="0.01" step="any" value="${escapeAttribute(entity.entityProfile.height)}">
+                                                    <input id="profileHeightInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.height)}">
                                                     <p class="field-hint">默认值为 <code>2</code>，支持小数，仅在服务端插件配置中使用。</p>
                                                 </div>
                                                 <div class="field">
                                                     <label for="profileScaleInput">模型缩放</label>
-                                                    <input id="profileScaleInput" type="number" min="0.01" step="any" value="${escapeAttribute(entity.entityProfile.scale)}">
+                                                    <input id="profileScaleInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.scale)}">
                                                     <p class="field-hint">默认值为 <code>1</code>，支持小数。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileHealthBarVisibleSelect">显示血条</label>
+                                                    <select id="profileHealthBarVisibleSelect">
+                                                        <option value="true" ${entityProfile.healthBarVisible ? "selected" : ""}>true</option>
+                                                        <option value="false" ${!entityProfile.healthBarVisible ? "selected" : ""}>false</option>
+                                                    </select>
+                                                    <p class="field-hint">默认值为 <code>true</code>，未改动时不会导出。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileBossBarVisibleSelect">显示 Boss 血条</label>
+                                                    <select id="profileBossBarVisibleSelect">
+                                                        <option value="true" ${entityProfile.bossBarVisible ? "selected" : ""}>true</option>
+                                                        <option value="false" ${!entityProfile.bossBarVisible ? "selected" : ""}>false</option>
+                                                    </select>
+                                                    <p class="field-hint">默认值为 <code>false</code>，未改动时不会导出。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileCurrentHealthCountInput">当前血条段数</label>
+                                                    <input id="profileCurrentHealthCountInput" type="number" min="100" step="1" value="${escapeAttribute(entityProfile.currentHealthCount)}">
+                                                    <p class="field-hint">默认值为 <code>10000</code>，必须是大于等于 <code>100</code> 的整数。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileForceSelect">强制同步 Identifier</label>
+                                                    <select id="profileForceSelect">
+                                                        <option value="true" ${entityProfile.force ? "selected" : ""}>true</option>
+                                                        <option value="false" ${!entityProfile.force ? "selected" : ""}>false</option>
+                                                    </select>
+                                                    <p class="field-hint">默认值为 <code>true</code>，未改动时不会导出。</p>
                                                 </div>
                     </div>
                 ${unusedAnimations.length ? `<div class="chip-row">${unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint"></p>'}
@@ -1054,6 +1159,10 @@
         const profileWidthInput = document.getElementById("profileWidthInput");
         const profileHeightInput = document.getElementById("profileHeightInput");
         const profileScaleInput = document.getElementById("profileScaleInput");
+        const profileHealthBarVisibleSelect = document.getElementById("profileHealthBarVisibleSelect");
+        const profileBossBarVisibleSelect = document.getElementById("profileBossBarVisibleSelect");
+        const profileCurrentHealthCountInput = document.getElementById("profileCurrentHealthCountInput");
+        const profileForceSelect = document.getElementById("profileForceSelect");
         const titleTextInput = document.getElementById("titleTextInput");
         const titleTextColorInput = document.getElementById("titleTextColorInput");
         const titleTextColorPicker = document.getElementById("titleTextColorPicker");
@@ -1106,6 +1215,10 @@
         bindEntityProfileInput(profileWidthInput, entity, "width", DEFAULT_ENTITY_PROFILE.width);
         bindEntityProfileInput(profileHeightInput, entity, "height", DEFAULT_ENTITY_PROFILE.height);
         bindEntityProfileInput(profileScaleInput, entity, "scale", DEFAULT_ENTITY_PROFILE.scale);
+        bindEntityProfileBooleanSelect(profileHealthBarVisibleSelect, entity, "healthBarVisible");
+        bindEntityProfileBooleanSelect(profileBossBarVisibleSelect, entity, "bossBarVisible");
+        bindEntityProfileIntegerInput(profileCurrentHealthCountInput, entity, "currentHealthCount", DEFAULT_ENTITY_PROFILE.currentHealthCount, 100);
+        bindEntityProfileBooleanSelect(profileForceSelect, entity, "force");
         bindTitleProfileInput(titleTextInput, entity, "text");
         bindTitleColorEditor(entity, "textColor", titleTextColorInput, titleTextColorPicker, titleTextColorAlphaInput);
         bindTitleColorEditor(entity, "backgroundColor", titleBackgroundColorInput, titleBackgroundColorPicker, titleBackgroundColorAlphaInput);
@@ -1144,6 +1257,7 @@
 
         elements.inspector.querySelector("[data-action='duplicate-entity']").addEventListener("click", () => {
             const clone = createEntity(entity.baseName);
+            const entityProfile = getEntityProfile(entity);
             clone.identifier = entity.identifier;
             clone.identifierMode = entity.identifierMode;
             clone.resourceSubdir = entity.resourceSubdir;
@@ -1151,9 +1265,13 @@
             clone.animateController = entity.animateController;
             clone.controllerManual = entity.controllerManual;
             clone.entityProfile = {
-                width: entity.entityProfile.width,
-                height: entity.entityProfile.height,
-                scale: entity.entityProfile.scale,
+                width: entityProfile.width,
+                height: entityProfile.height,
+                scale: entityProfile.scale,
+                healthBarVisible: entityProfile.healthBarVisible,
+                bossBarVisible: entityProfile.bossBarVisible,
+                currentHealthCount: entityProfile.currentHealthCount,
+                force: entityProfile.force,
                 title: { ...getEntityTitleProfile(entity) },
             };
             clone.files = {
@@ -1949,17 +2067,26 @@
     }
 
     /**
+     * 兼容旧实体数据，确保 service profile 总能拿到完整默认值。
+     */
+    function getEntityProfile(entity) {
+        entity.entityProfile = {
+            ...createDefaultEntityProfile(),
+            ...(entity.entityProfile || {}),
+        };
+        return entity.entityProfile;
+    }
+
+    /**
      * 确保实体始终持有完整的标题配置，兼容旧数据结构和复制逻辑。
      */
     function getEntityTitleProfile(entity) {
-        if (!entity.entityProfile) {
-            entity.entityProfile = createDefaultEntityProfile();
-        }
-        entity.entityProfile.title = {
+        const entityProfile = getEntityProfile(entity);
+        entityProfile.title = {
             ...createDefaultTitleProfile(),
-            ...(entity.entityProfile.title || {}),
+            ...(entityProfile.title || {}),
         };
-        return entity.entityProfile.title;
+        return entityProfile.title;
     }
 
     /**
