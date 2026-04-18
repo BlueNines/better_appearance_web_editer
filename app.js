@@ -9,6 +9,9 @@
     const DEFAULT_SUBDIR = "monster";
     const DEFAULT_RENDER_CONTROLLER = "controller.render.entity_default.third_person";
     const DEFAULT_CONTROLLER = "controller.animation.entity_idle.default";
+    const DEFAULT_ANIMATION_BINDING_KEY = "default";
+    const SYSTEM_SCALE_CONTROLLER_KEY = "scale";
+    const SYSTEM_SCALE_CONTROLLER_NAME = "controller.animation.auto.scale";
     const DEFAULT_ENTITY_PROFILE = {
         width: 1,
         height: 2,
@@ -27,7 +30,7 @@
         scale: "1.5",
         depthTest: true,
     };
-    const ANIMATION_TRACK_NAMES = ["scale", "position", "rotation"];
+    const SCALE_TRACK_NAME = "scale";
     const TIME_EPSILON = 1e-6;
     const CONTROLLER_DATA = getControllerData();
     const CONTROLLER_PRESETS = buildAnimationControllerPresets();
@@ -97,7 +100,7 @@
                 return;
             }
 
-            await assignFileToEntity(entity, file, assignment.type);
+            await assignFileToEntity(entity, file, assignment);
             render();
         });
 
@@ -166,7 +169,7 @@
 
             const preferredEntity = options && options.preferredEntity;
             if (preferredEntity && ["texture", "geometry", "animation"].includes(detected.type)) {
-                await applyRecordToEntity(preferredEntity, detected);
+                await applyRecordToEntity(preferredEntity, detected, null);
                 selectEntity(preferredEntity.id);
                 addMessage(`已将${typeLabel(detected.type)}优先赋予当前选中实体：${preferredEntity.baseName || "未命名实体"}。`, "info");
                 return true;
@@ -179,7 +182,7 @@
                 state.entities.unshift(entity);
             }
 
-            await applyRecordToEntity(entity, detected);
+            await applyRecordToEntity(entity, detected, null);
             selectEntity(entity.id);
             return true;
         } catch (error) {
@@ -188,14 +191,15 @@
         }
     }
 
-    async function assignFileToEntity(entity, file, expectedType) {
+    async function assignFileToEntity(entity, file, assignment) {
         try {
+            const expectedType = assignment && assignment.type;
             const detected = await detectFilePayload(file, expectedType);
             if (!detected) {
                 addMessage(`文件 ${file.name} 与目标类型不匹配。`, "warn");
                 return;
             }
-            await applyRecordToEntity(entity, detected);
+            await applyRecordToEntity(entity, detected, assignment);
             setStatus(`已替换 ${entity.baseName || "未命名实体"} 的${typeLabel(expectedType)}。`);
         } catch (error) {
             addMessage(`替换 ${file.name} 失败：${error.message}`, "error");
@@ -253,21 +257,45 @@
             || (json && typeof json === "object" && json.animations && typeof json.animations === "object");
     }
 
-    async function applyRecordToEntity(entity, detected) {
+    async function applyRecordToEntity(entity, detected, assignment) {
         if (detected.type === "texture") {
-            entity.files.texture = {
-                sourceName: detected.file.name,
-                buffer: detected.buffer,
-            };
+            const resources = getTextureResources(entity);
+            const existing = assignment && assignment.resourceId
+                ? findTextureResource(entity, assignment.resourceId)
+                : null;
+
+            if (existing) {
+                existing.sourceName = detected.file.name;
+                existing.buffer = detected.buffer;
+            } else {
+                resources.push(createTextureResource({
+                    sourceName: detected.file.name,
+                    buffer: detected.buffer,
+                    resourceKey: suggestResourceKey(resources, detected.file.name, "texture"),
+                }));
+            }
+
             addMessage(`已载入贴图：${detected.file.name}`, "info");
             return;
         }
 
         if (detected.type === "geometry") {
-            entity.files.geometry = {
-                sourceName: detected.file.name,
-                json: detected.json,
-            };
+            const resources = getGeometryResources(entity);
+            const existing = assignment && assignment.resourceId
+                ? findGeometryResource(entity, assignment.resourceId)
+                : null;
+
+            if (existing) {
+                existing.sourceName = detected.file.name;
+                existing.json = detected.json;
+            } else {
+                resources.push(createGeometryResource({
+                    sourceName: detected.file.name,
+                    json: detected.json,
+                    resourceKey: suggestResourceKey(resources, detected.file.name, "geometry"),
+                }));
+            }
+
             addMessage(`已载入模型：${detected.file.name}`, "info");
             return;
         }
@@ -278,10 +306,20 @@
                 json: detected.json,
                 animationNames: detected.animationNames,
             };
-            if (!entity.controllerManual) {
-                entity.animateController = recommendController(detected.animationNames);
+            const animationBindings = getAnimationControllerBindings(entity);
+            if (animationBindings.length === 1
+                && animationBindings[0].key === DEFAULT_ANIMATION_BINDING_KEY
+                && animationBindings[0].controller === DEFAULT_CONTROLLER
+                && !hasAnyAnimationMappings(animationBindings[0])) {
+                animationBindings[0].controller = recommendController(detected.animationNames);
             }
-            entity.animationMappings = buildAnimationMappings(entity.files.animation, getControllerSlots(entity.animateController), entity.animationMappings);
+            animationBindings.forEach((binding) => {
+                binding.animationMappings = buildAnimationMappings(
+                    entity.files.animation,
+                    getBindingSlotNames(binding),
+                    binding.animationMappings
+                );
+            });
             addMessage(`已载入动作：${detected.file.name}`, "info");
         }
     }
@@ -307,13 +345,14 @@
         for (const entity of state.entities) {
             const normalized = buildNormalizedPayload(entity);
             const geometryPath = `${ROOT_DIR}/${RESOURCE_ROOT}/models/entity/${entity.resourceSubdir}/${entity.baseName}.geo.json`;
-            const texturePath = `${ROOT_DIR}/${RESOURCE_ROOT}/textures/entity/${entity.resourceSubdir}/${entity.baseName}.png`;
             const animationPath = `${ROOT_DIR}/${RESOURCE_ROOT}/animations/${entity.resourceSubdir}/${entity.baseName}.animation.json`;
             const clientEntityPath = `${ROOT_DIR}/${CLIENT_ENTITY_ROOT}/${entity.baseName}.entity.json`;
             const entityPath = `${ROOT_DIR}/${ENTITY_ROOT}/${entity.baseName}.entity.json`;
             const ymlPath = `${ROOT_DIR}/${SERVER_ROOT}/${entity.baseName}.yml`;
 
-            zip.file(texturePath, entity.files.texture.buffer);
+            normalized.textureFiles.forEach((textureFile) => {
+                zip.file(textureFile.path, textureFile.buffer);
+            });
             zip.file(geometryPath, JSON.stringify(normalized.geometryJson));
             zip.file(animationPath, JSON.stringify(normalized.animationJson));
             zip.file(clientEntityPath, JSON.stringify(normalized.clientEntityJson));
@@ -334,6 +373,9 @@
         for (const entity of state.entities) {
             const name = entity.baseName || "未命名实体";
             const entityProfile = getEntityProfile(entity);
+            const renderControllers = getRenderControllers(entity);
+            const animationBindings = getAnimationControllerBindings(entity);
+            const mergedAnimationData = getMergedAnimationEntries(entity);
             if (!entity.baseName.trim()) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少实体基础名。` });
             }
@@ -358,16 +400,45 @@
             if (!Number.isInteger(entityProfile.currentHealthCount) || entityProfile.currentHealthCount < 100) {
                 errors.push({ entityId: entity.id, message: `${name} 的当前血条段数必须是大于等于 100 的整数。` });
             }
-            if (!entity.files.texture) {
+            if (!getTextureResources(entity).length) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少贴图文件。` });
             }
-            if (!entity.files.geometry) {
+            if (!getGeometryResources(entity).length) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少模型文件。` });
             }
             if (!entity.files.animation) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少动作文件。` });
             }
-            if (entity.files.animation && !Object.values(entity.animationMappings || {}).filter(Boolean).length) {
+            renderControllers.forEach((renderController, index) => {
+                if (!renderController.controller || !String(renderController.controller).trim()) {
+                    errors.push({ entityId: entity.id, message: `${name} 的第 ${index + 1} 个渲染控制器不能为空。` });
+                }
+            });
+            const bindingKeys = new Set();
+            animationBindings.forEach((binding, index) => {
+                const bindingKey = String(binding.key || "").trim();
+                if (!bindingKey) {
+                    errors.push({ entityId: entity.id, message: `${name} 的第 ${index + 1} 个动画控制器绑定 key 不能为空。` });
+                    return;
+                }
+                if (bindingKey === SYSTEM_SCALE_CONTROLLER_KEY) {
+                    errors.push({ entityId: entity.id, message: `${name} 的动画控制器绑定 key 不能使用保留字 scale。` });
+                }
+                if (bindingKeys.has(bindingKey)) {
+                    errors.push({ entityId: entity.id, message: `${name} 的动画控制器绑定 key ${bindingKey} 重复。` });
+                }
+                bindingKeys.add(bindingKey);
+                if (!binding.controller || !String(binding.controller).trim()) {
+                    errors.push({ entityId: entity.id, message: `${name} 的动画控制器绑定 ${bindingKey} 未选择控制器。` });
+                }
+            });
+            mergedAnimationData.conflicts.forEach((conflict) => {
+                errors.push({
+                    entityId: entity.id,
+                    message: `${name} 的动作 key ${conflict.key} 在控制器 ${conflict.firstBindingKey} 和 ${conflict.secondBindingKey} 上映射到了不同动作。`,
+                });
+            });
+            if (entity.files.animation && !mergedAnimationData.entries.length) {
                 errors.push({ entityId: entity.id, message: `${name} 没有可导出的动作槽位映射。` });
             }
         }
@@ -381,31 +452,47 @@
         const renderBindings = collectRenderBindings(entity);
         const entityJson = createEntityJson(entity);
         const clientEntityJson = createClientEntityJson(entity, animateList, renderBindings);
+        const textureFiles = buildTextureExportFiles(entity);
 
         return {
             geometryJson,
             animationJson,
             entityJson,
             clientEntityJson,
+            textureFiles,
             ymlText: createYmlText(entity, animateList, renderBindings),
         };
     }
 
     function normalizeGeometryJson(entity) {
-        const geometryJson = deepClone(entity.files.geometry.json);
-        const geometries = geometryJson["minecraft:geometry"];
-        if (Array.isArray(geometries) && geometries.length) {
+        const geometryResources = getGeometryResources(entity);
+        const mergedGeometries = [];
+        let formatVersion = "1.12.0";
+
+        geometryResources.forEach((resource) => {
+            if (!resource.json || typeof resource.json !== "object") {
+                return;
+            }
+
+            if (resource.json.format_version) {
+                formatVersion = resource.json.format_version;
+            }
+
+            const geometries = Array.isArray(resource.json["minecraft:geometry"])
+                ? deepClone(resource.json["minecraft:geometry"])
+                : [];
+
             geometries.forEach((item, index) => {
                 item.description = item.description || {};
-                if (index === 0) {
-                    item.description.identifier = `geometry.${entity.baseName}`;
-                }
+                item.description.identifier = buildGeometryResourceIdentifier(entity, resource, index);
+                mergedGeometries.push(item);
             });
-        }
-        if (!geometryJson.format_version) {
-            geometryJson.format_version = "1.12.0";
-        }
-        return geometryJson;
+        });
+
+        return {
+            format_version: formatVersion,
+            "minecraft:geometry": mergedGeometries,
+        };
     }
 
     function normalizeAnimationJson(entity) {
@@ -413,23 +500,25 @@
         const renamedAnimations = {};
         const sourceAnimations = entity.files.animation.json.animations || {};
 
-        getControllerSlots(entity.animateController).forEach((slotName) => {
-            const mappedName = entity.animationMappings[slotName];
-            if (!mappedName || !sourceAnimations[mappedName]) {
+        createAnimateList(entity).forEach((entry) => {
+            if (!entry.sourceName || !sourceAnimations[entry.sourceName]) {
                 return;
             }
-            renamedAnimations[`animation.${entity.baseName}.${slotName}`] = deepClone(sourceAnimations[mappedName]);
+            renamedAnimations[entry.name] = deepClone(sourceAnimations[entry.sourceName]);
         });
 
         baseJson.animations = renamedAnimations;
         if (!baseJson.format_version) {
             baseJson.format_version = "1.8.0";
         }
-        padAnimationTracksToTail(baseJson);
+        padScaleTracksToLinearTail(baseJson);
         return baseJson;
     }
 
-    function padAnimationTracksToTail(animationJson) {
+    /**
+     * 只给缩放轨道补一个“线性末尾帧”，避免把 pre/post 这类复杂关键帧整块复制到结尾。
+     */
+    function padScaleTracksToLinearTail(animationJson) {
         const animations = animationJson && animationJson.animations;
         if (!animations || typeof animations !== "object") {
             return;
@@ -455,27 +544,49 @@
                     return;
                 }
 
-                ANIMATION_TRACK_NAMES.forEach((trackName) => {
-                    const channel = boneBody[trackName];
-                    if (!isKeyframedAnimationChannel(channel)) {
-                        return;
-                    }
+                const channel = boneBody[SCALE_TRACK_NAME];
+                if (!isKeyframedAnimationChannel(channel)) {
+                    return;
+                }
 
-                    const frames = getNumericKeyframes(channel);
-                    if (!frames.length) {
-                        return;
-                    }
+                const frames = getNumericKeyframes(channel);
+                if (!frames.length) {
+                    return;
+                }
 
-                    const lastFrame = frames[frames.length - 1];
-                    if (Math.abs(lastFrame.time - animationLength) <= TIME_EPSILON || lastFrame.time > animationLength) {
-                        return;
-                    }
+                const lastFrame = frames[frames.length - 1];
+                if (Math.abs(lastFrame.time - animationLength) <= TIME_EPSILON || lastFrame.time > animationLength) {
+                    return;
+                }
 
-                    const finalKey = formatAnimationTimeKey(animationLength, frames.map((frame) => frame.key));
-                    channel[finalKey] = deepClone(channel[lastFrame.key]);
-                });
+                const linearFrameValue = extractLinearScaleFrameValue(channel[lastFrame.key]);
+                if (!linearFrameValue) {
+                    return;
+                }
+
+                const finalKey = formatAnimationTimeKey(animationLength, frames.map((frame) => frame.key));
+                channel[finalKey] = linearFrameValue;
             });
         });
+    }
+
+    /**
+     * 把缩放关键帧统一提取成普通数组帧；对象帧优先取 post，再退回 pre。
+     */
+    function extractLinearScaleFrameValue(frameValue) {
+        if (Array.isArray(frameValue)) {
+            return deepClone(frameValue);
+        }
+        if (!frameValue || typeof frameValue !== "object") {
+            return null;
+        }
+        if (Array.isArray(frameValue.post)) {
+            return deepClone(frameValue.post);
+        }
+        if (Array.isArray(frameValue.pre)) {
+            return deepClone(frameValue.pre);
+        }
+        return null;
     }
 
     function isKeyframedAnimationChannel(channel) {
@@ -537,7 +648,7 @@
 
     function createClientEntityJson(entity, animateList, renderBindings) {
         const animations = {
-            scale: "animation.entity.auto.scale",
+            [SYSTEM_SCALE_CONTROLLER_KEY]: "animation.entity.auto.scale",
         };
         animateList.forEach((item) => {
             animations[item.key] = item.name;
@@ -549,14 +660,26 @@
         });
 
         const textures = {};
-        renderBindings.textureKeys.forEach((key) => {
-            textures[key] = `textures/entity/${entity.resourceSubdir}/${entity.baseName}`;
+        renderBindings.textureEntries.forEach((entry) => {
+            textures[entry.key] = entry.path;
         });
 
         const geometry = {};
-        renderBindings.geometryKeys.forEach((key) => {
-            geometry[key] = `geometry.${entity.baseName}`;
+        renderBindings.geometryEntries.forEach((entry) => {
+            geometry[entry.key] = entry.identifier;
         });
+
+        const animationControllerList = getAnimationControllerBindings(entity)
+            .map((binding) => ({
+                [binding.key]: binding.controller,
+            }));
+        animationControllerList.push({
+            [SYSTEM_SCALE_CONTROLLER_KEY]: SYSTEM_SCALE_CONTROLLER_NAME,
+        });
+
+        const renderControllerList = getRenderControllers(entity)
+            .map((binding) => binding.controller)
+            .filter(Boolean);
 
         return {
             format_version: "1.8.0",
@@ -567,29 +690,19 @@
                     textures,
                     geometry,
                     animations,
-                    animation_controllers: [
-                        {
-                            default: entity.animateController,
-                        },
-                        {
-                            scale: "controller.animation.auto.scale",
-                        },
-                    ],
-                    render_controllers: [
-                        entity.renderController,
-                    ],
+                    animation_controllers: animationControllerList,
+                    render_controllers: renderControllerList,
                 },
             },
         };
     }
 
     function createAnimateList(entity) {
-        return getControllerSlots(entity.animateController)
-            .filter((slotName) => entity.animationMappings[slotName])
-            .map((slotName) => ({
-                key: slotName,
-                name: `animation.${entity.baseName}.${slotName}`,
-            }));
+        return getMergedAnimationEntries(entity).entries.map((entry) => ({
+            key: entry.key,
+            name: entry.name,
+            sourceName: entry.sourceName,
+        }));
     }
 
     function createYmlText(entity, animateList, renderBindings) {
@@ -599,20 +712,22 @@
             "  geometry:",
         ];
 
-        renderBindings.geometryKeys.forEach((key) => {
-            lines.push(`  - key: ${key}`);
-            lines.push(`    name: geometry.${entity.baseName}`);
+        renderBindings.geometryEntries.forEach((entry) => {
+            lines.push(`  - key: ${entry.key}`);
+            lines.push(`    name: ${entry.identifier}`);
         });
 
         lines.push("  texture:");
-        renderBindings.textureKeys.forEach((key) => {
-            lines.push(`  - key: ${key}`);
-            lines.push(`    name: textures/entity/${entity.resourceSubdir}/${entity.baseName}`);
+        renderBindings.textureEntries.forEach((entry) => {
+            lines.push(`  - key: ${entry.key}`);
+            lines.push(`    name: ${entry.path}`);
         });
 
         lines.push("  render:");
-        lines.push(`  - controller: ${entity.renderController}`);
-        lines.push("    condition: ''");
+        getRenderControllers(entity).forEach((binding) => {
+            lines.push(`  - controller: ${binding.controller}`);
+            lines.push(`    condition: ${quoteYamlString(binding.condition || "")}`);
+        });
         lines.push("  animate:");
 
         if (animateList.length) {
@@ -625,8 +740,10 @@
         }
 
         lines.push("  animate_controller:");
-        lines.push("  - key: default");
-        lines.push(`    name: ${entity.animateController}`);
+        getAnimationControllerBindings(entity).forEach((binding) => {
+            lines.push(`  - key: ${binding.key}`);
+            lines.push(`    name: ${binding.controller}`);
+        });
 
         const entityProfileLines = buildEntityProfileLines(entity);
         if (entityProfileLines.length) {
@@ -885,9 +1002,11 @@
         elements.entityList.innerHTML = state.entities.map((entity) => {
             const isSelected = entity.id === state.selectedEntityId;
             const title = entity.baseName || "未命名实体";
+            const textureCount = getTextureResources(entity).length;
+            const geometryCount = getGeometryResources(entity).length;
             const chips = [
-                entity.files.texture ? "贴图" : null,
-                entity.files.geometry ? "模型" : null,
+                textureCount ? `贴图${textureCount}` : null,
+                geometryCount ? `模型${geometryCount}` : null,
                 entity.files.animation ? "动作" : null,
             ].filter(Boolean);
             return `
@@ -926,8 +1045,13 @@
 
         elements.inspector.className = "inspector";
         const entityProfile = getEntityProfile(entity);
-        const slots = getControllerSlots(entity.animateController);
+        const renderControllerBindings = getRenderControllers(entity);
+        const animationControllerBindings = getAnimationControllerBindings(entity);
+        const textureResources = getTextureResources(entity);
+        const geometryResources = getGeometryResources(entity);
         const renderBindings = collectRenderBindings(entity);
+        const mergedAnimationData = getMergedAnimationEntries(entity);
+        const animationSlotNames = collectAnimationSlotNames(entity);
         const titleProfile = getEntityTitleProfile(entity);
         const titleTextColorState = getColorEditorState(titleProfile.textColor);
         const titleBackgroundColorState = getColorEditorState(titleProfile.backgroundColor);
@@ -937,7 +1061,7 @@
                 ? "false"
                 : "";
         const availableAnimations = entity.files.animation ? entity.files.animation.animationNames : [];
-        const usedAnimationNames = new Set(Object.values(entity.animationMappings).filter(Boolean));
+        const usedAnimationNames = getUsedAnimationSourceNames(entity);
         const unusedAnimations = availableAnimations.filter((name) => !usedAnimationNames.has(name));
 
         elements.inspector.innerHTML = `
@@ -965,23 +1089,41 @@
                         <input id="resourceSubdirInput" type="text" value="${escapeAttribute(entity.resourceSubdir)}" placeholder="${DEFAULT_SUBDIR}">
                         <p class="field-hint">对应贴图、模型、动作输出目录，例如 <code>monster</code>。</p>
                     </div>
+                </div>
+            </section>
 
-                    <div class="field">
-                        <label for="renderControllerSelect">渲染控制器</label>
-                        <select id="renderControllerSelect">
-                            ${RENDER_CONTROLLER_PRESETS.map((preset) => `<option value="${preset.name}" ${preset.name === entity.renderController ? "selected" : ""}>${preset.name}</option>`).join("")}
-                        </select>
-                        <p class="field-hint">来自 <code>use_controllers/render_controllers</code>。</p>
+            <section class="section-card">
+                <div class="detail-actions">
+                    <h3>渲染控制器</h3>
+                    <button class="button ghost" type="button" data-action="add-render-controller">新增额外渲染控制器</button>
+                </div>
+                <div class="file-stack">
+                    ${renderControllerBindings.map((binding, index) => renderRenderControllerBindingCard(entity, binding, index, renderControllerBindings.length, geometryResources, textureResources)).join("")}
+                </div>
+            </section>
+
+            <section class="section-card">
+                <div class="detail-actions">
+                    <h3>动画控制器绑定</h3>
+                    <button class="button ghost" type="button" data-action="add-animation-controller">新增额外动画控制器</button>
+                </div>
+                <p class="field-hint">系统会固定追加 <code>${escapeHtml(SYSTEM_SCALE_CONTROLLER_KEY)} -&gt; ${escapeHtml(SYSTEM_SCALE_CONTROLLER_NAME)}</code>，该控制器不会在这里开放编辑。</p>
+                <article class="file-card">
+                    <div class="file-card-header">
+                        <div>
+                            <p class="file-title">系统内置控制器</p>
+                            <p class="file-name">${escapeHtml(SYSTEM_SCALE_CONTROLLER_KEY)} -> ${escapeHtml(SYSTEM_SCALE_CONTROLLER_NAME)}</p>
+                        </div>
+                        <span class="chip muted">只读</span>
                     </div>
-
-                    <div class="field">
-                        <label for="controllerSelect">动画控制器</label>
-                        <select id="controllerSelect">
-                            ${CONTROLLER_PRESETS.map((preset) => `<option value="${preset.name}" ${preset.name === entity.animateController ? "selected" : ""}>${preset.name}</option>`).join("")}
-                        </select>
-                        <p class="field-hint">动画 key 来自 <code>use_controllers/animation_controllers</code>。</p>
+                </article>
+                ${mergedAnimationData.conflicts.length ? `
+                    <div class="chip-row">
+                        ${mergedAnimationData.conflicts.map((conflict) => `<span class="chip warn">动作 key ${escapeHtml(conflict.key)} 在 ${escapeHtml(conflict.firstBindingKey)} / ${escapeHtml(conflict.secondBindingKey)} 上冲突</span>`).join("")}
                     </div>
-
+                ` : ""}
+                <div class="file-stack">
+                    ${animationControllerBindings.map((binding, index) => renderAnimationControllerBindingCard(entity, binding, index, animationControllerBindings.length, availableAnimations)).join("")}
                 </div>
             </section>
 
@@ -1094,29 +1236,32 @@
             </section>
 
             <section class="section-card">
-                <h3>动作槽位映射</h3>
-                ${slots.length ? `
-                    <div class="slot-grid">
-                        ${slots.map((slotName) => `
-                            <div class="slot-card">
-                                <h4>${slotName}</h4>
-                                <select data-slot-select="${slotName}">
-                                    <option value="">不导出这个槽位</option>
-                                    ${availableAnimations.map((animationName) => `<option value="${escapeAttribute(animationName)}" ${entity.animationMappings[slotName] === animationName ? "selected" : ""}>${escapeHtml(animationName)}</option>`).join("")}
-                                </select>
-                                <p>${entity.animationMappings[slotName] ? `导出后会改写为 animation.${entity.baseName || "实体名"}.${slotName}` : "当前槽位未映射"}</p>
-                            </div>
-                        `).join("")}
-                    </div>
-                ` : '<p class="empty-state">当前控制器没有可用槽位。</p>'}
-                ${unusedAnimations.length ? `<div class="chip-row">${unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint">当前动作文件中的动画块都已被使用。</p>'}
+                <div class="detail-actions">
+                    <h3>贴图资源</h3>
+                    <button class="button ghost" type="button" data-action="add-texture-resource">新增贴图资源</button>
+                </div>
+                <div class="file-stack">
+                    ${textureResources.length
+                        ? textureResources.map((resource) => renderResourceFileCard("贴图资源", "texture", resource, entity)).join("")
+                        : '<p class="empty-state">还没有贴图资源。</p>'}
+                </div>
             </section>
 
             <section class="section-card">
-                <h3>已载入文件</h3>
+                <div class="detail-actions">
+                    <h3>模型资源</h3>
+                    <button class="button ghost" type="button" data-action="add-geometry-resource">新增模型资源</button>
+                </div>
                 <div class="file-stack">
-                    ${renderFileCard("贴图文件", "texture", entity.files.texture ? entity.files.texture.sourceName : "")}
-                    ${renderFileCard("模型文件", "geometry", entity.files.geometry ? entity.files.geometry.sourceName : "")}
+                    ${geometryResources.length
+                        ? geometryResources.map((resource) => renderResourceFileCard("模型资源", "geometry", resource, entity)).join("")
+                        : '<p class="empty-state">还没有模型资源。</p>'}
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h3>动作文件</h3>
+                <div class="file-stack">
                     ${renderFileCard("动作文件", "animation", entity.files.animation ? entity.files.animation.sourceName : "")}
                 </div>
             </section>
@@ -1139,10 +1284,15 @@
                     <div class="file-card">
                         <p class="file-title">动画控制器可用 key</p>
                         <div class="chip-row">
-                            ${slots.length ? slots.map((slotName) => `<span class="chip">${escapeHtml(slotName)}</span>`).join("") : '<span class="chip muted">当前控制器没有动画 key</span>'}
+                            ${animationSlotNames.length ? animationSlotNames.map((slotName) => `<span class="chip">${escapeHtml(slotName)}</span>`).join("") : '<span class="chip muted">当前控制器没有动画 key</span>'}
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <section class="section-card">
+                <h3>未使用动作</h3>
+                ${unusedAnimations.length ? `<div class="chip-row">${unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint">当前动作文件中的动画块都已被控制器映射使用。</p>'}
             </section>
 
         `;
@@ -1154,8 +1304,6 @@
         const baseNameInput = document.getElementById("baseNameInput");
         const identifierInput = document.getElementById("identifierInput");
         const resourceSubdirInput = document.getElementById("resourceSubdirInput");
-        const renderControllerSelect = document.getElementById("renderControllerSelect");
-        const controllerSelect = document.getElementById("controllerSelect");
         const profileWidthInput = document.getElementById("profileWidthInput");
         const profileHeightInput = document.getElementById("profileHeightInput");
         const profileScaleInput = document.getElementById("profileScaleInput");
@@ -1200,18 +1348,6 @@
             renderOutputPreview();
         });
 
-        renderControllerSelect.addEventListener("change", (event) => {
-            entity.renderController = event.target.value;
-            render();
-        });
-
-        controllerSelect.addEventListener("change", (event) => {
-            entity.animateController = event.target.value;
-            entity.controllerManual = true;
-            entity.animationMappings = buildAnimationMappings(entity.files.animation, getControllerSlots(entity.animateController), entity.animationMappings);
-            render();
-        });
-
         bindEntityProfileInput(profileWidthInput, entity, "width", DEFAULT_ENTITY_PROFILE.width);
         bindEntityProfileInput(profileHeightInput, entity, "height", DEFAULT_ENTITY_PROFILE.height);
         bindEntityProfileInput(profileScaleInput, entity, "scale", DEFAULT_ENTITY_PROFILE.scale);
@@ -1241,16 +1377,199 @@
                 const type = button.dataset.fileRemove;
                 entity.files[type] = null;
                 if (type === "animation") {
-                    entity.animationMappings = {};
+                    getAnimationControllerBindings(entity).forEach((binding) => {
+                        binding.animationMappings = {};
+                    });
                 }
                 setStatus(`已移除 ${typeLabel(type)}。`);
                 render();
             });
         });
 
-        elements.inspector.querySelectorAll("[data-slot-select]").forEach((select) => {
+        elements.inspector.querySelector("[data-action='add-texture-resource']").addEventListener("click", () => {
+            state.pendingAssignment = { entityId: entity.id, type: "texture" };
+            elements.assignInput.accept = ".png";
+            elements.assignInput.click();
+        });
+
+        elements.inspector.querySelector("[data-action='add-geometry-resource']").addEventListener("click", () => {
+            state.pendingAssignment = { entityId: entity.id, type: "geometry" };
+            elements.assignInput.accept = ".json";
+            elements.assignInput.click();
+        });
+
+        elements.inspector.querySelectorAll("[data-resource-assign]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const type = button.dataset.resourceAssign;
+                state.pendingAssignment = {
+                    entityId: entity.id,
+                    type,
+                    resourceId: button.dataset.resourceId,
+                };
+                elements.assignInput.accept = type === "texture" ? ".png" : ".json";
+                elements.assignInput.click();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-resource-remove]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const type = button.dataset.resourceRemove;
+                const resourceId = button.dataset.resourceId;
+                if (type === "texture") {
+                    entity.files.textures = getTextureResources(entity).filter((resource) => resource.id !== resourceId);
+                } else if (type === "geometry") {
+                    entity.files.geometries = getGeometryResources(entity).filter((resource) => resource.id !== resourceId);
+                }
+                setStatus(`已移除 ${typeLabel(type)}资源。`);
+                render();
+            });
+        });
+
+        const renderBindings = getRenderControllers(entity);
+        const animationBindings = getAnimationControllerBindings(entity);
+
+        elements.inspector.querySelector("[data-action='add-render-controller']").addEventListener("click", () => {
+            renderBindings.push(createRenderControllerBinding());
+            render();
+        });
+
+        elements.inspector.querySelector("[data-action='add-animation-controller']").addEventListener("click", () => {
+            const recommendedController = entity.files.animation
+                ? recommendController(entity.files.animation.animationNames)
+                : DEFAULT_CONTROLLER;
+            animationBindings.push(createAnimationControllerBinding({
+                key: suggestNextAnimationBindingKey(animationBindings),
+                controller: recommendedController,
+                animationMappings: buildAnimationMappings(entity.files.animation, getControllerSlots(recommendedController), {}),
+            }));
+            render();
+        });
+
+        elements.inspector.querySelectorAll("[data-render-binding-controller]").forEach((select) => {
             select.addEventListener("change", (event) => {
-                entity.animationMappings[event.target.dataset.slotSelect] = event.target.value;
+                const binding = findRenderControllerBinding(entity, event.target.dataset.renderBindingController);
+                if (!binding) {
+                    return;
+                }
+                binding.controller = event.target.value;
+                render();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-render-binding-condition]").forEach((input) => {
+            input.addEventListener("input", (event) => {
+                const binding = findRenderControllerBinding(entity, event.target.dataset.renderBindingCondition);
+                if (!binding) {
+                    return;
+                }
+                binding.condition = event.target.value;
+            });
+
+            input.addEventListener("change", (event) => {
+                const binding = findRenderControllerBinding(entity, event.target.dataset.renderBindingCondition);
+                if (!binding) {
+                    return;
+                }
+                binding.condition = event.target.value;
+                render();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-action='remove-render-controller']").forEach((button) => {
+            button.addEventListener("click", () => {
+                const bindingId = button.dataset.renderBindingId;
+                entity.renderControllers = getRenderControllers(entity).filter((binding) => binding.id !== bindingId);
+                render();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-render-binding-mapping-key]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const binding = findRenderControllerBinding(entity, event.target.dataset.renderBindingMappingKey);
+                if (!binding) {
+                    return;
+                }
+                const mappingType = event.target.dataset.renderBindingMappingType;
+                const originKey = event.target.dataset.renderBindingMappingOriginKey;
+                const nextKey = event.target.value;
+                const targetMappings = mappingType === "geometry" ? binding.geometryMappings : binding.textureMappings;
+                if (originKey !== nextKey) {
+                    targetMappings[nextKey] = targetMappings[originKey] || "";
+                    delete targetMappings[originKey];
+                }
+                render();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-render-binding-resource-id]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const binding = findRenderControllerBinding(entity, event.target.dataset.renderBindingResourceId);
+                if (!binding) {
+                    return;
+                }
+                const mappingType = event.target.dataset.renderBindingResourceType;
+                const mappingKey = event.target.dataset.renderBindingResourceKey;
+                const targetMappings = mappingType === "geometry" ? binding.geometryMappings : binding.textureMappings;
+                targetMappings[mappingKey] = event.target.value;
+                render();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-animation-binding-key]").forEach((input) => {
+            input.addEventListener("input", (event) => {
+                const binding = findAnimationControllerBinding(entity, event.target.dataset.animationBindingKey);
+                if (!binding) {
+                    return;
+                }
+                binding.key = event.target.value;
+            });
+
+            input.addEventListener("change", (event) => {
+                const binding = findAnimationControllerBinding(entity, event.target.dataset.animationBindingKey);
+                if (!binding) {
+                    return;
+                }
+                const nextKey = event.target.value.trim();
+                if (nextKey === SYSTEM_SCALE_CONTROLLER_KEY) {
+                    binding.key = suggestNextAnimationBindingKey(
+                        getAnimationControllerBindings(entity).filter((item) => item.id !== binding.id)
+                    );
+                    addMessage("scale 是系统内置动画控制器 key，业务控制器不能占用。", "warn");
+                    render();
+                    return;
+                }
+                binding.key = nextKey;
+                render();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-animation-binding-controller]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const binding = findAnimationControllerBinding(entity, event.target.dataset.animationBindingController);
+                if (!binding) {
+                    return;
+                }
+                binding.controller = event.target.value;
+                binding.animationMappings = buildAnimationMappings(entity.files.animation, getControllerSlots(binding.controller), binding.animationMappings);
+                render();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-action='remove-animation-controller']").forEach((button) => {
+            button.addEventListener("click", () => {
+                const bindingId = button.dataset.animationBindingId;
+                entity.animationControllerBindings = getAnimationControllerBindings(entity).filter((binding) => binding.id !== bindingId);
+                render();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-animation-slot-binding-id]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const binding = findAnimationControllerBinding(entity, event.target.dataset.animationSlotBindingId);
+                if (!binding) {
+                    return;
+                }
+                binding.animationMappings[event.target.dataset.slotName] = event.target.value;
                 render();
             });
         });
@@ -1258,12 +1577,17 @@
         elements.inspector.querySelector("[data-action='duplicate-entity']").addEventListener("click", () => {
             const clone = createEntity(entity.baseName);
             const entityProfile = getEntityProfile(entity);
+            const oldTextureIdToNewId = {};
+            const oldGeometryIdToNewId = {};
             clone.identifier = entity.identifier;
             clone.identifierMode = entity.identifierMode;
             clone.resourceSubdir = entity.resourceSubdir;
-            clone.renderController = entity.renderController;
-            clone.animateController = entity.animateController;
-            clone.controllerManual = entity.controllerManual;
+            clone.animationControllerBindings = getAnimationControllerBindings(entity).map((binding) => ({
+                id: createId(),
+                key: binding.key,
+                controller: binding.controller,
+                animationMappings: { ...(binding.animationMappings || {}) },
+            }));
             clone.entityProfile = {
                 width: entityProfile.width,
                 height: entityProfile.height,
@@ -1275,15 +1599,41 @@
                 title: { ...getEntityTitleProfile(entity) },
             };
             clone.files = {
-                texture: entity.files.texture ? { ...entity.files.texture } : null,
-                geometry: entity.files.geometry ? { sourceName: entity.files.geometry.sourceName, json: deepClone(entity.files.geometry.json) } : null,
+                textures: getTextureResources(entity).map((resource) => {
+                    const nextId = createId();
+                    oldTextureIdToNewId[resource.id] = nextId;
+                    return {
+                        id: nextId,
+                        resourceKey: resource.resourceKey,
+                        sourceName: resource.sourceName,
+                        buffer: resource.buffer,
+                    };
+                }),
+                geometries: getGeometryResources(entity).map((resource) => {
+                    const nextId = createId();
+                    oldGeometryIdToNewId[resource.id] = nextId;
+                    return {
+                        id: nextId,
+                        resourceKey: resource.resourceKey,
+                        sourceName: resource.sourceName,
+                        json: deepClone(resource.json),
+                    };
+                }),
+                texture: null,
+                geometry: null,
                 animation: entity.files.animation ? {
                     sourceName: entity.files.animation.sourceName,
                     json: deepClone(entity.files.animation.json),
                     animationNames: [...entity.files.animation.animationNames],
                 } : null,
             };
-            clone.animationMappings = { ...entity.animationMappings };
+            clone.renderControllers = getRenderControllers(entity).map((binding) => ({
+                id: createId(),
+                controller: binding.controller,
+                condition: binding.condition,
+                geometryMappings: Object.fromEntries(Object.entries(binding.geometryMappings || {}).map(([key, value]) => [key, oldGeometryIdToNewId[value] || ""])),
+                textureMappings: Object.fromEntries(Object.entries(binding.textureMappings || {}).map(([key, value]) => [key, oldTextureIdToNewId[value] || ""])),
+            }));
             state.entities.unshift(clone);
             selectEntity(clone.id);
             addMessage(`已复制实体：${entity.baseName || "未命名实体"}`, "info");
@@ -1314,6 +1664,157 @@
                     <button class="button ghost" type="button" data-file-assign="${type}">${fileName ? "替换文件" : "选择文件"}</button>
                     ${fileName ? `<button class="button danger" type="button" data-file-remove="${type}">移除</button>` : ""}
                 </div>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染单个资源文件卡片；贴图和模型都走这一套。
+     */
+    function renderResourceFileCard(title, type, resource, entity) {
+        const exportTarget = type === "geometry"
+            ? buildGeometryResourceIdentifier(entity, resource, 0)
+            : `${buildTextureResourcePath(entity, resource)}.png`;
+        return `
+            <article class="file-card">
+                <div class="file-card-header">
+                    <div>
+                        <p class="file-title">${escapeHtml(title)}</p>
+                        <p class="file-name">${escapeHtml(resource.sourceName || "未命名资源")}</p>
+                        <p class="field-hint">资源 key：<code>${escapeHtml(resource.resourceKey)}</code></p>
+                        <p class="field-hint">导出目标：<code>${escapeHtml(exportTarget)}</code></p>
+                    </div>
+                    <span class="chip">${escapeHtml(resource.resourceKey)}</span>
+                </div>
+                <div class="file-actions">
+                    <button class="button ghost" type="button" data-resource-assign="${type}" data-resource-id="${escapeAttribute(resource.id)}">替换文件</button>
+                    <button class="button danger" type="button" data-resource-remove="${type}" data-resource-id="${escapeAttribute(resource.id)}">移除</button>
+                </div>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染单个渲染控制器绑定卡片。
+     */
+    function renderRenderControllerBindingCard(entity, binding, index, total, geometryResources, textureResources) {
+        const currentPreset = getRenderControllerPreset(binding.controller);
+        const hasCurrentPreset = RENDER_CONTROLLER_PRESETS.some((preset) => preset.name === binding.controller);
+        const controllerDisplayName = formatControllerDisplayName(currentPreset, binding.controller || "未选择控制器");
+        const controllerDescription = currentPreset ? buildControllerDescriptionHtml(currentPreset.description, currentPreset.source) : "";
+        const geometryEntries = getRenderBindingMappingEntries(entity, binding, "geometry", geometryResources);
+        const textureEntries = getRenderBindingMappingEntries(entity, binding, "texture", textureResources);
+        return `
+            <article class="file-card">
+                <div class="file-card-header">
+                    <div>
+                        <p class="file-title">渲染控制器 ${index + 1}</p>
+                        <p class="file-name">${escapeHtml(controllerDisplayName)}</p>
+                        ${controllerDescription}
+                    </div>
+                    ${total > 1 ? `<button class="button danger" type="button" data-action="remove-render-controller" data-render-binding-id="${escapeAttribute(binding.id)}">移除</button>` : ""}
+                </div>
+                <div class="form-grid">
+                    <div class="field field-wide">
+                        <label for="renderBindingController-${escapeAttribute(binding.id)}">控制器</label>
+                        <select id="renderBindingController-${escapeAttribute(binding.id)}" data-render-binding-controller="${escapeAttribute(binding.id)}">
+                            ${binding.controller && !hasCurrentPreset ? `<option value="${escapeAttribute(binding.controller)}" selected>${escapeHtml(binding.controller)}（未收录）</option>` : ""}
+                            ${RENDER_CONTROLLER_PRESETS.map((preset) => `<option value="${preset.name}" ${preset.name === binding.controller ? "selected" : ""}>${escapeHtml(formatControllerOptionLabel(preset, preset.name))}</option>`).join("")}
+                        </select>
+                        ${currentPreset ? buildControllerDescriptionHtml(currentPreset.description, currentPreset.source) : '<p class="field-hint">未找到该控制器的中文说明。</p>'}
+                    </div>
+                    <div class="field">
+                        <label for="renderBindingCondition-${escapeAttribute(binding.id)}">条件</label>
+                        <input id="renderBindingCondition-${escapeAttribute(binding.id)}" type="text" value="${escapeAttribute(binding.condition || "")}" data-render-binding-condition="${escapeAttribute(binding.id)}" placeholder="">
+                        <p class="field-hint">导出到 yml 的 <code>condition</code> 字段。</p>
+                    </div>
+                </div>
+                ${renderRenderBindingMappingSection(binding, "geometry", geometryEntries, geometryResources)}
+                ${renderRenderBindingMappingSection(binding, "texture", textureEntries, textureResources)}
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染单个渲染控制器卡片内的 geometry / texture 映射区。
+     */
+    function renderRenderBindingMappingSection(binding, type, entries, resources) {
+        const title = type === "geometry" ? "Geometry 映射" : "Texture 映射";
+        const prefix = type === "geometry" ? "Geometry" : "Texture";
+        const emptyText = type === "geometry" ? "当前没有模型资源，先去下方资源区导入。" : "当前没有贴图资源，先去下方资源区导入。";
+        const resourceHint = type === "geometry" ? "模型资源" : "贴图资源";
+        return `
+            <div class="slot-grid">
+                ${entries.length ? entries.map((entry) => `
+                    <div class="slot-card">
+                        <h4>${escapeHtml(title)}</h4>
+                        <label for="renderBinding-${escapeAttribute(type)}-key-${escapeAttribute(binding.id)}-${escapeAttribute(entry.key)}">${escapeHtml(prefix)} Key</label>
+                        <select id="renderBinding-${escapeAttribute(type)}-key-${escapeAttribute(binding.id)}-${escapeAttribute(entry.key)}" data-render-binding-mapping-key="${escapeAttribute(binding.id)}" data-render-binding-mapping-type="${escapeAttribute(type)}" data-render-binding-mapping-origin-key="${escapeAttribute(entry.key)}">
+                            ${entry.availableKeys.map((key) => `<option value="${escapeAttribute(key)}" ${key === entry.key ? "selected" : ""}>${escapeHtml(prefix)}.${escapeHtml(key)}</option>`).join("")}
+                        </select>
+                        <label for="renderBinding-${escapeAttribute(type)}-resource-${escapeAttribute(binding.id)}-${escapeAttribute(entry.key)}">${escapeHtml(resourceHint)}</label>
+                        <select id="renderBinding-${escapeAttribute(type)}-resource-${escapeAttribute(binding.id)}-${escapeAttribute(entry.key)}" data-render-binding-resource-id="${escapeAttribute(binding.id)}" data-render-binding-resource-type="${escapeAttribute(type)}" data-render-binding-resource-key="${escapeAttribute(entry.key)}" ${resources.length ? "" : "disabled"}>
+                            ${resources.length
+                                ? resources.map((resource) => `<option value="${escapeAttribute(resource.id)}" ${resource.id === entry.resourceId ? "selected" : ""}>${escapeHtml(resource.resourceKey)} · ${escapeHtml(resource.sourceName || "未命名资源")}</option>`).join("")
+                                : '<option value="">暂无可用资源</option>'}
+                        </select>
+                        <p>${escapeHtml(entry.previewText)}</p>
+                    </div>
+                `).join("") : `<div class="slot-card"><h4>${escapeHtml(title)}</h4><p>${escapeHtml(type === "geometry" ? "当前控制器没有 geometry key。" : "当前控制器没有 texture key。")}</p></div>`}
+                ${!resources.length ? `<div class="slot-card"><h4>${escapeHtml(resourceHint)}</h4><p>${escapeHtml(emptyText)}</p></div>` : ""}
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染单个动画控制器绑定卡片，每个控制器维护自己的一套动作键映射。
+     */
+    function renderAnimationControllerBindingCard(entity, binding, index, total, availableAnimations) {
+        const currentPreset = getAnimationControllerPreset(binding.controller);
+        const slotNames = getBindingSlotNames(binding);
+        const hasCurrentPreset = CONTROLLER_PRESETS.some((preset) => preset.name === binding.controller);
+        const controllerDisplayName = formatControllerDisplayName(currentPreset, binding.controller || "未选择控制器");
+        const controllerDescription = currentPreset ? buildControllerDescriptionHtml(currentPreset.description, currentPreset.source) : "";
+        return `
+            <article class="file-card">
+                <div class="file-card-header">
+                    <div>
+                        <p class="file-title">动画控制器 ${index + 1}</p>
+                        <p class="file-name">${escapeHtml(binding.key || "未命名绑定")} -> ${escapeHtml(controllerDisplayName)}</p>
+                        ${controllerDescription}
+                    </div>
+                    ${total > 1 ? `<button class="button danger" type="button" data-action="remove-animation-controller" data-animation-binding-id="${escapeAttribute(binding.id)}">移除</button>` : ""}
+                </div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="animationBindingKey-${escapeAttribute(binding.id)}">绑定 key</label>
+                        <input id="animationBindingKey-${escapeAttribute(binding.id)}" type="text" value="${escapeAttribute(binding.key || "")}" data-animation-binding-key="${escapeAttribute(binding.id)}" placeholder="${DEFAULT_ANIMATION_BINDING_KEY}">
+                        <p class="field-hint">例如 <code>default</code>、<code>test</code>。<code>${escapeHtml(SYSTEM_SCALE_CONTROLLER_KEY)}</code> 为系统保留字。</p>
+                    </div>
+                    <div class="field field-wide">
+                        <label for="animationBindingController-${escapeAttribute(binding.id)}">控制器</label>
+                        <select id="animationBindingController-${escapeAttribute(binding.id)}" data-animation-binding-controller="${escapeAttribute(binding.id)}">
+                            ${binding.controller && !hasCurrentPreset ? `<option value="${escapeAttribute(binding.controller)}" selected>${escapeHtml(binding.controller)}（未收录）</option>` : ""}
+                            ${CONTROLLER_PRESETS.map((preset) => `<option value="${preset.name}" ${preset.name === binding.controller ? "selected" : ""}>${escapeHtml(formatControllerOptionLabel(preset, preset.name))}</option>`).join("")}
+                        </select>
+                        ${currentPreset ? buildControllerDescriptionHtml(currentPreset.description, currentPreset.source) : '<p class="field-hint">未找到该控制器的中文说明。</p>'}
+                    </div>
+                </div>
+                ${slotNames.length ? `
+                    <div class="slot-grid">
+                        ${slotNames.map((slotName) => `
+                            <div class="slot-card">
+                                <h4>${escapeHtml(slotName)}</h4>
+                                <p class="field-hint">${escapeHtml(getAnimationSlotDescription(binding, slotName) || "这个槽位需要绑定一个动作；如果留空，则导出时不会写出该槽位。")}</p>
+                                <select data-animation-slot-binding-id="${escapeAttribute(binding.id)}" data-slot-name="${escapeAttribute(slotName)}">
+                                    <option value="">不导出这个槽位</option>
+                                    ${availableAnimations.map((animationName) => `<option value="${escapeAttribute(animationName)}" ${binding.animationMappings[slotName] === animationName ? "selected" : ""}>${escapeHtml(animationName)}</option>`).join("")}
+                                </select>
+                                <p>${binding.animationMappings[slotName] ? `导出后会改写为 animation.${escapeHtml(entity.baseName || "实体名")}.${escapeHtml(slotName)}` : "当前槽位未映射"}</p>
+                            </div>
+                        `).join("")}
+                    </div>
+                ` : '<p class="field-hint">当前控制器没有识别到可编辑的动作 key。</p>'}
             </article>
         `;
     }
@@ -1368,8 +1869,14 @@
         }
 
         const name = entity.baseName || "{实体名}";
+        const textureLines = getTextureResources(entity).length
+            ? getTextureResources(entity).map((resource) => `${ROOT_DIR}/${RESOURCE_ROOT}/${buildTextureResourcePath({
+                baseName: name,
+                resourceSubdir: entity.resourceSubdir,
+            }, resource)}.png`)
+            : [`${ROOT_DIR}/${RESOURCE_ROOT}/textures/entity/${entity.resourceSubdir}/${name}.png`];
         const lines = [
-            `${ROOT_DIR}/${RESOURCE_ROOT}/textures/entity/${entity.resourceSubdir}/${name}.png`,
+            ...textureLines,
             `${ROOT_DIR}/${RESOURCE_ROOT}/models/entity/${entity.resourceSubdir}/${name}.geo.json`,
             `${ROOT_DIR}/${RESOURCE_ROOT}/animations/${entity.resourceSubdir}/${name}.animation.json`,
             `${ROOT_DIR}/${CLIENT_ENTITY_ROOT}/${name}.entity.json`,
@@ -1423,16 +1930,73 @@
             identifier: baseName ? `netease:${baseName}` : "",
             identifierMode: "auto",
             resourceSubdir: DEFAULT_SUBDIR,
-            renderController: DEFAULT_RENDER_CONTROLLER,
-            animateController: DEFAULT_CONTROLLER,
-            controllerManual: false,
+            renderControllers: [
+                createRenderControllerBinding(),
+            ],
+            animationControllerBindings: [
+                createAnimationControllerBinding(),
+            ],
             files: {
+                textures: [],
+                geometries: [],
                 texture: null,
                 geometry: null,
                 animation: null,
             },
             entityProfile: createDefaultEntityProfile(),
-            animationMappings: {},
+        };
+    }
+
+    /**
+     * 创建默认渲染控制器绑定。
+     */
+    function createRenderControllerBinding(options) {
+        const normalized = options || {};
+        return {
+            id: normalized.id || createId(),
+            controller: normalized.controller || DEFAULT_RENDER_CONTROLLER,
+            condition: typeof normalized.condition === "string" ? normalized.condition : "",
+            geometryMappings: normalizeSimpleStringMap(normalized.geometryMappings),
+            textureMappings: normalizeSimpleStringMap(normalized.textureMappings),
+        };
+    }
+
+    /**
+     * 创建默认的贴图资源记录，每条记录对应一张 png。
+     */
+    function createTextureResource(options) {
+        const normalized = options || {};
+        return {
+            id: normalized.id || createId(),
+            resourceKey: normalizeResourceKey(normalized.resourceKey || "default"),
+            sourceName: typeof normalized.sourceName === "string" ? normalized.sourceName : "",
+            buffer: normalized.buffer || null,
+        };
+    }
+
+    /**
+     * 创建默认的模型资源记录，每条记录对应一个 geo.json 文件。
+     */
+    function createGeometryResource(options) {
+        const normalized = options || {};
+        return {
+            id: normalized.id || createId(),
+            resourceKey: normalizeResourceKey(normalized.resourceKey || "default"),
+            sourceName: typeof normalized.sourceName === "string" ? normalized.sourceName : "",
+            json: normalized.json || null,
+        };
+    }
+
+    /**
+     * 创建默认动画控制器绑定，不包含系统 scale 控制器。
+     */
+    function createAnimationControllerBinding(options) {
+        const normalized = options || {};
+        return {
+            id: normalized.id || createId(),
+            key: normalized.key || DEFAULT_ANIMATION_BINDING_KEY,
+            controller: normalized.controller || DEFAULT_CONTROLLER,
+            animationMappings: normalizeAnimationMappings(normalized.animationMappings),
         };
     }
 
@@ -1510,11 +2074,29 @@
             if (!presetMap.has(entry.name)) {
                 presetMap.set(entry.name, {
                     name: entry.name,
+                    label: entry.label || "",
+                    description: entry.description || "",
+                    source: entry.source || "",
+                    slotDescriptions: {},
                     slots: [],
                 });
             }
 
             const preset = presetMap.get(entry.name);
+            if (!preset.label && entry.label) {
+                preset.label = entry.label;
+            }
+            if (!preset.description && entry.description) {
+                preset.description = entry.description;
+            }
+            if (!preset.source && entry.source) {
+                preset.source = entry.source;
+            }
+            Object.entries(entry.slotDescriptions || {}).forEach(([slotName, description]) => {
+                if (!preset.slotDescriptions[slotName] && description) {
+                    preset.slotDescriptions[slotName] = description;
+                }
+            });
             entry.slots.forEach((slotName) => {
                 if (!preset.slots.includes(slotName)) {
                     preset.slots.push(slotName);
@@ -1525,6 +2107,10 @@
         return Array.from(presetMap.values())
             .map((preset) => ({
                 name: preset.name,
+                label: preset.label,
+                description: preset.description,
+                source: preset.source,
+                slotDescriptions: { ...preset.slotDescriptions },
                 slots: [...preset.slots].sort(compareSlotNames),
             }))
             .sort(compareControllerNames);
@@ -1537,6 +2123,9 @@
             if (!presetMap.has(entry.name)) {
                 presetMap.set(entry.name, {
                     name: entry.name,
+                    label: entry.label || "",
+                    description: entry.description || "",
+                    source: entry.source || "",
                     geometryKeys: [],
                     textureKeys: [],
                     materialKeys: [],
@@ -1545,6 +2134,15 @@
             }
 
             const preset = presetMap.get(entry.name);
+            if (!preset.label && entry.label) {
+                preset.label = entry.label;
+            }
+            if (!preset.description && entry.description) {
+                preset.description = entry.description;
+            }
+            if (!preset.source && entry.source) {
+                preset.source = entry.source;
+            }
             mergeUniqueValues(preset.geometryKeys, entry.geometryKeys || []);
             mergeUniqueValues(preset.textureKeys, entry.textureKeys || []);
             mergeUniqueValues(preset.materialKeys, entry.materialKeys || []);
@@ -1554,6 +2152,9 @@
         return Array.from(presetMap.values())
             .map((preset) => ({
                 name: preset.name,
+                label: preset.label,
+                description: preset.description,
+                source: preset.source,
                 geometryKeys: [...preset.geometryKeys].sort(compareSlotNames),
                 textureKeys: [...preset.textureKeys].sort(compareSlotNames),
                 materialKeys: [...preset.materialKeys].sort(compareSlotNames),
@@ -1593,18 +2194,594 @@
         return preset ? [...preset.slots] : [];
     }
 
+    /**
+     * 获取动画控制器预设完整信息，供中文说明和槽位提示使用。
+     */
+    function getAnimationControllerPreset(controllerName) {
+        return CONTROLLER_PRESETS.find((item) => item.name === controllerName) || null;
+    }
+
+    /**
+     * 获取渲染控制器预设完整信息，供中文说明和下拉展示使用。
+     */
     function getRenderControllerPreset(controllerName) {
         return RENDER_CONTROLLER_PRESETS.find((item) => item.name === controllerName) || null;
     }
 
+    /**
+     * 统一格式化控制器名称，优先展示中文标签，同时保留英文原名方便复制。
+     */
+    function formatControllerOptionLabel(preset, fallbackName) {
+        if (!preset) {
+            return fallbackName || "";
+        }
+        if (!preset.label) {
+            return preset.name;
+        }
+        return `${preset.label}（${preset.name}）`;
+    }
+
+    /**
+     * 卡片标题和下拉框共用的控制器展示文本。
+     */
+    function formatControllerDisplayName(preset, fallbackName) {
+        return formatControllerOptionLabel(preset, fallbackName || "未选择控制器");
+    }
+
+    /**
+     * 组装控制器说明文案，避免动画控制器和渲染控制器各写一套模板。
+     */
+    function buildControllerDescriptionHtml(description, source) {
+        const lines = [];
+        if (description) {
+            lines.push(description);
+        }
+        if (source) {
+            lines.push(`来源：${source}`);
+        }
+        if (!lines.length) {
+            return "";
+        }
+        return lines.map((line) => `<p class="field-hint">${escapeHtml(line)}</p>`).join("");
+    }
+
+    /**
+     * 读取动画控制器某个动作槽位的中文提示，没有配置时返回空字符串。
+     */
+    function getAnimationSlotDescription(binding, slotName) {
+        const preset = getAnimationControllerPreset(binding.controller);
+        if (!preset || !preset.slotDescriptions) {
+            return "";
+        }
+        return preset.slotDescriptions[slotName] || "";
+    }
+
+    /**
+     * 把资源 key 统一裁剪成安全的导出片段，只保留字母、数字和下划线。
+     */
+    function normalizeResourceKey(value) {
+        const normalized = String(value || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+        return normalized || "default";
+    }
+
+    /**
+     * 为新增资源生成不重复的内部 key；首个资源固定使用 default，兼容旧导出格式。
+     */
+    function suggestResourceKey(resources, fileName, fallbackPrefix) {
+        if (!resources.length) {
+            return "default";
+        }
+
+        const desired = normalizeResourceKey(deriveBaseNameFromFile(fileName, fallbackPrefix));
+        const baseKey = desired === "default" ? fallbackPrefix : desired;
+        return ensureUniqueResourceKey(resources.map((item) => item.resourceKey), baseKey);
+    }
+
+    /**
+     * 确保同一实体内部的资源 key 唯一，避免导出路径和 geometry 标识符冲突。
+     */
+    function ensureUniqueResourceKey(existingKeys, desiredKey) {
+        const used = new Set((existingKeys || []).map((item) => normalizeResourceKey(item)));
+        const baseKey = normalizeResourceKey(desiredKey || "default");
+        if (!used.has(baseKey)) {
+            return baseKey;
+        }
+
+        let suffix = 2;
+        let nextKey = `${baseKey}_${suffix}`;
+        while (used.has(nextKey)) {
+            suffix += 1;
+            nextKey = `${baseKey}_${suffix}`;
+        }
+        return nextKey;
+    }
+
+    /**
+     * 把旧版单贴图结构迁移成贴图资源列表，并顺手清理脏数据。
+     */
+    function getTextureResources(entity) {
+        if (!entity.files || typeof entity.files !== "object") {
+            entity.files = {};
+        }
+
+        if (!Array.isArray(entity.files.textures)) {
+            entity.files.textures = entity.files.texture
+                ? [createTextureResource({
+                    sourceName: entity.files.texture.sourceName,
+                    buffer: entity.files.texture.buffer,
+                    resourceKey: "default",
+                })]
+                : [];
+        }
+
+        const normalizedResources = [];
+        entity.files.textures
+            .filter((resource) => resource && typeof resource === "object" && resource.buffer)
+            .forEach((resource) => {
+                const created = createTextureResource(resource);
+                created.resourceKey = ensureUniqueResourceKey(
+                    normalizedResources.map((item) => item.resourceKey),
+                    created.resourceKey
+                );
+                normalizedResources.push(created);
+            });
+
+        entity.files.textures = normalizedResources;
+        entity.files.texture = null;
+        return entity.files.textures;
+    }
+
+    /**
+     * 把旧版单模型结构迁移成模型资源列表，并保持每条记录都是独立对象。
+     */
+    function getGeometryResources(entity) {
+        if (!entity.files || typeof entity.files !== "object") {
+            entity.files = {};
+        }
+
+        if (!Array.isArray(entity.files.geometries)) {
+            entity.files.geometries = entity.files.geometry
+                ? [createGeometryResource({
+                    sourceName: entity.files.geometry.sourceName,
+                    json: entity.files.geometry.json,
+                    resourceKey: "default",
+                })]
+                : [];
+        }
+
+        const normalizedResources = [];
+        entity.files.geometries
+            .filter((resource) => resource && typeof resource === "object" && resource.json)
+            .forEach((resource) => {
+                const created = createGeometryResource(resource);
+                created.resourceKey = ensureUniqueResourceKey(
+                    normalizedResources.map((item) => item.resourceKey),
+                    created.resourceKey
+                );
+                normalizedResources.push(created);
+            });
+
+        entity.files.geometries = normalizedResources;
+        entity.files.geometry = null;
+        return entity.files.geometries;
+    }
+
+    /**
+     * 统一清洗简单 key-value 映射，只保留字符串值。
+     */
+    function normalizeSimpleStringMap(input) {
+        if (!input || typeof input !== "object") {
+            return {};
+        }
+
+        const normalized = {};
+        Object.keys(input).forEach((key) => {
+            if (typeof input[key] === "string") {
+                normalized[key] = input[key];
+            }
+        });
+        return normalized;
+    }
+
+    /**
+     * 为单个渲染控制器卡片里的每个 key 指向一个有效资源；没有显式选择时默认落到首个资源。
+     */
+    function buildRenderBindingMappingState(keys, existingMappings, resources) {
+        const normalizedMappings = normalizeSimpleStringMap(existingMappings);
+        const defaultResourceId = resources[0] ? resources[0].id : "";
+        const result = {};
+
+        keys.forEach((key) => {
+            const currentValue = normalizedMappings[key];
+            const matched = resources.find((resource) => resource.id === currentValue);
+            result[key] = matched ? matched.id : defaultResourceId;
+        });
+
+        return result;
+    }
+
+    /**
+     * 根据 id 查找贴图资源。
+     */
+    function findTextureResource(entity, resourceId) {
+        return getTextureResources(entity).find((resource) => resource.id === resourceId) || null;
+    }
+
+    /**
+     * 根据 id 查找模型资源。
+     */
+    function findGeometryResource(entity, resourceId) {
+        return getGeometryResources(entity).find((resource) => resource.id === resourceId) || null;
+    }
+
+    /**
+     * 生成模型资源在导出后的 geometry 标识符。
+     */
+    function buildGeometryResourceIdentifier(entity, resource, geometryIndex) {
+        const baseIdentifier = resource && resource.resourceKey !== "default"
+            ? `geometry.${entity.baseName}.${resource.resourceKey}`
+            : `geometry.${entity.baseName}`;
+        if (geometryIndex > 0) {
+            return `${baseIdentifier}_${geometryIndex + 1}`;
+        }
+        return baseIdentifier;
+    }
+
+    /**
+     * 生成贴图资源在导出后的贴图路径，不包含 png 后缀。
+     */
+    function buildTextureResourcePath(entity, resource) {
+        const fileName = resource && resource.resourceKey !== "default"
+            ? `${entity.baseName}_${resource.resourceKey}`
+            : entity.baseName;
+        return `textures/entity/${entity.resourceSubdir}/${fileName}`;
+    }
+
+    /**
+     * 生成贴图导出清单，供 ZIP 打包阶段直接消费。
+     */
+    function buildTextureExportFiles(entity) {
+        return getTextureResources(entity).map((resource) => ({
+            path: `${ROOT_DIR}/${RESOURCE_ROOT}/${buildTextureResourcePath(entity, resource)}.png`,
+            buffer: resource.buffer,
+        }));
+    }
+
+    /**
+     * 把旧版“实体级全局渲染映射”尽量搬进第一张可承载对应 key 的渲染控制器卡片。
+     */
+    function migrateLegacyRenderResourceMappings(entity, bindings) {
+        if (!entity.renderResourceMappings || typeof entity.renderResourceMappings !== "object") {
+            return;
+        }
+
+        const legacyGeometry = normalizeSimpleStringMap(entity.renderResourceMappings.geometry);
+        const legacyTexture = normalizeSimpleStringMap(entity.renderResourceMappings.texture);
+
+        Object.keys(legacyGeometry).forEach((key) => {
+            const binding = bindings.find((item) => getRenderBindingKeys(item, "geometry").includes(key));
+            if (binding && !binding.geometryMappings[key]) {
+                binding.geometryMappings[key] = legacyGeometry[key];
+            }
+        });
+
+        Object.keys(legacyTexture).forEach((key) => {
+            const binding = bindings.find((item) => getRenderBindingKeys(item, "texture").includes(key));
+            if (binding && !binding.textureMappings[key]) {
+                binding.textureMappings[key] = legacyTexture[key];
+            }
+        });
+
+        delete entity.renderResourceMappings;
+    }
+
+    /**
+     * 兼容旧结构，把单个渲染控制器迁移为可编辑的渲染控制器列表。
+     */
+    function getRenderControllers(entity) {
+        if (!Array.isArray(entity.renderControllers) || !entity.renderControllers.length) {
+            entity.renderControllers = [
+                createRenderControllerBinding({
+                    controller: entity.renderController || DEFAULT_RENDER_CONTROLLER,
+                    condition: "",
+                }),
+            ];
+        }
+
+        entity.renderControllers = entity.renderControllers
+            .filter((binding) => binding && typeof binding === "object")
+            .map((binding) => createRenderControllerBinding(binding));
+
+        migrateLegacyRenderResourceMappings(entity, entity.renderControllers);
+        const geometryResources = getGeometryResources(entity);
+        const textureResources = getTextureResources(entity);
+        entity.renderControllers.forEach((binding) => syncRenderBindingMappings(binding, geometryResources, textureResources));
+
+        if (!entity.renderControllers.length) {
+            entity.renderControllers = [createRenderControllerBinding()];
+        }
+        return entity.renderControllers;
+    }
+
+    /**
+     * 兼容旧结构，把单个动画控制器迁移为“多绑定，每绑定自带动作映射”的结构。
+     */
+    function getAnimationControllerBindings(entity) {
+        if (!Array.isArray(entity.animationControllerBindings) || !entity.animationControllerBindings.length) {
+            entity.animationControllerBindings = [
+                createAnimationControllerBinding({
+                    key: DEFAULT_ANIMATION_BINDING_KEY,
+                    controller: entity.animateController || DEFAULT_CONTROLLER,
+                    animationMappings: entity.animationMappings,
+                }),
+            ];
+        }
+
+        entity.animationControllerBindings = entity.animationControllerBindings
+            .filter((binding) => binding && typeof binding === "object")
+            .map((binding) => createAnimationControllerBinding(binding));
+
+        if (!entity.animationControllerBindings.length) {
+            entity.animationControllerBindings = [createAnimationControllerBinding()];
+        }
+        return entity.animationControllerBindings;
+    }
+
+    /**
+     * 统一清洗动画映射，避免旧数据中的非字符串值污染导出。
+     */
+    function normalizeAnimationMappings(animationMappings) {
+        if (!animationMappings || typeof animationMappings !== "object") {
+            return {};
+        }
+
+        const normalized = {};
+        Object.keys(animationMappings).forEach((slotName) => {
+            const value = animationMappings[slotName];
+            if (typeof value === "string") {
+                normalized[slotName] = value;
+            }
+        });
+        return normalized;
+    }
+
+    /**
+     * 统一清洗渲染控制器内部的资源映射，只保留字符串值。
+     */
+    function normalizeRenderBindingMappings(mappings) {
+        return normalizeSimpleStringMap(mappings);
+    }
+
+    /**
+     * 获取某个动画控制器绑定当前可编辑的所有动作 key。
+     */
+    function getBindingSlotNames(binding) {
+        const slotNames = [];
+        mergeUniqueValues(slotNames, getControllerSlots(binding.controller));
+        Object.keys(binding.animationMappings || {})
+            .sort(compareSlotNames)
+            .forEach((slotName) => mergeUniqueValues(slotNames, [slotName]));
+        return slotNames;
+    }
+
+    /**
+     * 汇总当前实体所有动画控制器绑定的动作 key。
+     */
+    function collectAnimationSlotNames(entity) {
+        const slotNames = [];
+        getAnimationControllerBindings(entity).forEach((binding) => {
+            mergeUniqueValues(slotNames, getBindingSlotNames(binding));
+        });
+        return slotNames.sort(compareSlotNames);
+    }
+
+    /**
+     * 获取某个渲染控制器当前可编辑的 geometry / texture key。
+     */
+    function getRenderBindingKeys(binding, type) {
+        const preset = getRenderControllerPreset(binding.controller);
+        const mappingSource = type === "geometry" ? binding.geometryMappings : binding.textureMappings;
+        if (preset) {
+            const presetKeys = type === "geometry" ? preset.geometryKeys : preset.textureKeys;
+            return (presetKeys && presetKeys.length ? [...presetKeys] : []).sort(compareSlotNames);
+        }
+
+        return Object.keys(mappingSource || {}).sort(compareSlotNames);
+    }
+
+    /**
+     * 保证渲染控制器卡片内部的 key->资源 映射始终有效。
+     */
+    function syncRenderBindingMappings(binding, geometryResources, textureResources) {
+        binding.geometryMappings = buildRenderBindingMappingState(
+            getRenderBindingKeys(binding, "geometry"),
+            binding.geometryMappings,
+            geometryResources
+        );
+        binding.textureMappings = buildRenderBindingMappingState(
+            getRenderBindingKeys(binding, "texture"),
+            binding.textureMappings,
+            textureResources
+        );
+    }
+
+    /**
+     * 给单个渲染控制器卡片生成可直接渲染的映射条目。
+     */
+    function getRenderBindingMappingEntries(entity, binding, type, resources) {
+        const mappingSource = type === "geometry" ? binding.geometryMappings : binding.textureMappings;
+        const availableKeys = getRenderBindingKeys(binding, type);
+        return availableKeys.map((key) => {
+            const resource = resources.find((item) => item.id === mappingSource[key]) || resources[0] || null;
+            return {
+                key,
+                availableKeys,
+                resourceId: resource ? resource.id : "",
+                previewText: type === "geometry"
+                    ? `导出为 ${resource ? buildGeometryResourceIdentifier(entity, resource, 0) : "未选择模型资源"}`
+                    : `导出为 ${resource ? `${buildTextureResourcePath(entity, resource)}.png` : "未选择贴图资源"}`,
+            };
+        });
+    }
+
     function collectRenderBindings(entity) {
-        const preset = getRenderControllerPreset(entity.renderController);
+        const geometryKeyEntries = [];
+        const textureKeyEntries = [];
+        const materialKeys = [];
+        const partVisibilityKeys = [];
+        const geometryResources = getGeometryResources(entity);
+        const textureResources = getTextureResources(entity);
+
+        getRenderControllers(entity).forEach((binding) => {
+            const preset = getRenderControllerPreset(binding.controller);
+            syncRenderBindingMappings(binding, geometryResources, textureResources);
+            if (!preset) {
+                return;
+            }
+            mergeUniqueValues(materialKeys, preset.materialKeys || []);
+            mergeUniqueValues(partVisibilityKeys, preset.partVisibilityKeys || []);
+            getRenderBindingKeys(binding, "geometry").forEach((key) => {
+                const resource = geometryResources.find((item) => item.id === binding.geometryMappings[key]) || geometryResources[0] || null;
+                if (!resource || geometryKeyEntries.some((entry) => entry.key === key)) {
+                    return;
+                }
+                geometryKeyEntries.push({
+                    key,
+                    resourceId: resource.id,
+                    resourceName: resource.sourceName,
+                    identifier: buildGeometryResourceIdentifier(entity, resource, 0),
+                });
+            });
+            getRenderBindingKeys(binding, "texture").forEach((key) => {
+                const resource = textureResources.find((item) => item.id === binding.textureMappings[key]) || textureResources[0] || null;
+                if (!resource || textureKeyEntries.some((entry) => entry.key === key)) {
+                    return;
+                }
+                textureKeyEntries.push({
+                    key,
+                    resourceId: resource.id,
+                    resourceName: resource.sourceName,
+                    path: buildTextureResourcePath(entity, resource),
+                });
+            });
+        });
+
         return {
-            geometryKeys: preset && preset.geometryKeys.length ? [...preset.geometryKeys] : ["default"],
-            textureKeys: preset && preset.textureKeys.length ? [...preset.textureKeys] : ["default"],
-            materialKeys: preset ? [...preset.materialKeys] : [],
-            partVisibilityKeys: preset ? [...preset.partVisibilityKeys] : [],
+            geometryKeys: geometryKeyEntries.map((entry) => entry.key),
+            textureKeys: textureKeyEntries.map((entry) => entry.key),
+            geometryEntries: geometryKeyEntries.length ? geometryKeyEntries : [{
+                key: "default",
+                resourceId: "",
+                resourceName: "",
+                identifier: `geometry.${entity.baseName}`,
+            }],
+            textureEntries: textureKeyEntries.length ? textureKeyEntries : [{
+                key: "default",
+                resourceId: "",
+                resourceName: "",
+                path: `textures/entity/${entity.resourceSubdir}/${entity.baseName}`,
+            }],
+            materialKeys,
+            partVisibilityKeys,
         };
+    }
+
+    /**
+     * 把多个动画控制器的映射合并成最终导出的 animate 列表，并收集冲突。
+     */
+    function getMergedAnimationEntries(entity) {
+        const entryMap = new Map();
+        const conflicts = [];
+
+        getAnimationControllerBindings(entity).forEach((binding) => {
+            getBindingSlotNames(binding).forEach((slotName) => {
+                const sourceName = binding.animationMappings[slotName];
+                if (!sourceName) {
+                    return;
+                }
+
+                if (!entryMap.has(slotName)) {
+                    entryMap.set(slotName, {
+                        key: slotName,
+                        sourceName,
+                        name: `animation.${entity.baseName}.${slotName}`,
+                        bindingKey: binding.key,
+                    });
+                    return;
+                }
+
+                const existing = entryMap.get(slotName);
+                if (existing.sourceName !== sourceName) {
+                    conflicts.push({
+                        key: slotName,
+                        firstBindingKey: existing.bindingKey,
+                        firstSourceName: existing.sourceName,
+                        secondBindingKey: binding.key,
+                        secondSourceName: sourceName,
+                    });
+                }
+            });
+        });
+
+        return {
+            entries: Array.from(entryMap.values()).sort((left, right) => compareSlotNames(left.key, right.key)),
+            conflicts,
+        };
+    }
+
+    /**
+     * 检查单个控制器绑定是否已经有任意动作映射。
+     */
+    function hasAnyAnimationMappings(binding) {
+        return Object.values(binding.animationMappings || {}).some(Boolean);
+    }
+
+    /**
+     * 收集当前实体所有已经占用的原始动作名。
+     */
+    function getUsedAnimationSourceNames(entity) {
+        const used = new Set();
+        getAnimationControllerBindings(entity).forEach((binding) => {
+            Object.values(binding.animationMappings || {}).forEach((sourceName) => {
+                if (sourceName) {
+                    used.add(sourceName);
+                }
+            });
+        });
+        return used;
+    }
+
+    /**
+     * 给新增动画控制器生成一个尽量直观且不重复的绑定 key。
+     */
+    function suggestNextAnimationBindingKey(bindings) {
+        const used = new Set(bindings.map((binding) => binding.key));
+        if (!used.has("test")) {
+            return "test";
+        }
+        let index = 2;
+        while (used.has(`test${index}`)) {
+            index += 1;
+        }
+        return `test${index}`;
+    }
+
+    /**
+     * 按 id 查找渲染控制器绑定。
+     */
+    function findRenderControllerBinding(entity, bindingId) {
+        return getRenderControllers(entity).find((binding) => binding.id === bindingId) || null;
+    }
+
+    /**
+     * 按 id 查找动画控制器绑定。
+     */
+    function findAnimationControllerBinding(entity, bindingId) {
+        return getAnimationControllerBindings(entity).find((binding) => binding.id === bindingId) || null;
     }
 
     function recommendController(animationNames) {

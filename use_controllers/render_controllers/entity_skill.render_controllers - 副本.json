@@ -1,0 +1,21 @@
+{
+    "render_controllers": {
+        "controller.render.entity_extra.third_person": {
+            "geometry": "Geometry.extra",
+            "textures": [
+                "Texture.extra"
+            ],
+            "materials": [
+                {
+                    "*": "Material.extra"
+                }
+            ],
+            "part_visibility": [
+                {
+                    "*": true
+                }
+            ]
+        }
+    },
+    "format_version": "1.8.0"
+}

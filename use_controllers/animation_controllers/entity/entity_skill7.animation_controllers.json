@@ -1,1 +1,549 @@
-{"animation_controllers":{"controller.animation.entity_skill7.default":{"states":{"skill3":{"transitions":[{"idle":"query.mod.entity_skill == 0"},{"skill1":"query.mod.entity_skill == 1"},{"skill2":"query.mod.entity_skill == 2"},{"skill4":"query.mod.entity_skill == 4"},{"skill5":"query.mod.entity_skill == 5"},{"skill6":"query.mod.entity_skill == 6"},{"skill7":"query.mod.entity_skill == 7"}],"blend_transition":0.05,"animations":["skill3"]},"skill2":{"transitions":[{"idle":"query.mod.entity_skill == 0"},{"skill1":"query.mod.entity_skill == 1"},{"skill3":"query.mod.entity_skill == 3"},{"skill4":"query.mod.entity_skill == 4"},{"skill5":"query.mod.entity_skill == 5"},{"skill6":"query.mod.entity_skill == 6"},{"skill7":"query.mod.entity_skill == 7"}],"blend_transition":0.05,"animations":["skill2"]},"skill1":{"transitions":[{"idle":"query.mod.entity_skill == 0"},{"skill2":"query.mod.entity_skill == 2"},{"skill3":"query.mod.entity_skill == 3"},{"skill4":"query.mod.entity_skill == 4"},{"skill5":"query.mod.entity_skill == 5"},{"skill6":"query.mod.entity_skill == 6"},{"skill7":"query.mod.entity_skill == 7"}],"blend_transition":0.05,"animations":["skill1"]},"skill7":{"transitions":[{"idle":"query.mod.entity_skill == 0"},{"skill1":"query.mod.entity_skill == 1"},{"skill2":"query.mod.entity_skill == 2"},{"skill3":"query.mod.entity_skill == 3"},{"skill4":"query.mod.entity_skill == 4"},{"skill5":"query.mod.entity_skill == 5"},{"skill6":"query.mod.entity_skill == 6"}],"blend_transition":0.05,"animations":["skill7"]},"skill6":{"transitions":[{"idle":"query.mod.entity_skill == 0"},{"skill1":"query.mod.entity_skill == 1"},{"skill2":"query.mod.entity_skill == 2"},{"skill3":"query.mod.entity_skill == 3"},{"skill4":"query.mod.entity_skill == 4"},{"skill5":"query.mod.entity_skill == 5"},{"skill7":"query.mod.entity_skill == 7"}],"blend_transition":0.05,"animations":["skill6"]},"skill5":{"transitions":[{"idle":"query.mod.entity_skill == 0"},{"skill1":"query.mod.entity_skill == 1"},{"skill2":"query.mod.entity_skill == 2"},{"skill3":"query.mod.entity_skill == 3"},{"skill4":"query.mod.entity_skill == 4"},{"skill6":"query.mod.entity_skill == 6"},{"skill7":"query.mod.entity_skill == 7"}],"blend_transition":0.05,"animations":["skill5"]},"skill4":{"transitions":[{"idle":"query.mod.entity_skill == 0"},{"skill1":"query.mod.entity_skill == 1"},{"skill2":"query.mod.entity_skill == 2"},{"skill3":"query.mod.entity_skill == 3"},{"skill5":"query.mod.entity_skill == 5"},{"skill6":"query.mod.entity_skill == 6"},{"skill7":"query.mod.entity_skill == 7"}],"blend_transition":0.05,"animations":["skill4"]},"idle":{"transitions":[{"walk":"query.modified_move_speed > 0.05"},{"skill1":"query.mod.entity_skill == 1"},{"skill2":"query.mod.entity_skill == 2"},{"skill3":"query.mod.entity_skill == 3"},{"skill4":"query.mod.entity_skill == 4"},{"skill5":"query.mod.entity_skill == 5"},{"skill6":"query.mod.entity_skill == 6"},{"skill7":"query.mod.entity_skill == 7"}],"blend_transition":0.1,"animations":["idle"]},"walk":{"transitions":[{"idle":"query.modified_move_speed < 0.05"},{"skill1":"query.mod.entity_skill == 1"},{"skill2":"query.mod.entity_skill == 2"},{"skill3":"query.mod.entity_skill == 3"},{"skill4":"query.mod.entity_skill == 4"},{"skill5":"query.mod.entity_skill == 5"},{"skill6":"query.mod.entity_skill == 6"},{"skill7":"query.mod.entity_skill == 7"}],"blend_transition":0.1,"animations":["walk"]}},"initial_state":"idle"}},"format_version":"1.10.0"}
+{
+  "animation_controllers": {
+    "controller.animation.entity_skill7.default": {
+      "states": {
+        "skill3": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill3"
+          ]
+        },
+        "skill2": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill2"
+          ]
+        },
+        "skill1": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill1"
+          ]
+        },
+        "skill7": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6": "query.mod.entity_skill == 6"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill7"
+          ]
+        },
+        "skill6": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill7": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill6"
+          ]
+        },
+        "skill5": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill6": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill5"
+          ]
+        },
+        "skill4": {
+          "transitions": [
+            {
+              "idle": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill4"
+          ]
+        },
+        "idle": {
+          "transitions": [
+            {
+              "walk": "query.modified_move_speed > 0.05"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idle"
+          ]
+        },
+        "walk": {
+          "transitions": [
+            {
+              "idle": "query.modified_move_speed < 0.05"
+            },
+            {
+              "skill1": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walk"
+          ]
+        }
+      },
+      "initial_state": "idle"
+    },
+    "controller.animation.entity_skill7.defaultB": {
+      "states": {
+        "skill3B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5B": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6B": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7B": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill3B"
+          ]
+        },
+        "skill2B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5B": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6B": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7B": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill2B"
+          ]
+        },
+        "skill1B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5B": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6B": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7B": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill1B"
+          ]
+        },
+        "skill7B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5B": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6B": "query.mod.entity_skill == 6"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill7B"
+          ]
+        },
+        "skill6B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5B": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill7B": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill6B"
+          ]
+        },
+        "skill5B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill6B": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7B": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill5B"
+          ]
+        },
+        "skill4B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill5B": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6B": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7B": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill4B"
+          ]
+        },
+        "idleB": {
+          "transitions": [
+            {
+              "walkB": "query.modified_move_speed > 0.05"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5B": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6B": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7B": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleB"
+          ]
+        },
+        "walkB": {
+          "transitions": [
+            {
+              "idleB": "query.modified_move_speed < 0.05"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            },
+            {
+              "skill5B": "query.mod.entity_skill == 5"
+            },
+            {
+              "skill6B": "query.mod.entity_skill == 6"
+            },
+            {
+              "skill7B": "query.mod.entity_skill == 7"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkB"
+          ]
+        }
+      },
+      "initial_state": "idleB"
+    }
+  },
+  "format_version": "1.10.0"
+}

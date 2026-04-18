@@ -130,6 +130,137 @@
         }
       },
       "initial_state": "idle"
+    },
+    "controller.animation.entity_skill4.defaultB": {
+      "states": {
+        "skill3B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill3B"
+          ]
+        },
+        "skill2B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill2B"
+          ]
+        },
+        "skill1B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill1B"
+          ]
+        },
+        "skill4B": {
+          "transitions": [
+            {
+              "idleB": "query.mod.entity_skill == 0"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill4B"
+          ]
+        },
+        "idleB": {
+          "transitions": [
+            {
+              "walkB": "query.modified_move_speed > 0.05"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleB"
+          ]
+        },
+        "walkB": {
+          "transitions": [
+            {
+              "idleB": "query.modified_move_speed < 0.05"
+            },
+            {
+              "skill1B": "query.mod.entity_skill == 1"
+            },
+            {
+              "skill2B": "query.mod.entity_skill == 2"
+            },
+            {
+              "skill3B": "query.mod.entity_skill == 3"
+            },
+            {
+              "skill4B": "query.mod.entity_skill == 4"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkB"
+          ]
+        }
+      },
+      "initial_state": "idleB"
     }
   },
   "format_version": "1.10.0"

@@ -1,0 +1,21 @@
+{
+    "render_controllers": {
+        "controller.render.entity_skill.third_person": {
+            "geometry": "Geometry.skill",
+            "textures": [
+                "Texture.skill"
+            ],
+            "materials": [
+                {
+                    "*": "Material.skill"
+                }
+            ],
+            "part_visibility": [
+                {
+                    "*": true
+                }
+            ]
+        }
+    },
+    "format_version": "1.8.0"
+}

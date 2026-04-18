@@ -1,236 +1,93 @@
-// Generated from ./use_controllers by scripts/generate-controller-manifest.js
-window.BA_CONTROLLER_MANIFEST = {
-  "generatedAt": "2026-04-18T14:39:44.598Z",
-  "animationControllers": [
-    {
-      "source": "entity_default.animation_controllers.json",
-      "name": "controller.animation.test_entity.default",
-      "slots": [
-        "skill9",
-        "skill8",
-        "skill3",
-        "skill2",
-        "skill1",
-        "skill7",
-        "skill6",
-        "skill5",
-        "skill4",
-        "idle",
-        "skill10",
-        "walk"
-      ],
-      "label": "测试实体多技能控制器",
-      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。",
-      "slotDescriptions": {
-        "idle": "配置待机动作。",
-        "walk": "配置移动动作。",
-        "skill1": "配置技能 1 动作。",
-        "skill2": "配置技能 2 动作。",
-        "skill3": "配置技能 3 动作。",
-        "skill4": "配置技能 4 动作。",
-        "skill5": "配置技能 5 动作。",
-        "skill6": "配置技能 6 动作。",
-        "skill7": "配置技能 7 动作。",
-        "skill8": "配置技能 8 动作。",
-        "skill9": "配置技能 9 动作。",
-        "skill10": "配置技能 10 动作。"
-      }
-    },
-    {
-      "source": "entity_default.animation_controllers.json",
-      "name": "controller.animation.test_entity.defaultB",
-      "slots": [
-        "skill9B",
-        "skill8B",
-        "skill3B",
-        "skill2B",
-        "skill1B",
-        "skill7B",
-        "skill6B",
-        "skill5B",
-        "skill4B",
-        "idleB",
-        "skill10B",
-        "walkB"
-      ],
-      "label": "测试实体多技能控制器（第二套）",
-      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）",
-        "skill2B": "配置技能 2 动作。（第二套）",
-        "skill3B": "配置技能 3 动作。（第二套）",
-        "skill4B": "配置技能 4 动作。（第二套）",
-        "skill5B": "配置技能 5 动作。（第二套）",
-        "skill6B": "配置技能 6 动作。（第二套）",
-        "skill7B": "配置技能 7 动作。（第二套）",
-        "skill8B": "配置技能 8 动作。（第二套）",
-        "skill9B": "配置技能 9 动作。（第二套）",
-        "skill10B": "配置技能 10 动作。（第二套）"
-      }
-    },
-    {
-      "source": "entity_idle.animation_controllers.json",
-      "name": "controller.animation.entity_idle.default",
-      "slots": [
-        "idle"
-      ],
+{
+  "animationControllers": {
+    "controller.animation.entity_idle.default": {
       "label": "待机控制器",
       "description": "只包含 idle，适合完全静止或只需要待机表现的实体。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。"
       }
     },
-    {
-      "source": "entity_idle.animation_controllers.json",
-      "name": "controller.animation.entity_idle.defaultB",
-      "slots": [
-        "idleB"
-      ],
+    "controller.animation.entity_idle.defaultB": {
       "label": "待机控制器（第二套）",
       "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）"
       }
     },
-    {
-      "source": "entity_idle_skill1.animation_controllers.json",
-      "name": "controller.animation.entity_idle_skill1.default",
-      "slots": [
-        "skill1",
-        "idle"
-      ],
+    "controller.animation.entity_idle_skill1.default": {
       "label": "待机 + 1 技能控制器",
       "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "skill1": "配置技能 1 动作。"
       }
     },
-    {
-      "source": "entity_idle_skill1.animation_controllers.json",
-      "name": "controller.animation.entity_idle_skill1.defaultB",
-      "slots": [
-        "skill1B",
-        "idleB"
-      ],
+    "controller.animation.entity_idle_skill1.defaultB": {
       "label": "待机 + 1 技能控制器（第二套）",
       "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）"
       }
     },
-    {
-      "source": "entity_idle_walk.animation_controllers.json",
-      "name": "controller.animation.entity_idle_walk.default",
-      "slots": [
-        "idle",
-        "walk"
-      ],
+    "controller.animation.entity_idle_walk.default": {
       "label": "待机 + 移动控制器",
       "description": "包含 idle 和 walk，适合普通移动实体。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。"
       }
     },
-    {
-      "source": "entity_idle_walk.animation_controllers.json",
-      "name": "controller.animation.entity_idle_walk.defaultB",
-      "slots": [
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.entity_idle_walk.defaultB": {
       "label": "待机 + 移动控制器（第二套）",
       "description": "包含 idle 和 walk，适合普通移动实体。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）"
       }
     },
-    {
-      "source": "entity_normal.animation_controllers.json",
-      "name": "controller.animation.entity_normal.default",
-      "slots": [
-        "skill1",
-        "idle",
-        "walk"
-      ],
+    "controller.animation.entity_normal.default": {
       "label": "待机 + 移动 + 1 技能控制器",
       "description": "包含 idle、walk、skill1，适合最常见的普通怪物。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。",
         "skill1": "配置技能 1 动作。"
       }
     },
-    {
-      "source": "entity_normal.animation_controllers.json",
-      "name": "controller.animation.entity_normal.defaultB",
-      "slots": [
-        "skill1B",
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.entity_normal.defaultB": {
       "label": "待机 + 移动 + 1 技能控制器（第二套）",
       "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）"
       }
     },
-    {
-      "source": "entity_skill2.animation_controllers.json",
-      "name": "controller.animation.entity_skill2.default",
-      "slots": [
-        "skill2",
-        "skill1",
-        "idle",
-        "walk"
-      ],
+    "controller.animation.entity_skill2.default": {
       "label": "2 技能控制器",
       "description": "包含 idle、walk、skill1、skill2，适合双技能实体。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。",
         "skill1": "配置技能 1 动作。",
         "skill2": "配置技能 2 动作。"
       }
     },
-    {
-      "source": "entity_skill2.animation_controllers.json",
-      "name": "controller.animation.entity_skill2.defaultB",
-      "slots": [
-        "skill2B",
-        "skill1B",
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.entity_skill2.defaultB": {
       "label": "2 技能控制器（第二套）",
       "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）",
         "skill2B": "配置技能 2 动作。（第二套）"
       }
     },
-    {
-      "source": "entity_skill3.animation_controllers.json",
-      "name": "controller.animation.entity_skill3.default",
-      "slots": [
-        "skill3",
-        "skill2",
-        "skill1",
-        "idle",
-        "walk"
-      ],
+    "controller.animation.entity_skill3.default": {
       "label": "3 技能控制器",
       "description": "包含 idle、walk、skill1、skill2、skill3。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。",
         "skill1": "配置技能 1 动作。",
@@ -238,19 +95,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill3": "配置技能 3 动作。"
       }
     },
-    {
-      "source": "entity_skill3.animation_controllers.json",
-      "name": "controller.animation.entity_skill3.defaultB",
-      "slots": [
-        "skill3B",
-        "skill2B",
-        "skill1B",
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.entity_skill3.defaultB": {
       "label": "3 技能控制器（第二套）",
       "description": "包含 idle、walk、skill1、skill2、skill3。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）",
@@ -258,20 +106,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill3B": "配置技能 3 动作。（第二套）"
       }
     },
-    {
-      "source": "entity_skill4.animation_controllers.json",
-      "name": "controller.animation.entity_skill4.default",
-      "slots": [
-        "skill3",
-        "skill2",
-        "skill1",
-        "skill4",
-        "idle",
-        "walk"
-      ],
+    "controller.animation.entity_skill4.default": {
       "label": "4 技能控制器",
       "description": "包含 idle、walk、skill1、skill2、skill3、skill4。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。",
         "skill1": "配置技能 1 动作。",
@@ -280,20 +118,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill4": "配置技能 4 动作。"
       }
     },
-    {
-      "source": "entity_skill4.animation_controllers.json",
-      "name": "controller.animation.entity_skill4.defaultB",
-      "slots": [
-        "skill3B",
-        "skill2B",
-        "skill1B",
-        "skill4B",
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.entity_skill4.defaultB": {
       "label": "4 技能控制器（第二套）",
       "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）",
@@ -302,21 +130,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill4B": "配置技能 4 动作。（第二套）"
       }
     },
-    {
-      "source": "entity_skill5.animation_controllers.json",
-      "name": "controller.animation.entity_skill5.default",
-      "slots": [
-        "skill3",
-        "skill2",
-        "skill1",
-        "skill5",
-        "skill4",
-        "idle",
-        "walk"
-      ],
+    "controller.animation.entity_skill5.default": {
       "label": "5 技能控制器",
       "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。",
         "skill1": "配置技能 1 动作。",
@@ -326,21 +143,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill5": "配置技能 5 动作。"
       }
     },
-    {
-      "source": "entity_skill5.animation_controllers.json",
-      "name": "controller.animation.entity_skill5.defaultB",
-      "slots": [
-        "skill3B",
-        "skill2B",
-        "skill1B",
-        "skill5B",
-        "skill4B",
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.entity_skill5.defaultB": {
       "label": "5 技能控制器（第二套）",
       "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）",
@@ -350,22 +156,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill5B": "配置技能 5 动作。（第二套）"
       }
     },
-    {
-      "source": "entity_skill6.animation_controllers.json",
-      "name": "controller.animation.entity_skill6.default",
-      "slots": [
-        "skill3",
-        "skill2",
-        "skill1",
-        "skill6",
-        "skill5",
-        "skill4",
-        "idle",
-        "walk"
-      ],
+    "controller.animation.entity_skill6.default": {
       "label": "6 技能控制器",
       "description": "包含 idle、walk、skill1~skill6。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。",
         "skill1": "配置技能 1 动作。",
@@ -376,22 +170,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill6": "配置技能 6 动作。"
       }
     },
-    {
-      "source": "entity_skill6.animation_controllers.json",
-      "name": "controller.animation.entity_skill6.defaultB",
-      "slots": [
-        "skill3B",
-        "skill2B",
-        "skill1B",
-        "skill6B",
-        "skill5B",
-        "skill4B",
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.entity_skill6.defaultB": {
       "label": "6 技能控制器（第二套）",
       "description": "包含 idle、walk、skill1~skill6。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）",
@@ -402,23 +184,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill6B": "配置技能 6 动作。（第二套）"
       }
     },
-    {
-      "source": "entity_skill7.animation_controllers.json",
-      "name": "controller.animation.entity_skill7.default",
-      "slots": [
-        "skill3",
-        "skill2",
-        "skill1",
-        "skill7",
-        "skill6",
-        "skill5",
-        "skill4",
-        "idle",
-        "walk"
-      ],
+    "controller.animation.entity_skill7.default": {
       "label": "7 技能控制器",
       "description": "包含 idle、walk、skill1~skill7。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。",
         "skill1": "配置技能 1 动作。",
@@ -430,23 +199,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill7": "配置技能 7 动作。"
       }
     },
-    {
-      "source": "entity_skill7.animation_controllers.json",
-      "name": "controller.animation.entity_skill7.defaultB",
-      "slots": [
-        "skill3B",
-        "skill2B",
-        "skill1B",
-        "skill7B",
-        "skill6B",
-        "skill5B",
-        "skill4B",
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.entity_skill7.defaultB": {
       "label": "7 技能控制器（第二套）",
       "description": "包含 idle、walk、skill1~skill7。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）",
@@ -458,24 +214,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill7B": "配置技能 7 动作。（第二套）"
       }
     },
-    {
-      "source": "entity_skill8.animation_controllers.json",
-      "name": "controller.animation.entity_skill8.default",
-      "slots": [
-        "skill8",
-        "skill3",
-        "skill2",
-        "skill1",
-        "skill7",
-        "skill6",
-        "skill5",
-        "skill4",
-        "idle",
-        "walk"
-      ],
+    "controller.animation.entity_skill8.default": {
       "label": "8 技能控制器",
       "description": "包含 idle、walk、skill1~skill8。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。",
         "skill1": "配置技能 1 动作。",
@@ -488,24 +230,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill8": "配置技能 8 动作。"
       }
     },
-    {
-      "source": "entity_skill8.animation_controllers.json",
-      "name": "controller.animation.entity_skill8.defaultB",
-      "slots": [
-        "skill8B",
-        "skill3B",
-        "skill2B",
-        "skill1B",
-        "skill7B",
-        "skill6B",
-        "skill5B",
-        "skill4B",
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.entity_skill8.defaultB": {
       "label": "8 技能控制器（第二套）",
       "description": "包含 idle、walk、skill1~skill8。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）",
@@ -518,25 +246,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill8B": "配置技能 8 动作。（第二套）"
       }
     },
-    {
-      "source": "entity_skill9.animation_controllers.json",
-      "name": "controller.animation.test_entity.default",
-      "slots": [
-        "skill9",
-        "skill8",
-        "skill3",
-        "skill2",
-        "skill1",
-        "skill7",
-        "skill6",
-        "skill5",
-        "skill4",
-        "idle",
-        "walk"
-      ],
+    "controller.animation.test_entity.default": {
       "label": "测试实体多技能控制器",
       "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。",
-      "slotDescriptions": {
+      "slots": {
         "idle": "配置待机动作。",
         "walk": "配置移动动作。",
         "skill1": "配置技能 1 动作。",
@@ -551,25 +264,10 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill10": "配置技能 10 动作。"
       }
     },
-    {
-      "source": "entity_skill9.animation_controllers.json",
-      "name": "controller.animation.test_entity.defaultB",
-      "slots": [
-        "skill9B",
-        "skill8B",
-        "skill3B",
-        "skill2B",
-        "skill1B",
-        "skill7B",
-        "skill6B",
-        "skill5B",
-        "skill4B",
-        "idleB",
-        "walkB"
-      ],
+    "controller.animation.test_entity.defaultB": {
       "label": "测试实体多技能控制器（第二套）",
       "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套用于独立的第二路动作播放，所有动作 key 都带 B 后缀。",
-      "slotDescriptions": {
+      "slots": {
         "idleB": "配置待机动作。（第二套）",
         "walkB": "配置移动动作。（第二套）",
         "skill1B": "配置技能 1 动作。（第二套）",
@@ -584,61 +282,11 @@ window.BA_CONTROLLER_MANIFEST = {
         "skill10B": "配置技能 10 动作。（第二套）"
       }
     }
-  ],
-  "renderControllers": [
-    {
-      "source": "entity_default.render_controllers.json",
-      "name": "controller.render.entity_default.third_person",
-      "geometryKeys": [
-        "default"
-      ],
-      "textureKeys": [
-        "default"
-      ],
-      "materialKeys": [
-        "default"
-      ],
-      "partVisibilityKeys": [
-        "*"
-      ],
+  },
+  "renderControllers": {
+    "controller.render.entity_default.third_person": {
       "label": "默认第三人称渲染控制器",
       "description": "基础实体渲染控制器，负责最常见的 geometry / texture / material 绑定。"
-    },
-    {
-      "source": "entity_extra.render_controllers.json",
-      "name": "controller.render.entity_extra.third_person",
-      "geometryKeys": [
-        "extra"
-      ],
-      "textureKeys": [
-        "extra"
-      ],
-      "materialKeys": [
-        "extra"
-      ],
-      "partVisibilityKeys": [
-        "*"
-      ],
-      "label": "",
-      "description": ""
-    },
-    {
-      "source": "entity_skill.render_controllers.json",
-      "name": "controller.render.entity_skill.third_person",
-      "geometryKeys": [
-        "skill"
-      ],
-      "textureKeys": [
-        "skill"
-      ],
-      "materialKeys": [
-        "skill"
-      ],
-      "partVisibilityKeys": [
-        "*"
-      ],
-      "label": "",
-      "description": ""
     }
-  ]
-};
+  }
+}
