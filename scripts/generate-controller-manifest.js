@@ -200,14 +200,56 @@ function pushUnique(target, value) {
 }
 
 /**
+ * 收集当前编辑器兼容的控制器源文件内容，供浏览器在 file:// 场景下直接导出 ZIP。
+ */
+function collectControllerFiles(animationControllers, renderControllers) {
+    const fileMap = new Map();
+
+    animationControllers.forEach((entry) => {
+        if (!entry || !entry.source) {
+            return;
+        }
+        const relativePath = `use_controllers/animation_controllers/entity/${entry.source}`;
+        const filePath = path.join(animationDir, entry.source);
+        if (!fs.existsSync(filePath) || fileMap.has(relativePath)) {
+            return;
+        }
+        fileMap.set(relativePath, {
+            path: relativePath,
+            content: fs.readFileSync(filePath, "utf8"),
+        });
+    });
+
+    renderControllers.forEach((entry) => {
+        if (!entry || !entry.source) {
+            return;
+        }
+        const relativePath = `use_controllers/render_controllers/${entry.source}`;
+        const filePath = path.join(renderDir, entry.source);
+        if (!fs.existsSync(filePath) || fileMap.has(relativePath)) {
+            return;
+        }
+        fileMap.set(relativePath, {
+            path: relativePath,
+            content: fs.readFileSync(filePath, "utf8"),
+        });
+    });
+
+    return Array.from(fileMap.values()).sort((left, right) => left.path.localeCompare(right.path));
+}
+
+/**
  * 生成并写出编辑器使用的控制器 manifest。
  */
 function main() {
     const descriptions = readDescriptions();
+    const animationControllers = collectAnimationControllers(descriptions);
+    const renderControllers = collectRenderControllers(descriptions);
     const manifest = {
         generatedAt: new Date().toISOString(),
-        animationControllers: collectAnimationControllers(descriptions),
-        renderControllers: collectRenderControllers(descriptions),
+        animationControllers,
+        renderControllers,
+        controllerFiles: collectControllerFiles(animationControllers, renderControllers),
     };
 
     const content = [

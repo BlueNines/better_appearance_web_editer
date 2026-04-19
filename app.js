@@ -45,6 +45,7 @@
 
     const elements = {
         resourceInput: document.getElementById("resourceInput"),
+        exportUseControllersButton: document.getElementById("exportUseControllersButton"),
         newEntityButton: document.getElementById("newEntityButton"),
         exportButton: document.getElementById("exportButton"),
         projectStatus: document.getElementById("projectStatus"),
@@ -82,6 +83,10 @@
 
         elements.exportButton.addEventListener("click", async () => {
             await exportZip();
+        });
+
+        elements.exportUseControllersButton.addEventListener("click", async () => {
+            await exportUseControllersZip();
         });
 
         elements.assignInput.addEventListener("change", async (event) => {
@@ -365,6 +370,140 @@
         setStatus(`导出完成：${downloadName}`);
         addMessage(`已导出 ${state.entities.length} 个实体的 ZIP，未更新 Config.py。`, "info");
         render();
+    }
+
+    /**
+     * 导出当前编辑器兼容的 use_controllers 内容，方便用户单独下载最新控制器资源。
+     */
+    async function exportUseControllersZip() {
+        if (typeof window.JSZip === "undefined") {
+            addMessage("JSZip 未加载，当前无法导出控制器 ZIP。", "error");
+            render();
+            return;
+        }
+
+        try {
+            const zip = new window.JSZip();
+            const controllerFiles = collectUseControllerFiles();
+            if (!controllerFiles.length) {
+                addMessage("当前没有可导出的控制器文件。", "warn");
+                render();
+                return;
+            }
+
+            for (const fileInfo of controllerFiles) {
+                const content = await resolveUseControllerFileContent(fileInfo);
+                zip.file(fileInfo.zipPath, content);
+            }
+
+            const blob = await zip.generateAsync({ type: "blob" });
+            const downloadName = `betterappearance-use-controllers-${createTimestamp()}.zip`;
+            downloadBlob(blob, downloadName);
+            setStatus(`已导出控制器：${downloadName}`);
+            addMessage(`已导出 ${controllerFiles.length} 个 use_controllers 文件。`, "info");
+        } catch (error) {
+            addMessage(`导出控制器失败：${error.message}`, "error");
+        }
+        render();
+    }
+
+    /**
+     * 按当前 manifest 收录内容整理需要打包的控制器文件路径。
+     */
+    function collectUseControllerFiles() {
+        const fileMap = new Map();
+
+        CONTROLLER_DATA.animationControllers.forEach((entry) => {
+            if (!entry || !entry.source) {
+                return;
+            }
+            const relativePath = `use_controllers/animation_controllers/entity/${entry.source}`;
+            fileMap.set(relativePath, {
+                zipPath: relativePath,
+            });
+        });
+
+        CONTROLLER_DATA.renderControllers.forEach((entry) => {
+            if (!entry || !entry.source) {
+                return;
+            }
+            const relativePath = `use_controllers/render_controllers/${entry.source}`;
+            fileMap.set(relativePath, {
+                zipPath: relativePath,
+            });
+        });
+
+        if (Array.isArray(CONTROLLER_DATA.controllerFiles)) {
+            CONTROLLER_DATA.controllerFiles.forEach((file) => {
+                if (!file || typeof file.path !== "string") {
+                    return;
+                }
+
+                const existing = fileMap.get(file.path) || { zipPath: file.path };
+                if (typeof file.content === "string") {
+                    existing.embeddedContent = file.content;
+                }
+                fileMap.set(file.path, existing);
+            });
+        }
+
+        return Array.from(fileMap.values()).sort((left, right) => left.zipPath.localeCompare(right.zipPath));
+    }
+
+    /**
+     * 按当前打开方式选择控制器内容来源：
+     * HTTP 场景优先读实时文件，file:// 场景优先读内嵌内容，两边都保留回退。
+     */
+    async function resolveUseControllerFileContent(fileInfo) {
+        const relativePath = `./${fileInfo.zipPath}`;
+        const embeddedContent = typeof fileInfo.embeddedContent === "string"
+            ? fileInfo.embeddedContent
+            : null;
+
+        if (shouldPreferRuntimeControllerFiles()) {
+            try {
+                return await readRelativeTextFile(relativePath);
+            } catch (error) {
+                if (embeddedContent !== null) {
+                    return embeddedContent;
+                }
+                throw error;
+            }
+        }
+
+        if (embeddedContent !== null) {
+            return embeddedContent;
+        }
+
+        return await readRelativeTextFile(relativePath);
+    }
+
+    /**
+     * 判断当前是否应该优先读取目录中的真实文件。
+     */
+    function shouldPreferRuntimeControllerFiles() {
+        return getCurrentProtocol() !== "file:";
+    }
+
+    /**
+     * 统一获取页面协议，避免旧环境下直接访问 location 时报错。
+     */
+    function getCurrentProtocol() {
+        if (!window.location || typeof window.location.protocol !== "string") {
+            return "";
+        }
+        return window.location.protocol.toLowerCase();
+    }
+
+    /**
+     * 读取编辑器目录下的文本文件；主要给 HTTP 场景读取最新控制器内容使用。
+     */
+    async function readRelativeTextFile(relativePath) {
+        const response = await fetch(relativePath, { cache: "no-store" });
+        if (!response.ok) {
+            throw new Error(`读取文件失败：${relativePath}`);
+        }
+        return await response.text();
     }
 
     function collectExportErrors() {
