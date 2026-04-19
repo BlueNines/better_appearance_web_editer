@@ -301,25 +301,24 @@
         }
 
         if (detected.type === "animation") {
-            entity.files.animation = {
-                sourceName: detected.file.name,
-                json: detected.json,
-                animationNames: detected.animationNames,
-            };
-            const animationBindings = getAnimationControllerBindings(entity);
-            if (animationBindings.length === 1
-                && animationBindings[0].key === DEFAULT_ANIMATION_BINDING_KEY
-                && animationBindings[0].controller === DEFAULT_CONTROLLER
-                && !hasAnyAnimationMappings(animationBindings[0])) {
-                animationBindings[0].controller = recommendController(detected.animationNames);
+            const resources = getAnimationResources(entity);
+            const existing = assignment && assignment.resourceId
+                ? findAnimationResource(entity, assignment.resourceId)
+                : null;
+
+            if (existing) {
+                existing.sourceName = detected.file.name;
+                existing.json = detected.json;
+                existing.animationNames = [...detected.animationNames];
+            } else {
+                resources.push(createAnimationResource({
+                    sourceName: detected.file.name,
+                    json: detected.json,
+                    animationNames: detected.animationNames,
+                }));
             }
-            animationBindings.forEach((binding) => {
-                binding.animationMappings = buildAnimationMappings(
-                    entity.files.animation,
-                    getBindingSlotNames(binding),
-                    binding.animationMappings
-                );
-            });
+
+            refreshAnimationBindings(entity);
             addMessage(`已载入动作：${detected.file.name}`, "info");
         }
     }
@@ -406,7 +405,7 @@
             if (!getGeometryResources(entity).length) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少模型文件。` });
             }
-            if (!entity.files.animation) {
+            if (!getAnimationResources(entity).length) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少动作文件。` });
             }
             renderControllers.forEach((renderController, index) => {
@@ -438,7 +437,7 @@
                     message: `${name} 的动作 key ${conflict.key} 在控制器 ${conflict.firstBindingKey} 和 ${conflict.secondBindingKey} 上映射到了不同动作。`,
                 });
             });
-            if (entity.files.animation && !mergedAnimationData.entries.length) {
+            if (getAnimationResources(entity).length && !mergedAnimationData.entries.length) {
                 errors.push({ entityId: entity.id, message: `${name} 没有可导出的动作槽位映射。` });
             }
         }
@@ -496,9 +495,10 @@
     }
 
     function normalizeAnimationJson(entity) {
-        const baseJson = deepClone(entity.files.animation.json);
+        const mergedAnimationFile = getMergedAnimationFile(entity);
+        const baseJson = deepClone(mergedAnimationFile.json);
         const renamedAnimations = {};
-        const sourceAnimations = entity.files.animation.json.animations || {};
+        const sourceAnimations = mergedAnimationFile.json.animations || {};
 
         createAnimateList(entity).forEach((entry) => {
             if (!entry.sourceName || !sourceAnimations[entry.sourceName]) {
@@ -1004,10 +1004,11 @@
             const title = entity.baseName || "未命名实体";
             const textureCount = getTextureResources(entity).length;
             const geometryCount = getGeometryResources(entity).length;
+            const animationCount = getAnimationResources(entity).length;
             const chips = [
                 textureCount ? `贴图${textureCount}` : null,
                 geometryCount ? `模型${geometryCount}` : null,
-                entity.files.animation ? "动作" : null,
+                animationCount ? `动作${animationCount}` : null,
             ].filter(Boolean);
             return `
                 <li>
@@ -1049,6 +1050,8 @@
         const animationControllerBindings = getAnimationControllerBindings(entity);
         const textureResources = getTextureResources(entity);
         const geometryResources = getGeometryResources(entity);
+        const animationResources = getAnimationResources(entity);
+        const mergedAnimationFile = getMergedAnimationFile(entity);
         const renderBindings = collectRenderBindings(entity);
         const mergedAnimationData = getMergedAnimationEntries(entity);
         const animationSlotNames = collectAnimationSlotNames(entity);
@@ -1060,7 +1063,7 @@
             : titleProfile.depthTest === false
                 ? "false"
                 : "";
-        const availableAnimations = entity.files.animation ? entity.files.animation.animationNames : [];
+        const availableAnimations = mergedAnimationFile ? mergedAnimationFile.animationNames : [];
         const usedAnimationNames = getUsedAnimationSourceNames(entity);
         const unusedAnimations = availableAnimations.filter((name) => !usedAnimationNames.has(name));
 
@@ -1260,10 +1263,16 @@
             </section>
 
             <section class="section-card">
-                <h3>动作文件</h3>
-                <div class="file-stack">
-                    ${renderFileCard("动作文件", "animation", entity.files.animation ? entity.files.animation.sourceName : "")}
+                <div class="detail-actions">
+                    <h3>动作资源</h3>
+                    <button class="button ghost" type="button" data-action="add-animation-resource">新增动作资源</button>
                 </div>
+                <div class="file-stack">
+                    ${animationResources.length
+                        ? animationResources.map((resource) => renderAnimationResourceFileCard(resource)).join("")
+                        : '<p class="empty-state">还没有动作资源。</p>'}
+                </div>
+                <p class="field-hint">多个动作资源会在导出时自动合并成一个最终的 <code>${escapeHtml(entity.baseName || "实体名")}.animation.json</code>。</p>
             </section>
 
             <section class="section-card">
@@ -1301,6 +1310,7 @@
     }
 
     function bindInspectorEvents(entity) {
+        const mergedAnimationFile = getMergedAnimationFile(entity);
         const baseNameInput = document.getElementById("baseNameInput");
         const identifierInput = document.getElementById("identifierInput");
         const resourceSubdirInput = document.getElementById("resourceSubdirInput");
@@ -1398,6 +1408,12 @@
             elements.assignInput.click();
         });
 
+        elements.inspector.querySelector("[data-action='add-animation-resource']").addEventListener("click", () => {
+            state.pendingAssignment = { entityId: entity.id, type: "animation" };
+            elements.assignInput.accept = ".json";
+            elements.assignInput.click();
+        });
+
         elements.inspector.querySelectorAll("[data-resource-assign]").forEach((button) => {
             button.addEventListener("click", () => {
                 const type = button.dataset.resourceAssign;
@@ -1425,6 +1441,28 @@
             });
         });
 
+        elements.inspector.querySelectorAll("[data-animation-resource-assign]").forEach((button) => {
+            button.addEventListener("click", () => {
+                state.pendingAssignment = {
+                    entityId: entity.id,
+                    type: "animation",
+                    resourceId: button.dataset.animationResourceAssign,
+                };
+                elements.assignInput.accept = ".json";
+                elements.assignInput.click();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-animation-resource-remove]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const resourceId = button.dataset.animationResourceRemove;
+                entity.files.animations = getAnimationResources(entity).filter((resource) => resource.id !== resourceId);
+                refreshAnimationBindings(entity);
+                setStatus("已移除动作资源。");
+                render();
+            });
+        });
+
         const renderBindings = getRenderControllers(entity);
         const animationBindings = getAnimationControllerBindings(entity);
 
@@ -1434,13 +1472,13 @@
         });
 
         elements.inspector.querySelector("[data-action='add-animation-controller']").addEventListener("click", () => {
-            const recommendedController = entity.files.animation
-                ? recommendController(entity.files.animation.animationNames)
+            const recommendedController = mergedAnimationFile
+                ? recommendController(mergedAnimationFile.animationNames)
                 : DEFAULT_CONTROLLER;
             animationBindings.push(createAnimationControllerBinding({
                 key: suggestNextAnimationBindingKey(animationBindings),
                 controller: recommendedController,
-                animationMappings: buildAnimationMappings(entity.files.animation, getControllerSlots(recommendedController), {}),
+                animationMappings: buildAnimationMappings(mergedAnimationFile, getControllerSlots(recommendedController), {}),
             }));
             render();
         });
@@ -1550,7 +1588,7 @@
                     return;
                 }
                 binding.controller = event.target.value;
-                binding.animationMappings = buildAnimationMappings(entity.files.animation, getControllerSlots(binding.controller), binding.animationMappings);
+                binding.animationMappings = buildAnimationMappings(mergedAnimationFile, getControllerSlots(binding.controller), binding.animationMappings);
                 render();
             });
         });
@@ -1619,13 +1657,15 @@
                         json: deepClone(resource.json),
                     };
                 }),
+                animations: getAnimationResources(entity).map((resource) => ({
+                    id: createId(),
+                    sourceName: resource.sourceName,
+                    json: deepClone(resource.json),
+                    animationNames: [...resource.animationNames],
+                })),
                 texture: null,
                 geometry: null,
-                animation: entity.files.animation ? {
-                    sourceName: entity.files.animation.sourceName,
-                    json: deepClone(entity.files.animation.json),
-                    animationNames: [...entity.files.animation.animationNames],
-                } : null,
+                animation: null,
             };
             clone.renderControllers = getRenderControllers(entity).map((binding) => ({
                 id: createId(),
@@ -1689,6 +1729,28 @@
                 <div class="file-actions">
                     <button class="button ghost" type="button" data-resource-assign="${type}" data-resource-id="${escapeAttribute(resource.id)}">替换文件</button>
                     <button class="button danger" type="button" data-resource-remove="${type}" data-resource-id="${escapeAttribute(resource.id)}">移除</button>
+                </div>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染单个动作资源卡片；动作资源没有 resourceKey，但会显示包含多少动画块。
+     */
+    function renderAnimationResourceFileCard(resource) {
+        return `
+            <article class="file-card">
+                <div class="file-card-header">
+                    <div>
+                        <p class="file-title">动作资源</p>
+                        <p class="file-name">${escapeHtml(resource.sourceName || "未命名资源")}</p>
+                        <p class="field-hint">包含 <code>${escapeHtml(String((resource.animationNames || []).length))}</code> 个动画块。</p>
+                    </div>
+                    <span class="chip">${escapeHtml(String((resource.animationNames || []).length))}</span>
+                </div>
+                <div class="file-actions">
+                    <button class="button ghost" type="button" data-animation-resource-assign="${escapeAttribute(resource.id)}">替换文件</button>
+                    <button class="button danger" type="button" data-animation-resource-remove="${escapeAttribute(resource.id)}">移除</button>
                 </div>
             </article>
         `;
@@ -1939,6 +2001,7 @@
             files: {
                 textures: [],
                 geometries: [],
+                animations: [],
                 texture: null,
                 geometry: null,
                 animation: null,
@@ -1984,6 +2047,19 @@
             resourceKey: normalizeResourceKey(normalized.resourceKey || "default"),
             sourceName: typeof normalized.sourceName === "string" ? normalized.sourceName : "",
             json: normalized.json || null,
+        };
+    }
+
+    /**
+     * 创建默认的动作资源记录，每条记录对应一个 animation.json 文件。
+     */
+    function createAnimationResource(options) {
+        const normalized = options || {};
+        return {
+            id: normalized.id || createId(),
+            sourceName: typeof normalized.sourceName === "string" ? normalized.sourceName : "",
+            json: normalized.json || null,
+            animationNames: Array.isArray(normalized.animationNames) ? [...normalized.animationNames] : [],
         };
     }
 
@@ -2371,6 +2447,109 @@
     }
 
     /**
+     * 把旧版单动作文件结构迁移成动作资源列表，便于同一个实体收口多份 animation.json。
+     */
+    function getAnimationResources(entity) {
+        if (!entity.files || typeof entity.files !== "object") {
+            entity.files = {};
+        }
+
+        if (!Array.isArray(entity.files.animations)) {
+            entity.files.animations = entity.files.animation
+                ? [createAnimationResource({
+                    sourceName: entity.files.animation.sourceName,
+                    json: entity.files.animation.json,
+                    animationNames: entity.files.animation.animationNames,
+                })]
+                : [];
+        }
+
+        entity.files.animations = entity.files.animations
+            .filter((resource) => resource && typeof resource === "object" && resource.json)
+            .map((resource) => createAnimationResource(resource));
+        entity.files.animation = null;
+        return entity.files.animations;
+    }
+
+    /**
+     * 根据 id 查找动作资源。
+     */
+    function findAnimationResource(entity, resourceId) {
+        return getAnimationResources(entity).find((resource) => resource.id === resourceId) || null;
+    }
+
+    /**
+     * 把多个动作资源合并成编辑器内部统一使用的一份动作视图。
+     */
+    function getMergedAnimationFile(entity) {
+        const resources = getAnimationResources(entity);
+        if (!resources.length) {
+            return null;
+        }
+
+        const firstResource = resources[0];
+        const mergedJson = firstResource && firstResource.json
+            ? deepClone(firstResource.json)
+            : { format_version: "1.8.0" };
+        mergedJson.animations = {};
+        let formatVersion = mergedJson.format_version || "";
+
+        resources.forEach((resource) => {
+            if (!resource.json || typeof resource.json !== "object") {
+                return;
+            }
+
+            if (!formatVersion && resource.json.format_version) {
+                formatVersion = resource.json.format_version;
+            }
+
+            const animations = resource.json.animations || {};
+            Object.keys(animations).forEach((animationName) => {
+                mergedJson.animations[animationName] = deepClone(animations[animationName]);
+            });
+        });
+
+        if (formatVersion) {
+            mergedJson.format_version = formatVersion;
+        }
+
+        return {
+            json: mergedJson,
+            animationNames: Object.keys(mergedJson.animations),
+        };
+    }
+
+    /**
+     * 当动作资源发生变化时，统一刷新动画控制器绑定和动作槽位映射。
+     */
+    function refreshAnimationBindings(entity) {
+        const mergedAnimationFile = getMergedAnimationFile(entity);
+        const animationBindings = getAnimationControllerBindings(entity);
+
+        if (!mergedAnimationFile) {
+            animationBindings.forEach((binding) => {
+                binding.animationMappings = {};
+            });
+            return;
+        }
+
+        if (animationBindings.length === 1
+            && animationBindings[0].key === DEFAULT_ANIMATION_BINDING_KEY
+            && animationBindings[0].controller === DEFAULT_CONTROLLER
+            && !hasAnyAnimationMappings(animationBindings[0])) {
+            animationBindings[0].controller = recommendController(mergedAnimationFile.animationNames);
+        }
+
+        animationBindings.forEach((binding) => {
+            binding.animationMappings = buildAnimationMappings(
+                mergedAnimationFile,
+                getBindingSlotNames(binding),
+                binding.animationMappings
+            );
+        });
+    }
+
+    /**
      * 统一清洗简单 key-value 映射，只保留字符串值。
      */
     function normalizeSimpleStringMap(input) {
@@ -2423,12 +2602,21 @@
      */
     function buildGeometryResourceIdentifier(entity, resource, geometryIndex) {
         const baseIdentifier = resource && resource.resourceKey !== "default"
-            ? `geometry.${entity.baseName}.${resource.resourceKey}`
+            ? `geometry.${entity.baseName}_${normalizeGeometryIdentifierSuffix(resource.resourceKey)}`
             : `geometry.${entity.baseName}`;
         if (geometryIndex > 0) {
             return `${baseIdentifier}_${geometryIndex + 1}`;
         }
         return baseIdentifier;
+    }
+
+    /**
+     * geometry 标识符在 `geometry.` 之后不再保留额外点号，统一压成下划线。
+     */
+    function normalizeGeometryIdentifierSuffix(value) {
+        return String(value || "")
+            .trim()
+            .replace(/\./g, "_");
     }
 
     /**
