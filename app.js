@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     "use strict";
 
     const ROOT_DIR = "生成模型";
@@ -16,6 +16,7 @@
         width: 1,
         height: 2,
         scale: 1,
+        opacity: 1,
         healthBarVisible: true,
         bossBarVisible: false,
         currentHealthCount: 10000,
@@ -535,6 +536,9 @@
             if (!Number.isFinite(entityProfile.scale) || entityProfile.scale <= 0) {
                 errors.push({ entityId: entity.id, message: `${name} 的模型缩放必须大于 0。` });
             }
+            if (!Number.isFinite(entityProfile.opacity) || entityProfile.opacity < 0 || entityProfile.opacity > 1) {
+                errors.push({ entityId: entity.id, message: `${name} 的实体透明度必须在 0 到 1 之间。` });
+            }
             if (!Number.isInteger(entityProfile.currentHealthCount) || entityProfile.currentHealthCount < 100) {
                 errors.push({ entityId: entity.id, message: `${name} 的当前血条段数必须是大于等于 100 的整数。` });
             }
@@ -795,7 +799,7 @@
 
         const materials = {};
         (renderBindings.materialKeys.length ? renderBindings.materialKeys : ["default"]).forEach((key) => {
-            materials[key] = "entity_alphatest";
+            materials[key] = "entity_alpha_control_lit";
         });
 
         const textures = {};
@@ -912,7 +916,7 @@
         }
 
         if (changedEntityProfileEntries.length) {
-            lines.push("    # 服务端显示与强制同步");
+            lines.push("    # 服务端显示、透明度与强制同步");
             changedEntityProfileEntries.forEach((entry) => {
                 lines.push(`    ${entry.key}: ${entry.value}`);
             });
@@ -986,6 +990,9 @@
         }
         if (entityProfile.force !== DEFAULT_ENTITY_PROFILE.force) {
             entries.push({ key: "force", value: String(Boolean(entityProfile.force)) });
+        }
+        if (entityProfile.opacity !== DEFAULT_ENTITY_PROFILE.opacity) {
+            entries.push({ key: "opacity", value: String(entityProfile.opacity) });
         }
         return entries;
     }
@@ -1065,6 +1072,21 @@
         input.addEventListener("change", (event) => {
             entity.entityProfile[key] = parseEntityProfileValue(event.target.value, fallback);
             event.target.value = String(entity.entityProfile[key]);
+            render();
+        });
+    }
+
+    /**
+     * 绑定实体透明度输入框，透明度固定限制在 0..1。
+     */
+    function bindEntityProfileOpacityInput(input, entity) {
+        input.addEventListener("input", (event) => {
+            entity.entityProfile.opacity = parseColorAlpha(event.target.value, DEFAULT_ENTITY_PROFILE.opacity);
+        });
+
+        input.addEventListener("change", (event) => {
+            entity.entityProfile.opacity = parseColorAlpha(event.target.value, DEFAULT_ENTITY_PROFILE.opacity);
+            event.target.value = formatColorUnit(entity.entityProfile.opacity);
             render();
         });
     }
@@ -1288,6 +1310,11 @@
                                                     <p class="field-hint">默认值为 <code>1</code>，支持小数。</p>
                                                 </div>
                                                 <div class="field">
+                                                    <label for="profileOpacityInput">实体透明度</label>
+                                                    <input id="profileOpacityInput" type="number" min="0" max="1" step="any" value="${escapeAttribute(entityProfile.opacity)}">
+                                                    <p class="field-hint">默认值为 <code>1</code>，范围 <code>0..1</code>，导出材质默认支持透明度 uniform。</p>
+                                                </div>
+                                                <div class="field">
                                                     <label for="profileHealthBarVisibleSelect">显示血条</label>
                                                     <select id="profileHealthBarVisibleSelect">
                                                         <option value="true" ${entityProfile.healthBarVisible ? "selected" : ""}>true</option>
@@ -1456,6 +1483,7 @@
         const profileWidthInput = document.getElementById("profileWidthInput");
         const profileHeightInput = document.getElementById("profileHeightInput");
         const profileScaleInput = document.getElementById("profileScaleInput");
+        const profileOpacityInput = document.getElementById("profileOpacityInput");
         const profileHealthBarVisibleSelect = document.getElementById("profileHealthBarVisibleSelect");
         const profileBossBarVisibleSelect = document.getElementById("profileBossBarVisibleSelect");
         const profileCurrentHealthCountInput = document.getElementById("profileCurrentHealthCountInput");
@@ -1500,6 +1528,7 @@
         bindEntityProfileInput(profileWidthInput, entity, "width", DEFAULT_ENTITY_PROFILE.width);
         bindEntityProfileInput(profileHeightInput, entity, "height", DEFAULT_ENTITY_PROFILE.height);
         bindEntityProfileInput(profileScaleInput, entity, "scale", DEFAULT_ENTITY_PROFILE.scale);
+        bindEntityProfileOpacityInput(profileOpacityInput, entity);
         bindEntityProfileBooleanSelect(profileHealthBarVisibleSelect, entity, "healthBarVisible");
         bindEntityProfileBooleanSelect(profileBossBarVisibleSelect, entity, "bossBarVisible");
         bindEntityProfileIntegerInput(profileCurrentHealthCountInput, entity, "currentHealthCount", DEFAULT_ENTITY_PROFILE.currentHealthCount, 100);
@@ -1769,6 +1798,7 @@
                 width: entityProfile.width,
                 height: entityProfile.height,
                 scale: entityProfile.scale,
+                opacity: entityProfile.opacity,
                 healthBarVisible: entityProfile.healthBarVisible,
                 bossBarVisible: entityProfile.bossBarVisible,
                 currentHealthCount: entityProfile.currentHealthCount,

@@ -12,7 +12,7 @@
         "default": "geometry.squirrel"
       },
       "materials": {
-        "default": "entity_alphatest"
+        "default": "entity_alpha_control_lit"
       },
       "animations": {
         "idle": "animation.squirrel.idle",
