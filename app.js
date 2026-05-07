@@ -17,6 +17,11 @@
         height: 2,
         scale: 1,
         opacity: 1,
+        redGain: 1,
+        greenGain: 1,
+        blueGain: 1,
+        brightness: 1,
+        ignoreLight: false,
         healthBarVisible: true,
         bossBarVisible: false,
         currentHealthCount: 10000,
@@ -539,6 +544,18 @@
             if (!Number.isFinite(entityProfile.opacity) || entityProfile.opacity < 0 || entityProfile.opacity > 1) {
                 errors.push({ entityId: entity.id, message: `${name} 的实体透明度必须在 0 到 1 之间。` });
             }
+            if (!isValidRenderGain(entityProfile.redGain)) {
+                errors.push({ entityId: entity.id, message: `${name} 的红色通道增益必须在 0 到 16 之间。` });
+            }
+            if (!isValidRenderGain(entityProfile.greenGain)) {
+                errors.push({ entityId: entity.id, message: `${name} 的绿色通道增益必须在 0 到 16 之间。` });
+            }
+            if (!isValidRenderGain(entityProfile.blueGain)) {
+                errors.push({ entityId: entity.id, message: `${name} 的蓝色通道增益必须在 0 到 16 之间。` });
+            }
+            if (!isValidRenderGain(entityProfile.brightness)) {
+                errors.push({ entityId: entity.id, message: `${name} 的整体亮度必须在 0 到 16 之间。` });
+            }
             if (!Number.isInteger(entityProfile.currentHealthCount) || entityProfile.currentHealthCount < 100) {
                 errors.push({ entityId: entity.id, message: `${name} 的当前血条段数必须是大于等于 100 的整数。` });
             }
@@ -916,9 +933,17 @@
         }
 
         if (changedEntityProfileEntries.length) {
-            lines.push("    # 服务端显示、透明度与强制同步");
+            lines.push("    # 服务端显示与强制同步");
             changedEntityProfileEntries.forEach((entry) => {
                 lines.push(`    ${entry.key}: ${entry.value}`);
+            });
+        }
+
+        if (hasCustomRenderEntityProfile(entity)) {
+            lines.push("    # 渲染通道：red/green/blue/alpha 乘最终颜色，brightness 控制整体亮度");
+            lines.push("    render:");
+            getChangedRenderEntityProfileEntries(entityProfile).forEach((entry) => {
+                lines.push(`      ${entry.key}: ${entry.value}`);
             });
         }
 
@@ -991,8 +1016,44 @@
         if (entityProfile.force !== DEFAULT_ENTITY_PROFILE.force) {
             entries.push({ key: "force", value: String(Boolean(entityProfile.force)) });
         }
+        return entries;
+    }
+
+    /**
+     * 判断实体是否改动了任意渲染通道字段。
+     */
+    function hasCustomRenderEntityProfile(entity) {
+        const entityProfile = getEntityProfile(entity);
+        return entityProfile.opacity !== DEFAULT_ENTITY_PROFILE.opacity
+            || entityProfile.redGain !== DEFAULT_ENTITY_PROFILE.redGain
+            || entityProfile.greenGain !== DEFAULT_ENTITY_PROFILE.greenGain
+            || entityProfile.blueGain !== DEFAULT_ENTITY_PROFILE.blueGain
+            || entityProfile.brightness !== DEFAULT_ENTITY_PROFILE.brightness
+            || entityProfile.ignoreLight !== DEFAULT_ENTITY_PROFILE.ignoreLight;
+    }
+
+    /**
+     * 只导出偏离默认值的 render 子字段，避免生成冗余配置。
+     */
+    function getChangedRenderEntityProfileEntries(entityProfile) {
+        const entries = [];
+        if (entityProfile.redGain !== DEFAULT_ENTITY_PROFILE.redGain) {
+            entries.push({ key: "red", value: String(entityProfile.redGain) });
+        }
+        if (entityProfile.greenGain !== DEFAULT_ENTITY_PROFILE.greenGain) {
+            entries.push({ key: "green", value: String(entityProfile.greenGain) });
+        }
+        if (entityProfile.blueGain !== DEFAULT_ENTITY_PROFILE.blueGain) {
+            entries.push({ key: "blue", value: String(entityProfile.blueGain) });
+        }
         if (entityProfile.opacity !== DEFAULT_ENTITY_PROFILE.opacity) {
-            entries.push({ key: "opacity", value: String(entityProfile.opacity) });
+            entries.push({ key: "alpha", value: String(entityProfile.opacity) });
+        }
+        if (entityProfile.brightness !== DEFAULT_ENTITY_PROFILE.brightness) {
+            entries.push({ key: "brightness", value: String(entityProfile.brightness) });
+        }
+        if (entityProfile.ignoreLight !== DEFAULT_ENTITY_PROFILE.ignoreLight) {
+            entries.push({ key: "ignoreLight", value: String(Boolean(entityProfile.ignoreLight)) });
         }
         return entries;
     }
@@ -1038,6 +1099,13 @@
     function parseEntityProfileValue(value, fallback) {
         const parsed = Number.parseFloat(value);
         return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    /**
+     * 校验渲染通道增益，和服务端 profile 上限保持一致。
+     */
+    function isValidRenderGain(value) {
+        return Number.isFinite(value) && value >= 0 && value <= 16;
     }
 
     /**
@@ -1312,7 +1380,35 @@
                                                 <div class="field">
                                                     <label for="profileOpacityInput">实体透明度</label>
                                                     <input id="profileOpacityInput" type="number" min="0" max="1" step="any" value="${escapeAttribute(entityProfile.opacity)}">
-                                                    <p class="field-hint">默认值为 <code>1</code>，范围 <code>0..1</code>，导出材质默认支持透明度 uniform。</p>
+                                                    <p class="field-hint">默认值为 <code>1</code>，范围 <code>0..1</code>，会导出为 <code>render.alpha</code>。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileRedGainInput">红色通道增益</label>
+                                                    <input id="profileRedGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.redGain)}">
+                                                    <p class="field-hint">默认值为 <code>1</code>，最终颜色的 R 通道会乘以该值。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileGreenGainInput">绿色通道增益</label>
+                                                    <input id="profileGreenGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.greenGain)}">
+                                                    <p class="field-hint">默认值为 <code>1</code>，最终颜色的 G 通道会乘以该值。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileBlueGainInput">蓝色通道增益</label>
+                                                    <input id="profileBlueGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.blueGain)}">
+                                                    <p class="field-hint">默认值为 <code>1</code>，最终颜色的 B 通道会乘以该值。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileBrightnessInput">整体亮度</label>
+                                                    <input id="profileBrightnessInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.brightness)}">
+                                                    <p class="field-hint">默认值为 <code>1</code>，在环境光计算前乘到 RGB。</p>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="profileIgnoreLightSelect">忽略环境光</label>
+                                                    <select id="profileIgnoreLightSelect">
+                                                        <option value="false" ${!entityProfile.ignoreLight ? "selected" : ""}>false</option>
+                                                        <option value="true" ${entityProfile.ignoreLight ? "selected" : ""}>true</option>
+                                                    </select>
+                                                    <p class="field-hint">为 <code>true</code> 时跳过环境光乘法，但仍保留雾效。</p>
                                                 </div>
                                                 <div class="field">
                                                     <label for="profileHealthBarVisibleSelect">显示血条</label>
@@ -1484,6 +1580,11 @@
         const profileHeightInput = document.getElementById("profileHeightInput");
         const profileScaleInput = document.getElementById("profileScaleInput");
         const profileOpacityInput = document.getElementById("profileOpacityInput");
+        const profileRedGainInput = document.getElementById("profileRedGainInput");
+        const profileGreenGainInput = document.getElementById("profileGreenGainInput");
+        const profileBlueGainInput = document.getElementById("profileBlueGainInput");
+        const profileBrightnessInput = document.getElementById("profileBrightnessInput");
+        const profileIgnoreLightSelect = document.getElementById("profileIgnoreLightSelect");
         const profileHealthBarVisibleSelect = document.getElementById("profileHealthBarVisibleSelect");
         const profileBossBarVisibleSelect = document.getElementById("profileBossBarVisibleSelect");
         const profileCurrentHealthCountInput = document.getElementById("profileCurrentHealthCountInput");
@@ -1529,6 +1630,11 @@
         bindEntityProfileInput(profileHeightInput, entity, "height", DEFAULT_ENTITY_PROFILE.height);
         bindEntityProfileInput(profileScaleInput, entity, "scale", DEFAULT_ENTITY_PROFILE.scale);
         bindEntityProfileOpacityInput(profileOpacityInput, entity);
+        bindEntityProfileInput(profileRedGainInput, entity, "redGain", DEFAULT_ENTITY_PROFILE.redGain);
+        bindEntityProfileInput(profileGreenGainInput, entity, "greenGain", DEFAULT_ENTITY_PROFILE.greenGain);
+        bindEntityProfileInput(profileBlueGainInput, entity, "blueGain", DEFAULT_ENTITY_PROFILE.blueGain);
+        bindEntityProfileInput(profileBrightnessInput, entity, "brightness", DEFAULT_ENTITY_PROFILE.brightness);
+        bindEntityProfileBooleanSelect(profileIgnoreLightSelect, entity, "ignoreLight");
         bindEntityProfileBooleanSelect(profileHealthBarVisibleSelect, entity, "healthBarVisible");
         bindEntityProfileBooleanSelect(profileBossBarVisibleSelect, entity, "bossBarVisible");
         bindEntityProfileIntegerInput(profileCurrentHealthCountInput, entity, "currentHealthCount", DEFAULT_ENTITY_PROFILE.currentHealthCount, 100);
@@ -1799,6 +1905,11 @@
                 height: entityProfile.height,
                 scale: entityProfile.scale,
                 opacity: entityProfile.opacity,
+                redGain: entityProfile.redGain,
+                greenGain: entityProfile.greenGain,
+                blueGain: entityProfile.blueGain,
+                brightness: entityProfile.brightness,
+                ignoreLight: entityProfile.ignoreLight,
                 healthBarVisible: entityProfile.healthBarVisible,
                 bossBarVisible: entityProfile.bossBarVisible,
                 currentHealthCount: entityProfile.currentHealthCount,
@@ -3608,6 +3719,25 @@
             ...createDefaultEntityProfile(),
             ...(entity.entityProfile || {}),
         };
+        const renderProfile = entity.entityProfile.render || {};
+        entity.entityProfile.redGain = Number.isFinite(Number.parseFloat(renderProfile.red))
+            ? Number.parseFloat(renderProfile.red)
+            : entity.entityProfile.redGain;
+        entity.entityProfile.greenGain = Number.isFinite(Number.parseFloat(renderProfile.green))
+            ? Number.parseFloat(renderProfile.green)
+            : entity.entityProfile.greenGain;
+        entity.entityProfile.blueGain = Number.isFinite(Number.parseFloat(renderProfile.blue))
+            ? Number.parseFloat(renderProfile.blue)
+            : entity.entityProfile.blueGain;
+        entity.entityProfile.opacity = Number.isFinite(Number.parseFloat(renderProfile.alpha))
+            ? Number.parseFloat(renderProfile.alpha)
+            : entity.entityProfile.opacity;
+        entity.entityProfile.brightness = Number.isFinite(Number.parseFloat(renderProfile.brightness))
+            ? Number.parseFloat(renderProfile.brightness)
+            : entity.entityProfile.brightness;
+        if (typeof renderProfile.ignoreLight === "boolean") {
+            entity.entityProfile.ignoreLight = renderProfile.ignoreLight;
+        }
         return entity.entityProfile;
     }
 
