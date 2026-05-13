@@ -169,6 +169,42 @@
         render();
     }
 
+    /**
+     * 导出 geometry 时统一补一个 root 根骨骼，并接管所有没有 parent 的顶层骨骼。
+     */
+    function wrapGeometryBonesWithRoot(geometryItem) {
+        if (!geometryItem || !Array.isArray(geometryItem.bones)) {
+            return;
+        }
+
+        const bones = geometryItem.bones
+            .filter((bone) => bone && typeof bone === "object" && typeof bone.name === "string" && bone.name.trim());
+        if (!bones.length) {
+            geometryItem.bones = bones;
+            return;
+        }
+
+        const hasRootBone = bones.some((bone) => bone.name === "root");
+        bones.forEach((bone) => {
+            if (bone.name === "root") {
+                return;
+            }
+            if (typeof bone.parent === "string" && bone.parent.trim()) {
+                return;
+            }
+            bone.parent = "root";
+        });
+
+        if (hasRootBone) {
+            geometryItem.bones = bones;
+            return;
+        }
+
+        geometryItem.bones = [{
+            name: "root",
+            pivot: [0, 0, 0],
+        }].concat(bones);
+    }
 
     async function autoAssignFile(file, options) {
         try {
@@ -644,6 +680,7 @@
             geometries.forEach((item, index) => {
                 item.description = item.description || {};
                 item.description.identifier = buildGeometryResourceIdentifier(entity, resource, index);
+                wrapGeometryBonesWithRoot(item);
                 mergedGeometries.push(item);
             });
         });
