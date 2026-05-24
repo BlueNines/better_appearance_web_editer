@@ -170,7 +170,92 @@
     }
 
     /**
-     * 导出 geometry 时统一补一个 root 根骨骼，并接管所有没有 parent 的顶层骨骼。
+     * 收集导出前所有模型骨骼名，并为业务占用的 `root` 预留一个统一的新名字。
+     */
+    function buildGeometryRootRenameContext(geometryResources, mergedAnimationFile) {
+        const usedBoneNames = new Set();
+        let hasBusinessRootBone = false;
+
+        (geometryResources || []).forEach((resource) => {
+            if (!resource || !resource.json || typeof resource.json !== "object") {
+                return;
+            }
+
+            const geometries = Array.isArray(resource.json["minecraft:geometry"])
+                ? resource.json["minecraft:geometry"]
+                : [];
+            geometries.forEach((geometryItem) => {
+                if (!geometryItem || !Array.isArray(geometryItem.bones)) {
+                    return;
+                }
+
+                geometryItem.bones.forEach((bone) => {
+                    if (!bone || typeof bone.name !== "string" || !bone.name.trim()) {
+                        return;
+                    }
+                    usedBoneNames.add(bone.name);
+                    if (bone.name === "root") {
+                        hasBusinessRootBone = true;
+                    }
+                });
+            });
+        });
+
+        if (mergedAnimationFile && mergedAnimationFile.json && mergedAnimationFile.json.animations) {
+            Object.values(mergedAnimationFile.json.animations).forEach((animationBody) => {
+                if (!animationBody || !animationBody.bones || typeof animationBody.bones !== "object") {
+                    return;
+                }
+                Object.keys(animationBody.bones).forEach((boneName) => {
+                    if (!boneName) {
+                        return;
+                    }
+                    usedBoneNames.add(boneName);
+                });
+            });
+        }
+
+        return {
+            replacementName: hasBusinessRootBone ? buildUniqueWrappedRootBoneName(usedBoneNames) : "",
+        };
+    }
+
+    /**
+     * 业务骨骼已经占用 `root` 时，生成一个全局不冲突的替代名。
+     */
+    function buildUniqueWrappedRootBoneName(usedBoneNames) {
+        let nextName = "root_inner";
+        let suffix = 2;
+        while (usedBoneNames.has(nextName) || nextName === "root") {
+            nextName = `root_inner_${suffix}`;
+            suffix += 1;
+        }
+        return nextName;
+    }
+
+    /**
+     * 把模型里原本业务含义的 `root` 骨骼改名，避免和导出时新增的最外层包装根冲突。
+     */
+    function renameGeometryRootBones(geometryItem, replacementName) {
+        if (!replacementName || !geometryItem || !Array.isArray(geometryItem.bones)) {
+            return;
+        }
+
+        geometryItem.bones.forEach((bone) => {
+            if (!bone || typeof bone !== "object") {
+                return;
+            }
+            if (bone.name === "root") {
+                bone.name = replacementName;
+            }
+            if (bone.parent === "root") {
+                bone.parent = replacementName;
+            }
+        });
+    }
+
+    /**
+     * 导出 geometry 时强制补一个最外层包装 `root`，专门给整体缩放动画使用。
      */
     function wrapGeometryBonesWithRoot(geometryItem) {
         if (!geometryItem || !Array.isArray(geometryItem.bones)) {
@@ -184,7 +269,6 @@
             return;
         }
 
-        const hasRootBone = bones.some((bone) => bone.name === "root");
         bones.forEach((bone) => {
             if (bone.name === "root") {
                 return;
@@ -194,11 +278,6 @@
             }
             bone.parent = "root";
         });
-
-        if (hasRootBone) {
-            geometryItem.bones = bones;
-            return;
-        }
 
         geometryItem.bones = [{
             name: "root",
@@ -641,8 +720,12 @@
     }
 
     function buildNormalizedPayload(entity) {
-        const geometryJson = normalizeGeometryJson(entity);
-        const animationJson = normalizeAnimationJson(entity);
+        const geometryRootRenameContext = buildGeometryRootRenameContext(
+            getGeometryResources(entity),
+            getMergedAnimationFile(entity)
+        );
+        const geometryJson = normalizeGeometryJson(entity, geometryRootRenameContext);
+        const animationJson = normalizeAnimationJson(entity, geometryRootRenameContext);
         const animateList = createAnimateList(entity);
         const renderBindings = collectRenderBindings(entity);
         const entityJson = createEntityJson(entity);
@@ -659,7 +742,7 @@
         };
     }
 
-    function normalizeGeometryJson(entity) {
+    function normalizeGeometryJson(entity, geometryRootRenameContext) {
         const geometryResources = getGeometryResources(entity);
         const mergedGeometries = [];
         let formatVersion = "1.12.0";
@@ -680,6 +763,7 @@
             geometries.forEach((item, index) => {
                 item.description = item.description || {};
                 item.description.identifier = buildGeometryResourceIdentifier(entity, resource, index);
+                renameGeometryRootBones(item, geometryRootRenameContext && geometryRootRenameContext.replacementName);
                 wrapGeometryBonesWithRoot(item);
                 mergedGeometries.push(item);
             });
@@ -691,7 +775,7 @@
         };
     }
 
-    function normalizeAnimationJson(entity) {
+    function normalizeAnimationJson(entity, geometryRootRenameContext) {
         const mergedAnimationFile = getMergedAnimationFile(entity);
         const baseJson = deepClone(mergedAnimationFile.json);
         const renamedAnimations = {};
@@ -702,6 +786,10 @@
                 return;
             }
             renamedAnimations[entry.name] = deepClone(sourceAnimations[entry.sourceName]);
+            renameAnimationRootBones(
+                renamedAnimations[entry.name],
+                geometryRootRenameContext && geometryRootRenameContext.replacementName
+            );
         });
 
         baseJson.animations = renamedAnimations;
@@ -710,6 +798,23 @@
         }
         padScaleTracksToLinearTail(baseJson);
         return baseJson;
+    }
+
+    /**
+     * 把动画里原本控制业务 `root` 骨骼的轨道名同步改掉，和 geometry 保持一致。
+     */
+    function renameAnimationRootBones(animationBody, replacementName) {
+        if (!replacementName || !animationBody || typeof animationBody !== "object") {
+            return;
+        }
+
+        const bones = animationBody.bones;
+        if (!bones || typeof bones !== "object" || Array.isArray(bones) || !Object.prototype.hasOwnProperty.call(bones, "root")) {
+            return;
+        }
+
+        bones[replacementName] = bones.root;
+        delete bones.root;
     }
 
     /**
