@@ -40,7 +40,7 @@ select {
 
 .app-shell {
     width: min(1440px, calc(100vw - 32px));
-    margin: 20px auto 28px;
+    margin: 72px auto 28px;
 }
 
 .hero,
@@ -60,6 +60,14 @@ select {
         linear-gradient(145deg, rgba(20, 46, 37, 0.98), rgba(10, 33, 26, 0.9)),
         linear-gradient(120deg, rgba(255, 255, 255, 0.18), transparent 45%);
     color: var(--text-inverse);
+}
+
+.hero-copy:last-child {
+    max-width: 820px;
+}
+
+.hero.hero-single {
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .eyebrow,
@@ -107,6 +115,7 @@ select {
     border-radius: 999px;
     border: 1px solid transparent;
     cursor: pointer;
+    text-decoration: none;
     transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease;
 }
 
@@ -124,6 +133,33 @@ select {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-inverse);
     border-color: rgba(255, 255, 255, 0.18);
+}
+
+.button.secondary.is-active {
+    background: rgba(236, 255, 189, 0.92);
+    color: #12392d;
+    border-color: rgba(236, 255, 189, 0.72);
+    font-weight: 700;
+}
+
+.global-toolbar {
+    position: fixed;
+    top: 18px;
+    left: 18px;
+    z-index: 20;
+}
+
+.button.global-tool-button {
+    min-width: 118px;
+    background: #f2ff65;
+    color: #10261e;
+    border-color: rgba(16, 38, 30, 0.22);
+    box-shadow: 0 12px 28px rgba(16, 38, 30, 0.2);
+    font-weight: 800;
+}
+
+.button.global-tool-button:hover {
+    background: #dfff32;
 }
 
 .button.ghost {
@@ -230,6 +266,10 @@ select {
     grid-template-columns: minmax(260px, 0.85fr) minmax(440px, 1.45fr) minmax(300px, 1fr);
     gap: var(--grid-gap);
     align-items: start;
+}
+
+.converter-workspace {
+    margin-top: 20px;
 }
 
 .panel {
@@ -401,13 +441,21 @@ select {
 
 .field input,
 .field select,
-.slot-card select {
+.slot-card input,
+.slot-card select,
+.readonly-field {
     min-height: 46px;
     padding: 0 14px;
     border-radius: 14px;
     border: 1px solid rgba(22, 50, 39, 0.14);
     background: rgba(255, 255, 255, 0.92);
     color: var(--text);
+}
+
+.readonly-field {
+    display: flex;
+    align-items: center;
+    color: var(--text-soft);
 }
 
 .color-editor,
@@ -483,6 +531,55 @@ select {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.converter-panel {
+    min-height: 620px;
+}
+
+.converter-layout {
+    display: grid;
+    gap: 18px;
+}
+
+.converter-control {
+    align-content: start;
+}
+
+.converter-drop-zone {
+    min-height: 150px;
+    margin-bottom: 14px;
+    cursor: pointer;
+}
+
+.converter-button {
+    color: var(--text-inverse);
+    background: rgba(12, 124, 89, 0.88);
+}
+
+.converter-empty {
+    padding: 18px;
+}
+
+.converter-slot-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.converter-action-key-list {
+    display: grid;
+    gap: 10px;
+}
+
+.converter-action-key-card {
+    grid-template-columns: minmax(180px, 0.8fr) minmax(260px, 1.2fr);
+    align-items: center;
+}
+
+.converter-result {
+    display: grid;
+    gap: 10px;
+}
+
 .drop-zone {
     border: 2px dashed rgba(12, 124, 89, 0.28);
     border-radius: 24px;
@@ -533,6 +630,10 @@ select {
         grid-template-columns: 1fr;
     }
 
+    .converter-slot-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .panel {
         min-height: auto;
     }
@@ -541,13 +642,15 @@ select {
 @media (max-width: 860px) {
     .app-shell {
         width: min(100vw - 18px, 100%);
-        margin: 10px auto 18px;
+        margin: 72px auto 18px;
     }
 
     .hero,
     .status-strip,
     .form-grid,
     .slot-grid,
+    .converter-slot-grid,
+    .converter-action-key-card,
     .color-editor-main,
     .alpha-editor {
         grid-template-columns: 1fr;
