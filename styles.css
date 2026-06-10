@@ -540,6 +540,25 @@ select {
     gap: 18px;
 }
 
+.converter-mode-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.converter-mode-switch .button.secondary {
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--text);
+    border-color: rgba(22, 50, 39, 0.14);
+}
+
+.converter-mode-switch .button.secondary.is-active {
+    background: rgba(236, 255, 189, 0.94);
+    color: #12392d;
+    border-color: rgba(12, 124, 89, 0.28);
+}
+
 .converter-control {
     align-content: start;
 }
@@ -567,6 +586,12 @@ select {
 
 .converter-action-key-list {
     display: grid;
+    gap: 10px;
+}
+
+.costume-file-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
 }
 
@@ -650,6 +675,7 @@ select {
     .form-grid,
     .slot-grid,
     .converter-slot-grid,
+    .costume-file-grid,
     .converter-action-key-card,
     .color-editor-main,
     .alpha-editor {

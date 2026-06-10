@@ -17,7 +17,7 @@
                 <p class="eyebrow">BetterAppearance PC To PE</p>
                 <h1>PC 转 PE 转换器</h1>
                 <p class="hero-text">
-                    独立转换 PC 玩家动作资源，生成 PE 可用的 animation json，并打包为 ZIP 下载。
+                    独立转换 PC 玩家动作和 PC 时装资源，生成 PE 可用文件，并打包为 ZIP 下载。
                 </p>
             </div>
         </header>
@@ -25,7 +25,7 @@
         <section class="status-strip">
             <div class="status-block">
                 <span class="status-label">转换类型</span>
-                <strong>PC 玩家动作转 PE 玩家动作</strong>
+                <strong id="converterTypeText">PC 玩家动作转 PE 玩家动作</strong>
             </div>
             <div class="status-block">
                 <span class="status-label">当前状态</span>
@@ -39,6 +39,7 @@
     </div>
 
     <input id="pcActionInput" type="file" multiple accept=".json,.animation.json" hidden>
+    <input id="pcCostumeInput" type="file" multiple accept=".png,.json,.geo.json,.animation.json" hidden>
 
     <script src="./vendor/jszip.min.js"></script>
     <script src="./vendor/pinyin-pro.js"></script>
