@@ -207,6 +207,8 @@
     function renderCostumeMode() {
         const costume = state.costume;
         const canConvert = Boolean(costume.geometryFile && costume.textureFile);
+        const splitPlan = costume.geometryFile ? createCostumeSplitPlan(costume.geometryFile.json) : null;
+        const canSplit = Boolean(canConvert && splitPlan && splitPlan.personBoneNames.size && splitPlan.extraBoneNames.size);
         return `
             <div class="converter-layout">
                 <section class="section-card converter-control">
@@ -235,6 +237,7 @@
                     </div>
 
                     ${renderCostumeFileList()}
+                    ${renderCostumeSplitPreview(splitPlan)}
                 </section>
 
                 <section class="section-card converter-control">
@@ -243,6 +246,14 @@
                     </div>
                     <p class="field-hint">ZIP 会包含 <code>${escapeHtml(costume.outputName || DEFAULT_COSTUME_OUTPUT_NAME)}.geo.json</code>、<code>${escapeHtml(costume.outputName || DEFAULT_COSTUME_OUTPUT_NAME)}.png</code>，如果导入了动作文件还会包含 animation json。</p>
                     ${renderCostumeResult()}
+                </section>
+
+                <section class="section-card converter-control">
+                    <div class="detail-actions">
+                        <h3>拆分导出</h3>
+                        <button class="button primary" type="button" data-action="split-costume-download" ${canSplit ? "" : "disabled"}>导出纯人物 + 纯额外组 ZIP</button>
+                    </div>
+                    <p class="field-hint">这个按钮不会影响上面的完整导出，会额外生成 <code>person/</code> 和 <code>extra/</code> 两套结果。只有识别到额外顶层组时才可点击。</p>
                 </section>
             </div>
         `;
@@ -302,6 +313,29 @@
                     <span class="chip ${fileInfo ? "" : "muted"}">${escapeHtml(requirement)}</span>
                 </div>
             </article>
+        `;
+    }
+
+    /**
+     * 渲染时装额外组拆分预览。
+     */
+    function renderCostumeSplitPreview(splitPlan) {
+        if (!splitPlan) {
+            return '<div class="empty-state converter-empty">导入 geo 后会识别可拆分的额外顶层组。</div>';
+        }
+
+        const extraRoots = splitPlan.extraRootNames.length
+            ? splitPlan.extraRootNames.map((name) => `<span class="chip">${escapeHtml(name)}</span>`).join("")
+            : '<span class="chip muted">无额外顶层组</span>';
+        return `
+            <div class="converter-result">
+                <p class="field-hint">拆分导出会同时生成纯人物组和纯额外组，默认完整导出不受影响。</p>
+                <div class="detail-actions">
+                    <span class="chip">人物骨骼 ${escapeHtml(String(splitPlan.personBoneNames.size))}</span>
+                    <span class="chip">额外骨骼 ${escapeHtml(String(splitPlan.extraBoneNames.size))}</span>
+                    ${extraRoots}
+                </div>
+            </div>
         `;
     }
 
@@ -551,6 +585,11 @@
                 return;
             }
             render();
+            return;
+        }
+        if (action === "split-costume-download") {
+            await downloadCostumeSplitZip();
+            return;
         }
     }
 
@@ -952,13 +991,17 @@
     /**
      * 转换 PC 时装 geo 为 PE 时装 geo。
      */
-    function convertCostumeGeometry(sourceJson, outputName, textureSize) {
+    function convertCostumeGeometry(sourceJson, outputName, textureSize, options) {
         const sourceGeometry = getFirstGeometry(sourceJson);
         if (!sourceGeometry) {
             throw new Error("geo 文件缺少 minecraft:geometry。");
         }
 
-        const sourceBones = Array.isArray(sourceGeometry.bones) ? sourceGeometry.bones : [];
+        const allowedSourceBoneNames = options && options.allowedSourceBoneNames ? options.allowedSourceBoneNames : null;
+        const sourceBones = filterSourceBones(
+            Array.isArray(sourceGeometry.bones) ? sourceGeometry.bones : [],
+            allowedSourceBoneNames
+        );
         const sourceDescription = sourceGeometry.description || {};
         const textureWidth = normalizeTextureSize(sourceDescription.texture_width, textureSize ? textureSize.width : 0, 64);
         const textureHeight = normalizeTextureSize(sourceDescription.texture_height, textureSize ? textureSize.height : 0, 64);
@@ -990,6 +1033,91 @@
             textureWidth,
             textureHeight,
         };
+    }
+
+    /**
+     * 按源骨骼名集合过滤骨骼；未传集合时保留全部骨骼。
+     */
+    function filterSourceBones(sourceBones, allowedSourceBoneNames) {
+        if (!allowedSourceBoneNames) {
+            return sourceBones;
+        }
+        return sourceBones.filter((bone) => bone && allowedSourceBoneNames.has(String(bone.name)));
+    }
+
+    /**
+     * 创建人物组和额外组的拆分计划。
+     */
+    function createCostumeSplitPlan(sourceJson) {
+        const sourceGeometry = getFirstGeometry(sourceJson);
+        const sourceBones = sourceGeometry && Array.isArray(sourceGeometry.bones) ? sourceGeometry.bones : [];
+        const boneByName = new Map();
+        const topAncestorCache = {};
+        const personBoneNames = new Set();
+        const extraBoneNames = new Set();
+        const extraRootNames = [];
+
+        sourceBones.forEach((bone) => {
+            if (bone && bone.name) {
+                boneByName.set(String(bone.name), bone);
+            }
+        });
+
+        sourceBones.forEach((bone) => {
+            if (!bone || !bone.name) {
+                return;
+            }
+
+            const boneName = String(bone.name);
+            const topAncestorName = getTopAncestorName(boneName, boneByName, topAncestorCache);
+            if (isPlayerRootBoneName(topAncestorName)) {
+                personBoneNames.add(boneName);
+                return;
+            }
+
+            extraBoneNames.add(boneName);
+            if (!bone.parent && !extraRootNames.includes(boneName)) {
+                extraRootNames.push(boneName);
+            }
+        });
+
+        return {
+            personBoneNames,
+            extraBoneNames,
+            extraRootNames,
+        };
+    }
+
+    /**
+     * 获取骨骼所属树的顶层祖先名。
+     */
+    function getTopAncestorName(boneName, boneByName, topAncestorCache) {
+        if (topAncestorCache[boneName]) {
+            return topAncestorCache[boneName];
+        }
+
+        const visited = new Set();
+        let currentName = boneName;
+        while (currentName && !visited.has(currentName)) {
+            visited.add(currentName);
+            const currentBone = boneByName.get(currentName);
+            if (!currentBone || !currentBone.parent || !boneByName.has(String(currentBone.parent))) {
+                topAncestorCache[boneName] = currentName;
+                return currentName;
+            }
+            currentName = String(currentBone.parent);
+        }
+
+        topAncestorCache[boneName] = boneName;
+        return boneName;
+    }
+
+    /**
+     * 判断源顶层骨骼是否属于玩家主体骨骼。
+     */
+    function isPlayerRootBoneName(boneName) {
+        return Object.prototype.hasOwnProperty.call(BONE_NAME_MAP, boneName)
+            || PE_PLAYER_BONE_NAMES.includes(boneName);
     }
 
     /**
@@ -1133,7 +1261,7 @@
     /**
      * 转换时装附带动画。
      */
-    function convertCostumeAnimation(sourceJson, outputName, renameMap) {
+    function convertCostumeAnimation(sourceJson, outputName, renameMap, allowedSourceBoneNames) {
         if (!sourceJson || !sourceJson.animations || typeof sourceJson.animations !== "object") {
             throw new Error("animation 文件缺少 animations 字段。");
         }
@@ -1141,8 +1269,13 @@
         const animations = {};
         const usedSuffixes = new Set();
         Object.entries(sourceJson.animations).forEach(([animationName, animationBody], index) => {
+            const convertedBody = convertCostumeAnimationBody(animationBody, renameMap, allowedSourceBoneNames);
+            if (!convertedBody) {
+                return;
+            }
+
             const suffix = buildUniqueAnimationName(extractAnimationSuffix(animationName), index, usedSuffixes);
-            animations[`animation.${outputName}.${suffix}`] = convertCostumeAnimationBody(animationBody, renameMap);
+            animations[`animation.${outputName}.${suffix}`] = convertedBody;
         });
 
         return {
@@ -1157,17 +1290,27 @@
     /**
      * 转换单个时装动画块。
      */
-    function convertCostumeAnimationBody(animationBody, renameMap) {
+    function convertCostumeAnimationBody(animationBody, renameMap, allowedSourceBoneNames) {
         const converted = deepClone(animationBody);
         if (!converted.bones || typeof converted.bones !== "object") {
+            if (allowedSourceBoneNames) {
+                return null;
+            }
             return converted;
         }
 
         const bones = {};
         Object.entries(converted.bones).forEach(([boneName, boneTrack]) => {
+            if (allowedSourceBoneNames && !allowedSourceBoneNames.has(boneName)) {
+                return;
+            }
+
             const targetName = renameMap[boneName] || boneName;
             bones[targetName] = mergeBoneTracks(bones[targetName], boneTrack);
         });
+        if (allowedSourceBoneNames && !Object.keys(bones).length) {
+            return null;
+        }
         converted.bones = bones;
         return converted;
     }
@@ -1283,6 +1426,126 @@
         downloadBlob(blob, downloadName);
         setStatus(`已下载转换结果：${downloadName}`);
         render();
+    }
+
+    /**
+     * 下载人物组和额外组拆分结果 ZIP。
+     */
+    async function downloadCostumeSplitZip() {
+        const costume = state.costume;
+        const splitResult = await buildCostumeSplitResult();
+        if (!splitResult) {
+            render();
+            return;
+        }
+
+        if (typeof window.JSZip === "undefined") {
+            costume.errors = ["JSZip 未加载，当前无法下载 ZIP。"];
+            render();
+            return;
+        }
+
+        const zip = new window.JSZip();
+        addCostumePartToZip(zip, "person", splitResult.person);
+        addCostumePartToZip(zip, "extra", splitResult.extra);
+        const blob = await zip.generateAsync({ type: "blob" });
+        const downloadName = `pc-to-pe-costume-split-${splitResult.outputName}-${createTimestamp()}.zip`;
+        downloadBlob(blob, downloadName);
+        setStatus(`已下载拆分结果：${downloadName}`);
+        render();
+    }
+
+    /**
+     * 构建人物组和额外组拆分结果。
+     */
+    async function buildCostumeSplitResult() {
+        const costume = state.costume;
+        const outputName = normalizeAssetName(costume.outputName);
+        const errors = [];
+
+        if (!outputName) {
+            errors.push("输出基础名格式不正确。");
+        }
+        if (!costume.geometryFile) {
+            errors.push("缺少 PC 时装 .geo.json 文件。");
+        }
+        if (!costume.textureFile) {
+            errors.push("缺少 PC 时装 .png 贴图。");
+        }
+        if (costume.animationFile && !pinyin) {
+            errors.push("拼音转换库未加载，无法自动转换中文动画名。");
+        }
+        if (errors.length) {
+            costume.errors = errors;
+            return null;
+        }
+
+        try {
+            const splitPlan = createCostumeSplitPlan(costume.geometryFile.json);
+            if (!splitPlan.personBoneNames.size) {
+                throw new Error("未识别到可导出的纯人物组。");
+            }
+            if (!splitPlan.extraBoneNames.size) {
+                throw new Error("未识别到可导出的额外顶层组。");
+            }
+
+            const textureSize = await readTextureSize(costume.textureFile.file);
+            const personBaseName = `${outputName}_person`;
+            const extraBaseName = `${outputName}_extra`;
+            const personGeometry = convertCostumeGeometry(
+                costume.geometryFile.json,
+                personBaseName,
+                textureSize,
+                { allowedSourceBoneNames: splitPlan.personBoneNames }
+            );
+            const extraGeometry = convertCostumeGeometry(
+                costume.geometryFile.json,
+                extraBaseName,
+                textureSize,
+                { allowedSourceBoneNames: splitPlan.extraBoneNames }
+            );
+            const personAnimation = costume.animationFile
+                ? convertCostumeAnimation(costume.animationFile.json, personBaseName, personGeometry.renameMap, splitPlan.personBoneNames)
+                : null;
+            const extraAnimation = costume.animationFile
+                ? convertCostumeAnimation(costume.animationFile.json, extraBaseName, extraGeometry.renameMap, splitPlan.extraBoneNames)
+                : null;
+
+            costume.errors = [];
+            return {
+                outputName,
+                person: buildCostumePartResult(personBaseName, personGeometry, personAnimation, costume.textureFile.file),
+                extra: buildCostumePartResult(extraBaseName, extraGeometry, extraAnimation, costume.textureFile.file),
+            };
+        } catch (error) {
+            costume.errors = [error.message || "时装拆分导出失败。"];
+            return null;
+        }
+    }
+
+    /**
+     * 组装单个拆分部分的输出文件。
+     */
+    function buildCostumePartResult(baseName, geometryResult, animationResult, textureBlob) {
+        return {
+            geometryFileName: `${baseName}.geo.json`,
+            textureFileName: `${baseName}.png`,
+            animationFileName: animationResult && animationResult.animationCount ? `${baseName}.animation.json` : "",
+            geometryJson: geometryResult.json,
+            textureBlob,
+            animationJson: animationResult && animationResult.animationCount ? animationResult.json : null,
+        };
+    }
+
+    /**
+     * 把拆分部分写入 ZIP 子目录。
+     */
+    function addCostumePartToZip(zip, directoryName, partResult) {
+        zip.file(`${directoryName}/${partResult.geometryFileName}`, JSON.stringify(partResult.geometryJson, null, "\t"));
+        zip.file(`${directoryName}/${partResult.textureFileName}`, partResult.textureBlob);
+        if (partResult.animationJson && partResult.animationFileName) {
+            zip.file(`${directoryName}/${partResult.animationFileName}`, JSON.stringify(partResult.animationJson, null, "\t"));
+        }
     }
 
     /**
