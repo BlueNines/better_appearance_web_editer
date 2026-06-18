@@ -396,36 +396,432 @@
       },
       "initial_state": "idle"
     },
-    "controller.animation.test_entity.defaultB": {
+    "controller.animation.test_entity.a": {
+      "states": {
+        "skill9A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill9A"
+          ]
+        },
+        "skill8A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill8A"
+          ]
+        },
+        "skill3A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill3A"
+          ]
+        },
+        "skill2A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill2A"
+          ]
+        },
+        "skill1A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill1A"
+          ]
+        },
+        "skill7A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill7A"
+          ]
+        },
+        "skill6A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill6A"
+          ]
+        },
+        "skill5A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill5A"
+          ]
+        },
+        "skill4A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill4A"
+          ]
+        },
+        "idleA": {
+          "transitions": [
+            {
+              "walkA": "query.modified_move_speed > 0.05"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleA"
+          ]
+        },
+        "walkA": {
+          "transitions": [
+            {
+              "idleA": "query.modified_move_speed < 0.05"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            },
+            {
+              "skill5A": "query.mod.entity_skill_a == 5"
+            },
+            {
+              "skill6A": "query.mod.entity_skill_a == 6"
+            },
+            {
+              "skill7A": "query.mod.entity_skill_a == 7"
+            },
+            {
+              "skill8A": "query.mod.entity_skill_a == 8"
+            },
+            {
+              "skill9A": "query.mod.entity_skill_a == 9"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkA"
+          ]
+        }
+      },
+      "initial_state": "idleA"
+    },
+    "controller.animation.test_entity.b": {
       "states": {
         "skill9B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             }
           ],
           "blend_transition": 0.05,
@@ -436,31 +832,31 @@
         "skill8B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.05,
@@ -471,31 +867,31 @@
         "skill3B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.05,
@@ -506,31 +902,31 @@
         "skill2B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.05,
@@ -541,31 +937,31 @@
         "skill1B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.05,
@@ -576,31 +972,31 @@
         "skill7B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.05,
@@ -611,31 +1007,31 @@
         "skill6B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.05,
@@ -646,31 +1042,31 @@
         "skill5B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.05,
@@ -681,31 +1077,31 @@
         "skill4B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.05,
@@ -719,31 +1115,31 @@
               "walkB": "query.modified_move_speed > 0.05"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.1,
@@ -757,31 +1153,31 @@
               "idleB": "query.modified_move_speed < 0.05"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             },
             {
-              "skill5B": "query.mod.entity_skill == 5"
+              "skill5B": "query.mod.entity_skill_b == 5"
             },
             {
-              "skill6B": "query.mod.entity_skill == 6"
+              "skill6B": "query.mod.entity_skill_b == 6"
             },
             {
-              "skill7B": "query.mod.entity_skill == 7"
+              "skill7B": "query.mod.entity_skill_b == 7"
             },
             {
-              "skill8B": "query.mod.entity_skill == 8"
+              "skill8B": "query.mod.entity_skill_b == 8"
             },
             {
-              "skill9B": "query.mod.entity_skill == 9"
+              "skill9B": "query.mod.entity_skill_b == 9"
             }
           ],
           "blend_transition": 0.1,

@@ -27,12 +27,39 @@
       },
       "initial_state": "idle"
     },
-    "controller.animation.entity_idle_skill1.defaultB": {
+    "controller.animation.entity_idle_skill1.a": {
+      "states": {
+        "skill1A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill1A"
+          ]
+        },
+        "idleA": {
+          "transitions": [
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleA"
+          ]
+        }
+      },
+      "initial_state": "idleA"
+    },
+    "controller.animation.entity_idle_skill1.b": {
       "states": {
         "skill1B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             }
           ],
           "blend_transition": 0.05,
@@ -43,7 +70,7 @@
         "idleB": {
           "transitions": [
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             }
           ],
           "blend_transition": 0.1,

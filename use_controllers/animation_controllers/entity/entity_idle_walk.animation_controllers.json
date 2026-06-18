@@ -27,7 +27,34 @@
       },
       "initial_state": "idle"
     },
-    "controller.animation.entity_idle_walk.defaultB": {
+    "controller.animation.entity_idle_walk.a": {
+      "states": {
+        "idleA": {
+          "transitions": [
+            {
+              "walkA": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleA"
+          ]
+        },
+        "walkA": {
+          "transitions": [
+            {
+              "idleA": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkA"
+          ]
+        }
+      },
+      "initial_state": "idleA"
+    },
+    "controller.animation.entity_idle_walk.b": {
       "states": {
         "idleB": {
           "transitions": [

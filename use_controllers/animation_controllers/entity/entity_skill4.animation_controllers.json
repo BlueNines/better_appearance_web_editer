@@ -131,21 +131,152 @@
       },
       "initial_state": "idle"
     },
-    "controller.animation.entity_skill4.defaultB": {
+    "controller.animation.entity_skill4.a": {
+      "states": {
+        "skill3A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill3A"
+          ]
+        },
+        "skill2A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill2A"
+          ]
+        },
+        "skill1A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill1A"
+          ]
+        },
+        "skill4A": {
+          "transitions": [
+            {
+              "idleA": "query.mod.entity_skill_a == 0"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            }
+          ],
+          "blend_transition": 0.05,
+          "animations": [
+            "skill4A"
+          ]
+        },
+        "idleA": {
+          "transitions": [
+            {
+              "walkA": "query.modified_move_speed > 0.05"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleA"
+          ]
+        },
+        "walkA": {
+          "transitions": [
+            {
+              "idleA": "query.modified_move_speed < 0.05"
+            },
+            {
+              "skill1A": "query.mod.entity_skill_a == 1"
+            },
+            {
+              "skill2A": "query.mod.entity_skill_a == 2"
+            },
+            {
+              "skill3A": "query.mod.entity_skill_a == 3"
+            },
+            {
+              "skill4A": "query.mod.entity_skill_a == 4"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkA"
+          ]
+        }
+      },
+      "initial_state": "idleA"
+    },
+    "controller.animation.entity_skill4.b": {
       "states": {
         "skill3B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             }
           ],
           "blend_transition": 0.05,
@@ -156,16 +287,16 @@
         "skill2B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             }
           ],
           "blend_transition": 0.05,
@@ -176,16 +307,16 @@
         "skill1B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             }
           ],
           "blend_transition": 0.05,
@@ -196,16 +327,16 @@
         "skill4B": {
           "transitions": [
             {
-              "idleB": "query.mod.entity_skill == 0"
+              "idleB": "query.mod.entity_skill_b == 0"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             }
           ],
           "blend_transition": 0.05,
@@ -219,16 +350,16 @@
               "walkB": "query.modified_move_speed > 0.05"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             }
           ],
           "blend_transition": 0.1,
@@ -242,16 +373,16 @@
               "idleB": "query.modified_move_speed < 0.05"
             },
             {
-              "skill1B": "query.mod.entity_skill == 1"
+              "skill1B": "query.mod.entity_skill_b == 1"
             },
             {
-              "skill2B": "query.mod.entity_skill == 2"
+              "skill2B": "query.mod.entity_skill_b == 2"
             },
             {
-              "skill3B": "query.mod.entity_skill == 3"
+              "skill3B": "query.mod.entity_skill_b == 3"
             },
             {
-              "skill4B": "query.mod.entity_skill == 4"
+              "skill4B": "query.mod.entity_skill_b == 4"
             }
           ],
           "blend_transition": 0.1,

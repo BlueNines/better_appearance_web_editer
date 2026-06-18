@@ -10,7 +10,17 @@
       },
       "initial_state": "idle"
     },
-    "controller.animation.entity_idle.defaultB": {
+    "controller.animation.entity_idle.a": {
+      "states": {
+        "idleA": {
+          "animations": [
+            "idleA"
+          ]
+        }
+      },
+      "initial_state": "idleA"
+    },
+    "controller.animation.entity_idle.b": {
       "states": {
         "idleB": {
           "animations": [

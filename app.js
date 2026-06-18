@@ -48,6 +48,7 @@
         messages: [],
         pendingAssignment: null,
     };
+    let graphDragAutoScrollState = null;
 
     const elements = {
         resourceInput: document.getElementById("resourceInput"),
@@ -980,7 +981,7 @@
         });
 
         const renderControllerList = getRenderControllers(entity)
-            .map((binding) => binding.controller)
+            .map((binding) => createClientRenderControllerEntry(binding))
             .filter(Boolean);
 
         return {
@@ -996,6 +997,23 @@
                     render_controllers: renderControllerList,
                 },
             },
+        };
+    }
+
+    /**
+     * 客户端 render_controllers 支持两种写法：无条件用字符串，有条件用 { 控制器: 条件 }。
+     */
+    function createClientRenderControllerEntry(binding) {
+        const controller = String(binding.controller || "").trim();
+        const condition = String(binding.condition || "").trim();
+        if (!controller) {
+            return null;
+        }
+        if (!condition) {
+            return controller;
+        }
+        return {
+            [controller]: condition,
         };
     }
 
@@ -1437,8 +1455,10 @@
         const availableAnimations = mergedAnimationFile ? mergedAnimationFile.animationNames : [];
         const usedAnimationNames = getUsedAnimationSourceNames(entity);
         const unusedAnimations = availableAnimations.filter((name) => !usedAnimationNames.has(name));
+        const detailMode = getEntityDetailMode(entity);
+        const inspectorModeSwitchHtml = renderInspectorModeSwitch(detailMode);
 
-        elements.inspector.innerHTML = `
+        const legacyInspectorHtml = `
             <div class="detail-actions">
                 <button class="button ghost" type="button" data-action="duplicate-entity">复制当前实体</button>
                 <button class="button danger" type="button" data-action="delete-entity">删除当前实体</button>
@@ -1710,7 +1730,537 @@
 
         `;
 
+        elements.inspector.innerHTML = detailMode === "graph"
+            ? `${inspectorModeSwitchHtml}${renderConnectionBoardHtml(entity, {
+                renderControllerBindings,
+                animationControllerBindings,
+                textureResources,
+                geometryResources,
+                animationResources,
+                availableAnimations,
+                mergedAnimationData,
+                unusedAnimations,
+            })}`
+            : `${inspectorModeSwitchHtml}${legacyInspectorHtml}`;
+
+        bindInspectorModeEvents(entity);
+        if (detailMode === "graph") {
+            bindConnectionBoardEvents(entity);
+            window.requestAnimationFrame(drawConnectionBoardLines);
+            return;
+        }
         bindInspectorEvents(entity);
+    }
+
+    /**
+     * 获取实体详情页模式；新数据默认进入连连看，旧表单只作为可切换入口保留。
+     */
+    function getEntityDetailMode(entity) {
+        if (entity.detailMode === "legacy") {
+            return "legacy";
+        }
+        entity.detailMode = "graph";
+        return entity.detailMode;
+    }
+
+    /**
+     * 渲染详情页模式切换按钮，避免新旧两套编辑入口互相抢位置。
+     */
+    function renderInspectorModeSwitch(detailMode) {
+        return `
+            <section class="section-card inspector-mode-card">
+                <div>
+                    <h3>实体详情编辑方式</h3>
+                    <p class="field-hint">连连看用于快速装配资源和控制器；旧表单保留完整细项配置。</p>
+                </div>
+                <div class="inspector-mode-switch">
+                    <button class="button secondary ${detailMode === "graph" ? "is-active" : ""}" type="button" data-inspector-mode="graph">连连看</button>
+                    <button class="button ghost ${detailMode === "legacy" ? "is-active" : ""}" type="button" data-inspector-mode="legacy">旧表单</button>
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 绑定详情页模式切换，模式只影响编辑器 UI，不参与导出协议。
+     */
+    function bindInspectorModeEvents(entity) {
+        elements.inspector.querySelectorAll("[data-inspector-mode]").forEach((button) => {
+            button.addEventListener("click", () => {
+                entity.detailMode = button.dataset.inspectorMode === "legacy" ? "legacy" : "graph";
+                render();
+            });
+        });
+    }
+
+    /**
+     * 渲染连连看编辑器主界面，所有连线最终仍然写回原有映射字段。
+     */
+    function renderConnectionBoardHtml(entity, context) {
+        const geometryNodes = context.geometryResources.map((resource) => ({
+            nodeId: getGraphNodeId("geometry", resource.id),
+            title: resource.resourceKey,
+            subtitle: resource.sourceName || "未命名模型",
+            type: "geometry",
+            resourceId: resource.id,
+            animationName: "",
+        }));
+        const textureNodes = context.textureResources.map((resource) => ({
+            nodeId: getGraphNodeId("texture", resource.id),
+            title: resource.resourceKey,
+            subtitle: resource.sourceName || "未命名贴图",
+            type: "texture",
+            resourceId: resource.id,
+            animationName: "",
+        }));
+        const animationNodes = context.availableAnimations.map((animationName) => ({
+            nodeId: getGraphNodeId("animation", animationName),
+            title: animationName,
+            subtitle: findAnimationSourceNameByAnimationName(entity, animationName) || "合并动作文件",
+            type: "animation",
+            resourceId: "",
+            animationName,
+        }));
+
+        return `
+            <div class="detail-actions">
+                <button class="button ghost" type="button" data-action="duplicate-entity">复制当前实体</button>
+                <button class="button danger" type="button" data-action="delete-entity">删除当前实体</button>
+            </div>
+
+            <section class="section-card graph-basic-card">
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="graphBaseNameInput">实体基础名</label>
+                        <input id="graphBaseNameInput" type="text" value="${escapeAttribute(entity.baseName)}" placeholder="例如 bigmouthedflower">
+                        <p class="field-hint">影响导出文件名、geometry 标识符和动作名。</p>
+                    </div>
+                    <div class="field">
+                        <label for="graphIdentifierInput">命名空间标识符</label>
+                        <input id="graphIdentifierInput" type="text" value="${escapeAttribute(entity.identifier)}" placeholder="netease:bigmouthedflower">
+                        <p class="field-hint">自动模式会跟随实体基础名生成。</p>
+                    </div>
+                    <div class="field">
+                        <label for="graphResourceSubdirInput">资源子目录</label>
+                        <input id="graphResourceSubdirInput" type="text" value="${escapeAttribute(entity.resourceSubdir)}" placeholder="${DEFAULT_SUBDIR}">
+                        <p class="field-hint">对应贴图、模型、动作输出目录。</p>
+                    </div>
+                    <div class="field">
+                        <label>系统内置控制器</label>
+                        <div class="readonly-field">${escapeHtml(SYSTEM_SCALE_CONTROLLER_KEY)} -> ${escapeHtml(SYSTEM_SCALE_CONTROLLER_NAME)}</div>
+                        <p class="field-hint">缩放控制器固定存在，不开放连线编辑。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section-card connection-section">
+                <div class="detail-actions">
+                    <div>
+                        <h3>资源连线板</h3>
+                        <p class="field-hint">渲染器卡片里同时装配模型和贴图；动作控制器单独装配。可以拖拽资源到槽位，或先点击资源再点击槽位。</p>
+                    </div>
+                    <div class="file-actions">
+                        <button class="button ghost" type="button" data-action="add-texture-resource">新增贴图资源</button>
+                        <button class="button ghost" type="button" data-action="add-geometry-resource">新增模型资源</button>
+                        <button class="button ghost" type="button" data-action="add-animation-resource">新增动作资源</button>
+                    </div>
+                </div>
+                ${context.mergedAnimationData.conflicts.length ? `
+                    <div class="chip-row">
+                        ${context.mergedAnimationData.conflicts.map((conflict) => `<span class="chip warn">动作 key ${escapeHtml(conflict.key)} 在 ${escapeHtml(conflict.firstBindingKey)} / ${escapeHtml(conflict.secondBindingKey)} 上冲突</span>`).join("")}
+                    </div>
+                ` : ""}
+                <div id="connectionBoard" class="connection-board">
+                    <svg id="connectionBoardLines" class="connection-board-lines" aria-hidden="true"></svg>
+                    ${renderGraphRenderAssemblyLane(entity, context.renderControllerBindings, context.geometryResources, context.textureResources, geometryNodes, textureNodes)}
+                    ${renderGraphTypeLane({
+                        type: "animation",
+                        title: "动作装配",
+                        sourceHtml: renderGraphResourceGroup("动作片段", "animation", animationNodes, "还没有动作片段。"),
+                        targetHtml: renderGraphAnimationTargetLane(entity, context.animationControllerBindings, context.availableAnimations),
+                    })}
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h3>旧表单仍负责的细项</h3>
+                <p class="field-hint">服务端 Profile、头顶标题、资源替换细节和控制器 Key 参考仍保留在旧表单里；这里先把高频装配动作收束到连线板。</p>
+                ${context.unusedAnimations.length ? `<div class="chip-row">${context.unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint">当前没有未使用动作。</p>'}
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染一条连线通道；渲染通道允许模型和贴图共用，动作通道仍然单独成组。
+     */
+    function renderGraphTypeLane(options) {
+        return `
+            <section class="graph-lane graph-type-${escapeAttribute(options.type)}">
+                <div class="graph-lane-head">
+                    <span class="graph-node-kind">${escapeHtml(options.title)}</span>
+                    <span class="graph-lane-line"></span>
+                </div>
+                <div class="graph-lane-body">
+                    <div class="graph-lane-side graph-lane-source">
+                        ${options.sourceHtml}
+                    </div>
+                    <div class="graph-lane-side graph-lane-target">
+                        ${options.targetHtml}
+                    </div>
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染渲染器装配通道，让一张渲染器卡片同时承载模型和贴图。
+     */
+    function renderGraphRenderAssemblyLane(entity, bindings, geometryResources, textureResources, geometryNodes, textureNodes) {
+        return renderGraphTypeLane({
+            type: "render",
+            title: "渲染器装配",
+            sourceHtml: renderGraphRenderResourcePool(geometryNodes, textureNodes),
+            targetHtml: renderGraphRenderAssemblyTargetLane(entity, bindings, geometryResources, textureResources),
+        });
+    }
+
+    /**
+     * 渲染模型和贴图资源池；资源保留自己的类型颜色，避免拖错目标。
+     */
+    function renderGraphRenderResourcePool(geometryNodes, textureNodes) {
+        return `
+            <div class="graph-render-resource-pool">
+                ${renderGraphResourceGroup("模型资源", "geometry", geometryNodes, "还没有模型资源。")}
+                ${renderGraphResourceGroup("贴图资源", "texture", textureNodes, "还没有贴图资源。")}
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染渲染器列表；新增渲染器按钮固定在目标区域右上方。
+     */
+    function renderGraphRenderAssemblyTargetLane(entity, bindings, geometryResources, textureResources) {
+        return `
+            <section class="graph-target-lane graph-render-target-lane">
+                <div class="detail-actions">
+                    <div>
+                        <h4>渲染器</h4>
+                        <p class="field-hint">每张卡片代表一个 render_controller，模型和贴图在同卡片内成组装配。</p>
+                    </div>
+                    <button class="button ghost" type="button" data-action="add-render-controller">新增额外渲染控制器</button>
+                </div>
+                <div class="file-stack graph-render-card-list">
+                    ${bindings.map((binding, index) => renderGraphRenderControllerCard(entity, binding, index, bindings.length, geometryResources, textureResources)).join("")}
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染动画控制器的配置区；动作槽位会在动作通道里单独出现。
+     */
+    function renderGraphAnimationControllerSetup(bindings) {
+        return `
+            <section class="graph-target-group graph-controller-setup">
+                <div class="detail-actions">
+                    <h3>动画控制器配置</h3>
+                    <button class="button ghost" type="button" data-action="add-animation-controller">新增额外动画控制器</button>
+                </div>
+                <article class="file-card graph-readonly-card">
+                    <div class="file-card-header">
+                        <div>
+                            <p class="file-title">系统内置控制器</p>
+                            <p class="file-name">${escapeHtml(SYSTEM_SCALE_CONTROLLER_KEY)} -> ${escapeHtml(SYSTEM_SCALE_CONTROLLER_NAME)}</p>
+                        </div>
+                        <span class="chip muted">只读</span>
+                    </div>
+                </article>
+                <div class="file-stack">
+                    ${bindings.map((binding, index) => renderGraphAnimationControllerSetupCard(binding, index, bindings.length)).join("")}
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染单个动画控制器配置卡片，避免控制器选择和动作连线混在一起。
+     */
+    function renderGraphAnimationControllerSetupCard(binding, index, total) {
+        const currentPreset = getAnimationControllerPreset(binding.controller);
+        const hasCurrentPreset = CONTROLLER_PRESETS.some((preset) => preset.name === binding.controller);
+        const controllerDisplayName = formatControllerDisplayName(currentPreset, binding.controller || "未选择控制器");
+        return `
+            <article class="file-card graph-controller-card graph-setup-card">
+                <div class="file-card-header">
+                    <div>
+                        <p class="file-title">动画控制器 ${index + 1}</p>
+                        <p class="file-name">${escapeHtml(binding.key || "未命名绑定")} -> ${escapeHtml(controllerDisplayName)}</p>
+                        ${currentPreset ? buildControllerDescriptionHtml(currentPreset.description, currentPreset.source) : ""}
+                    </div>
+                    ${total > 1 ? `<button class="button danger mini" type="button" data-action="remove-animation-controller" data-animation-binding-id="${escapeAttribute(binding.id)}">移除</button>` : ""}
+                </div>
+                <div class="form-grid graph-controller-fields">
+                    <div class="field">
+                        <label for="graphAnimationBindingKey-${escapeAttribute(binding.id)}">绑定 key</label>
+                        <input id="graphAnimationBindingKey-${escapeAttribute(binding.id)}" type="text" value="${escapeAttribute(binding.key || "")}" data-animation-binding-key="${escapeAttribute(binding.id)}" placeholder="${DEFAULT_ANIMATION_BINDING_KEY}">
+                    </div>
+                    <div class="field">
+                        <label for="graphAnimationBindingController-${escapeAttribute(binding.id)}">控制器</label>
+                        <select id="graphAnimationBindingController-${escapeAttribute(binding.id)}" data-animation-binding-controller="${escapeAttribute(binding.id)}">
+                            ${binding.controller && !hasCurrentPreset ? `<option value="${escapeAttribute(binding.controller)}" selected>${escapeHtml(binding.controller)}（未收录）</option>` : ""}
+                            ${CONTROLLER_PRESETS.map((preset) => `<option value="${preset.name}" ${preset.name === binding.controller ? "selected" : ""}>${escapeHtml(formatControllerOptionLabel(preset, preset.name))}</option>`).join("")}
+                        </select>
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染动作通道右侧的动画槽位。
+     */
+    function renderGraphAnimationTargetLane(entity, bindings, availableAnimations) {
+        return `
+            ${renderGraphAnimationControllerSetup(bindings)}
+            <section class="graph-target-lane graph-type-animation">
+                <div class="graph-group-title">
+                    <h4>动作目标槽位</h4>
+                    <span class="chip graph-type-chip">${bindings.length}</span>
+                </div>
+                <div class="file-stack">
+                    ${bindings.map((binding, index) => renderGraphAnimationTargetCard(entity, binding, index, availableAnimations)).join("")}
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染单个动画控制器在动作通道里的目标槽位卡片。
+     */
+    function renderGraphAnimationTargetCard(entity, binding, index, availableAnimations) {
+        const currentPreset = getAnimationControllerPreset(binding.controller);
+        const controllerDisplayName = formatControllerDisplayName(currentPreset, binding.controller || "未选择控制器");
+        const slotNames = getBindingSlotNames(binding);
+        return `
+            <article class="file-card graph-controller-card graph-type-animation">
+                <div class="file-card-header">
+                    <div>
+                        <p class="file-title">动画控制器 ${index + 1}</p>
+                        <p class="file-name">${escapeHtml(binding.key || "未命名绑定")} -> ${escapeHtml(controllerDisplayName)}</p>
+                    </div>
+                </div>
+                <div class="graph-slot-group">
+                    <h4>动作槽位</h4>
+                    <div class="graph-slot-list">
+                        ${slotNames.length ? slotNames.map((slotName) => renderGraphAnimationSlot(entity, binding, slotName, availableAnimations)).join("") : '<p class="empty-state">当前控制器没有识别到可编辑动作 key。</p>'}
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染资源池里的一个分组，模型、贴图和动作片段共用。
+     */
+    function renderGraphResourceGroup(title, type, nodes, emptyText) {
+        return `
+            <section class="graph-resource-group graph-type-${escapeAttribute(type)}">
+                <div class="graph-group-title">
+                    <h4>${escapeHtml(title)}</h4>
+                    <span class="chip graph-type-chip ${nodes.length ? "" : "muted"}">${nodes.length}</span>
+                </div>
+                <div class="graph-node-list">
+                    ${nodes.length ? nodes.map((node) => renderGraphResourceNode(node)).join("") : `<p class="empty-state">${escapeHtml(emptyText)}</p>`}
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染一个可拖拽资源节点，节点本身不保存状态，只通过 data 属性参与连线。
+     */
+    function renderGraphResourceNode(node) {
+        return `
+            <article
+                class="graph-node graph-resource-node graph-type-${escapeAttribute(node.type)}"
+                draggable="true"
+                data-graph-node-id="${escapeAttribute(node.nodeId)}"
+                data-graph-resource-type="${escapeAttribute(node.type)}"
+                data-graph-resource-id="${escapeAttribute(node.resourceId)}"
+                data-graph-animation-name="${escapeAttribute(node.animationName)}"
+            >
+                <span class="graph-node-kind">${escapeHtml(typeLabel(node.type))}</span>
+                <strong>${escapeHtml(node.title)}</strong>
+                <small>${escapeHtml(node.subtitle)}</small>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染连线板中的渲染控制器卡片，保留控制器选择和条件输入。
+     */
+    function renderGraphRenderControllerCard(entity, binding, index, total, geometryResources, textureResources) {
+        const currentPreset = getRenderControllerPreset(binding.controller);
+        const hasCurrentPreset = RENDER_CONTROLLER_PRESETS.some((preset) => preset.name === binding.controller);
+        const controllerDisplayName = formatControllerDisplayName(currentPreset, binding.controller || "未选择控制器");
+        const geometryEntries = getRenderBindingMappingEntries(entity, binding, "geometry", geometryResources);
+        const textureEntries = getRenderBindingMappingEntries(entity, binding, "texture", textureResources);
+        return `
+            <article class="file-card graph-controller-card graph-render-controller-card">
+                <div class="file-card-header">
+                    <div>
+                        <p class="file-title">渲染控制器 ${index + 1}</p>
+                        <p class="file-name">${escapeHtml(controllerDisplayName)}</p>
+                        ${currentPreset ? buildControllerDescriptionHtml(currentPreset.description, currentPreset.source) : ""}
+                    </div>
+                    ${total > 1 ? `<button class="button danger mini" type="button" data-action="remove-render-controller" data-render-binding-id="${escapeAttribute(binding.id)}">移除</button>` : ""}
+                </div>
+                <div class="form-grid graph-controller-fields">
+                    <div class="field field-wide">
+                        <label for="graphRenderBindingController-${escapeAttribute(binding.id)}">控制器</label>
+                        <select id="graphRenderBindingController-${escapeAttribute(binding.id)}" data-render-binding-controller="${escapeAttribute(binding.id)}">
+                            ${binding.controller && !hasCurrentPreset ? `<option value="${escapeAttribute(binding.controller)}" selected>${escapeHtml(binding.controller)}（未收录）</option>` : ""}
+                            ${RENDER_CONTROLLER_PRESETS.map((preset) => `<option value="${preset.name}" ${preset.name === binding.controller ? "selected" : ""}>${escapeHtml(formatControllerOptionLabel(preset, preset.name))}</option>`).join("")}
+                        </select>
+                    </div>
+                    <div class="field field-wide">
+                        <label for="graphRenderBindingCondition-${escapeAttribute(binding.id)}">条件</label>
+                        <input id="graphRenderBindingCondition-${escapeAttribute(binding.id)}" type="text" value="${escapeAttribute(binding.condition || "")}" data-render-binding-condition="${escapeAttribute(binding.id)}" placeholder="">
+                    </div>
+                </div>
+                <div class="graph-render-slot-pair">
+                    ${renderGraphRenderSlotGroup(entity, binding, "geometry", geometryEntries, geometryResources)}
+                    ${renderGraphRenderSlotGroup(entity, binding, "texture", textureEntries, textureResources)}
+                </div>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染渲染控制器的 Geometry / Texture 槽位集合。
+     */
+    function renderGraphRenderSlotGroup(entity, binding, type, entries, resources) {
+        const title = type === "geometry" ? "Geometry 槽位" : "Texture 槽位";
+        return `
+            <div class="graph-slot-group">
+                <h4>${escapeHtml(title)}</h4>
+                <div class="graph-slot-list">
+                    ${entries.length ? entries.map((entry) => renderGraphRenderSlot(entity, binding, type, entry, resources)).join("") : `<p class="empty-state">当前控制器没有 ${escapeHtml(type)} key。</p>`}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染单个模型或贴图槽位；渲染槽位用拖拽替换资源，不暴露空值。
+     */
+    function renderGraphRenderSlot(entity, binding, type, entry, resources) {
+        const resource = resources.find((item) => item.id === entry.resourceId) || null;
+        const nodeId = resource ? getGraphNodeId(type, resource.id) : "";
+        const preview = type === "geometry" && resource
+            ? buildGeometryResourceIdentifier(entity, resource, 0)
+            : type === "texture" && resource
+                ? `${buildTextureResourcePath(entity, resource)}.png`
+                : "等待资源";
+        return `
+            <div
+                class="graph-slot graph-type-${escapeAttribute(type)}"
+                data-graph-slot-type="${escapeAttribute(type)}"
+                data-graph-binding-id="${escapeAttribute(binding.id)}"
+                data-graph-slot-key="${escapeAttribute(entry.key)}"
+                data-graph-current-node-id="${escapeAttribute(nodeId)}"
+            >
+                <div>
+                    <strong>${escapeHtml(type === "geometry" ? `Geometry.${entry.key}` : `Texture.${entry.key}`)}</strong>
+                    <p class="field-hint">${resource ? escapeHtml(resource.resourceKey) : "未连接资源"}</p>
+                    <small>${escapeHtml(preview)}</small>
+                </div>
+                <span class="chip">${resource ? "已连接" : "待连接"}</span>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染连线板中的动画控制器卡片，业务控制器可以自由增删。
+     */
+    function renderGraphAnimationControllerCard(entity, binding, index, total, availableAnimations) {
+        const currentPreset = getAnimationControllerPreset(binding.controller);
+        const hasCurrentPreset = CONTROLLER_PRESETS.some((preset) => preset.name === binding.controller);
+        const controllerDisplayName = formatControllerDisplayName(currentPreset, binding.controller || "未选择控制器");
+        const slotNames = getBindingSlotNames(binding);
+        return `
+            <article class="file-card graph-controller-card">
+                <div class="file-card-header">
+                    <div>
+                        <p class="file-title">动画控制器 ${index + 1}</p>
+                        <p class="file-name">${escapeHtml(binding.key || "未命名绑定")} -> ${escapeHtml(controllerDisplayName)}</p>
+                        ${currentPreset ? buildControllerDescriptionHtml(currentPreset.description, currentPreset.source) : ""}
+                    </div>
+                    ${total > 1 ? `<button class="button danger mini" type="button" data-action="remove-animation-controller" data-animation-binding-id="${escapeAttribute(binding.id)}">移除</button>` : ""}
+                </div>
+                <div class="form-grid graph-controller-fields">
+                    <div class="field">
+                        <label for="graphAnimationBindingKey-${escapeAttribute(binding.id)}">绑定 key</label>
+                        <input id="graphAnimationBindingKey-${escapeAttribute(binding.id)}" type="text" value="${escapeAttribute(binding.key || "")}" data-animation-binding-key="${escapeAttribute(binding.id)}" placeholder="${DEFAULT_ANIMATION_BINDING_KEY}">
+                    </div>
+                    <div class="field">
+                        <label for="graphAnimationBindingController-${escapeAttribute(binding.id)}">控制器</label>
+                        <select id="graphAnimationBindingController-${escapeAttribute(binding.id)}" data-animation-binding-controller="${escapeAttribute(binding.id)}">
+                            ${binding.controller && !hasCurrentPreset ? `<option value="${escapeAttribute(binding.controller)}" selected>${escapeHtml(binding.controller)}（未收录）</option>` : ""}
+                            ${CONTROLLER_PRESETS.map((preset) => `<option value="${preset.name}" ${preset.name === binding.controller ? "selected" : ""}>${escapeHtml(formatControllerOptionLabel(preset, preset.name))}</option>`).join("")}
+                        </select>
+                    </div>
+                </div>
+                <div class="graph-slot-group">
+                    <h4>动作槽位</h4>
+                    <div class="graph-slot-list">
+                        ${slotNames.length ? slotNames.map((slotName) => renderGraphAnimationSlot(entity, binding, slotName, availableAnimations)).join("") : '<p class="empty-state">当前控制器没有识别到可编辑动作 key。</p>'}
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染单个动作槽位；动作槽位允许断开，因为导出层已经兼容空映射。
+     */
+    function renderGraphAnimationSlot(entity, binding, slotName, availableAnimations) {
+        const animationName = binding.animationMappings[slotName] || "";
+        const nodeId = animationName ? getGraphNodeId("animation", animationName) : "";
+        return `
+            <div
+                class="graph-slot graph-type-animation"
+                data-graph-slot-type="animation"
+                data-graph-binding-id="${escapeAttribute(binding.id)}"
+                data-graph-slot-key="${escapeAttribute(slotName)}"
+                data-graph-current-node-id="${escapeAttribute(nodeId)}"
+            >
+                <div>
+                    <strong>${escapeHtml(slotName)}</strong>
+                    <p class="field-hint">${escapeHtml(getAnimationSlotDescription(binding, slotName) || "拖入一个动作片段。")}</p>
+                    <small>${animationName ? `导出为 animation.${escapeHtml(entity.baseName || "实体名")}.${escapeHtml(slotName)}` : `可选动作 ${availableAnimations.length} 个`}</small>
+                </div>
+                <div class="graph-slot-actions">
+                    <span class="chip ${animationName ? "" : "muted"}">${animationName ? escapeHtml(animationName) : "未连接"}</span>
+                    ${animationName ? `<button class="button ghost mini" type="button" data-graph-clear-slot data-graph-slot-type="animation" data-graph-binding-id="${escapeAttribute(binding.id)}" data-graph-slot-key="${escapeAttribute(slotName)}">断开</button>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * 给连线节点生成稳定 id，SVG 画线和拖拽连接都复用它。
+     */
+    function getGraphNodeId(type, value) {
+        return `${type}:${value || ""}`;
+    }
+
+    /**
+     * 找到动作片段来自哪一个原始动作文件，用于资源池展示。
+     */
+    function findAnimationSourceNameByAnimationName(entity, animationName) {
+        const resource = getAnimationResources(entity).find((item) => (item.animationNames || []).includes(animationName));
+        return resource ? resource.sourceName : "";
     }
 
     function bindInspectorEvents(entity) {
@@ -2110,6 +2660,814 @@
             setStatus(`已删除实体：${entity.baseName || "未命名实体"}`);
             render();
         });
+    }
+
+    /**
+     * 绑定连线板模式下的所有交互入口。
+     */
+    function bindConnectionBoardEvents(entity) {
+        const mergedAnimationFile = getMergedAnimationFile(entity);
+        bindConnectionBoardBaseInfoEvents(entity);
+        bindEntityActionEvents(entity);
+        bindConnectionBoardResourceEvents(entity);
+        bindConnectionBoardControllerEvents(entity, mergedAnimationFile);
+        bindConnectionBoardLinkEvents(entity);
+        bindConnectionBoardLineRedrawEvents();
+    }
+
+    /**
+     * 绑定连线板顶部的基础实体字段。
+     */
+    function bindConnectionBoardBaseInfoEvents(entity) {
+        const baseNameInput = document.getElementById("graphBaseNameInput");
+        const identifierInput = document.getElementById("graphIdentifierInput");
+        const resourceSubdirInput = document.getElementById("graphResourceSubdirInput");
+
+        if (baseNameInput) {
+            baseNameInput.addEventListener("input", (event) => {
+                const focusState = captureInspectorFocus();
+                entity.baseName = event.target.value;
+                if (entity.identifierMode !== "manual") {
+                    entity.identifier = entity.baseName ? `netease:${entity.baseName}` : "";
+                }
+                renderWithConnectionBoardScroll();
+                restoreInspectorFocus(focusState);
+            });
+        }
+
+        if (identifierInput) {
+            identifierInput.addEventListener("input", (event) => {
+                const focusState = captureInspectorFocus();
+                const value = event.target.value;
+                entity.identifier = value;
+                const expectedAuto = entity.baseName ? `netease:${entity.baseName}` : "";
+                entity.identifierMode = value === expectedAuto || value === "" ? "auto" : "manual";
+                renderWithConnectionBoardScroll();
+                restoreInspectorFocus(focusState);
+            });
+        }
+
+        if (resourceSubdirInput) {
+            resourceSubdirInput.addEventListener("input", (event) => {
+                entity.resourceSubdir = event.target.value;
+                renderOutputPreview();
+                window.requestAnimationFrame(drawConnectionBoardLines);
+            });
+        }
+    }
+
+    /**
+     * 绑定连线板里的复制和删除实体按钮。
+     */
+    function bindEntityActionEvents(entity) {
+        elements.inspector.querySelectorAll("[data-action='duplicate-entity']").forEach((button) => {
+            button.addEventListener("click", () => {
+                duplicateEntityRecord(entity);
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-action='delete-entity']").forEach((button) => {
+            button.addEventListener("click", () => {
+                deleteEntityRecord(entity);
+            });
+        });
+    }
+
+    /**
+     * 复制当前实体及其资源、控制器和 profile 配置。
+     */
+    function duplicateEntityRecord(entity) {
+        const clone = createEntity(entity.baseName);
+        const entityProfile = getEntityProfile(entity);
+        const oldTextureIdToNewId = {};
+        const oldGeometryIdToNewId = {};
+        clone.identifier = entity.identifier;
+        clone.identifierMode = entity.identifierMode;
+        clone.resourceSubdir = entity.resourceSubdir;
+        clone.detailMode = getEntityDetailMode(entity);
+        clone.animationControllerBindings = getAnimationControllerBindings(entity).map((binding) => ({
+            id: createId(),
+            key: binding.key,
+            controller: binding.controller,
+            animationMappings: { ...(binding.animationMappings || {}) },
+        }));
+        clone.entityProfile = {
+            width: entityProfile.width,
+            height: entityProfile.height,
+            scale: entityProfile.scale,
+            opacity: entityProfile.opacity,
+            redGain: entityProfile.redGain,
+            greenGain: entityProfile.greenGain,
+            blueGain: entityProfile.blueGain,
+            brightness: entityProfile.brightness,
+            ignoreLight: entityProfile.ignoreLight,
+            healthBarVisible: entityProfile.healthBarVisible,
+            bossBarVisible: entityProfile.bossBarVisible,
+            currentHealthCount: entityProfile.currentHealthCount,
+            force: entityProfile.force,
+            title: { ...getEntityTitleProfile(entity) },
+        };
+        clone.files = {
+            textures: getTextureResources(entity).map((resource) => {
+                const nextId = createId();
+                oldTextureIdToNewId[resource.id] = nextId;
+                return {
+                    id: nextId,
+                    resourceKey: resource.resourceKey,
+                    sourceName: resource.sourceName,
+                    buffer: resource.buffer,
+                };
+            }),
+            geometries: getGeometryResources(entity).map((resource) => {
+                const nextId = createId();
+                oldGeometryIdToNewId[resource.id] = nextId;
+                return {
+                    id: nextId,
+                    resourceKey: resource.resourceKey,
+                    sourceName: resource.sourceName,
+                    json: deepClone(resource.json),
+                };
+            }),
+            animations: getAnimationResources(entity).map((resource) => ({
+                id: createId(),
+                sourceName: resource.sourceName,
+                json: deepClone(resource.json),
+                animationNames: [...resource.animationNames],
+            })),
+            texture: null,
+            geometry: null,
+            animation: null,
+        };
+        clone.renderControllers = getRenderControllers(entity).map((binding) => ({
+            id: createId(),
+            controller: binding.controller,
+            condition: binding.condition,
+            geometryMappings: Object.fromEntries(Object.entries(binding.geometryMappings || {}).map(([key, value]) => [key, oldGeometryIdToNewId[value] || ""])),
+            textureMappings: Object.fromEntries(Object.entries(binding.textureMappings || {}).map(([key, value]) => [key, oldTextureIdToNewId[value] || ""])),
+        }));
+        state.entities.unshift(clone);
+        selectEntity(clone.id);
+        addMessage(`已复制实体：${entity.baseName || "未命名实体"}`, "info");
+        render();
+    }
+
+    /**
+     * 删除当前实体并自动选中下一个可用实体。
+     */
+    function deleteEntityRecord(entity) {
+        state.entities = state.entities.filter((item) => item.id !== entity.id);
+        if (state.selectedEntityId === entity.id) {
+            state.selectedEntityId = state.entities[0] ? state.entities[0].id : null;
+        }
+        setStatus(`已删除实体：${entity.baseName || "未命名实体"}`);
+        render();
+    }
+
+    /**
+     * 绑定连线板中的资源新增按钮。
+     */
+    function bindConnectionBoardResourceEvents(entity) {
+        const textureButton = elements.inspector.querySelector("[data-action='add-texture-resource']");
+        const geometryButton = elements.inspector.querySelector("[data-action='add-geometry-resource']");
+        const animationButton = elements.inspector.querySelector("[data-action='add-animation-resource']");
+
+        if (textureButton) {
+            textureButton.addEventListener("click", () => {
+                state.pendingAssignment = { entityId: entity.id, type: "texture" };
+                elements.assignInput.accept = ".png";
+                elements.assignInput.click();
+            });
+        }
+
+        if (geometryButton) {
+            geometryButton.addEventListener("click", () => {
+                state.pendingAssignment = { entityId: entity.id, type: "geometry" };
+                elements.assignInput.accept = ".json";
+                elements.assignInput.click();
+            });
+        }
+
+        if (animationButton) {
+            animationButton.addEventListener("click", () => {
+                state.pendingAssignment = { entityId: entity.id, type: "animation" };
+                elements.assignInput.accept = ".json";
+                elements.assignInput.click();
+            });
+        }
+    }
+
+    /**
+     * 绑定连线板中的控制器新增、删除和字段修改。
+     */
+    function bindConnectionBoardControllerEvents(entity, mergedAnimationFile) {
+        const renderBindings = getRenderControllers(entity);
+        const animationBindings = getAnimationControllerBindings(entity);
+
+        elements.inspector.querySelectorAll("[data-action='add-render-controller']").forEach((addRenderButton) => {
+            addRenderButton.addEventListener("click", () => {
+                renderBindings.push(createRenderControllerBinding());
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-action='add-animation-controller']").forEach((addAnimationButton) => {
+            addAnimationButton.addEventListener("click", () => {
+                const recommendedController = mergedAnimationFile
+                    ? recommendController(mergedAnimationFile.animationNames)
+                    : DEFAULT_CONTROLLER;
+                animationBindings.push(createAnimationControllerBinding({
+                    key: suggestNextAnimationBindingKey(animationBindings),
+                    controller: recommendedController,
+                    animationMappings: buildAnimationMappings(mergedAnimationFile, getControllerSlots(recommendedController), {}),
+                }));
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-render-binding-controller]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const binding = findRenderControllerBinding(entity, event.target.dataset.renderBindingController);
+                if (!binding) {
+                    return;
+                }
+                binding.controller = event.target.value;
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-render-binding-condition]").forEach((input) => {
+            input.addEventListener("input", (event) => {
+                const binding = findRenderControllerBinding(entity, event.target.dataset.renderBindingCondition);
+                if (binding) {
+                    binding.condition = event.target.value;
+                }
+            });
+
+            input.addEventListener("change", (event) => {
+                const binding = findRenderControllerBinding(entity, event.target.dataset.renderBindingCondition);
+                if (!binding) {
+                    return;
+                }
+                binding.condition = event.target.value;
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-action='remove-render-controller']").forEach((button) => {
+            button.addEventListener("click", () => {
+                const bindingId = button.dataset.renderBindingId;
+                entity.renderControllers = getRenderControllers(entity).filter((binding) => binding.id !== bindingId);
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-animation-binding-key]").forEach((input) => {
+            input.addEventListener("input", (event) => {
+                const binding = findAnimationControllerBinding(entity, event.target.dataset.animationBindingKey);
+                if (binding) {
+                    binding.key = event.target.value;
+                }
+            });
+
+            input.addEventListener("change", (event) => {
+                const binding = findAnimationControllerBinding(entity, event.target.dataset.animationBindingKey);
+                if (!binding) {
+                    return;
+                }
+                const nextKey = event.target.value.trim();
+                if (nextKey === SYSTEM_SCALE_CONTROLLER_KEY) {
+                    binding.key = suggestNextAnimationBindingKey(
+                        getAnimationControllerBindings(entity).filter((item) => item.id !== binding.id)
+                    );
+                    addMessage("scale 是系统内置动画控制器 key，业务控制器不能占用。", "warn");
+                    renderWithConnectionBoardScroll();
+                    return;
+                }
+                binding.key = nextKey;
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-animation-binding-controller]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const binding = findAnimationControllerBinding(entity, event.target.dataset.animationBindingController);
+                if (!binding) {
+                    return;
+                }
+                binding.controller = event.target.value;
+                binding.animationMappings = buildAnimationMappings(mergedAnimationFile, getControllerSlots(binding.controller), binding.animationMappings);
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-action='remove-animation-controller']").forEach((button) => {
+            button.addEventListener("click", () => {
+                const bindingId = button.dataset.animationBindingId;
+                entity.animationControllerBindings = getAnimationControllerBindings(entity).filter((binding) => binding.id !== bindingId);
+                renderWithConnectionBoardScroll();
+            });
+        });
+    }
+
+    /**
+     * 绑定资源节点到槽位的点击、拖拽和断开行为。
+     */
+    function bindConnectionBoardLinkEvents(entity) {
+        let selectedPayload = null;
+        const nodes = elements.inspector.querySelectorAll("[data-graph-resource-type]");
+        const slots = elements.inspector.querySelectorAll("[data-graph-slot-type]");
+
+        nodes.forEach((node) => {
+            node.addEventListener("click", () => {
+                selectedPayload = readGraphResourcePayload(node);
+                nodes.forEach((item) => item.classList.remove("is-selected"));
+                node.classList.add("is-selected");
+                setConnectionBoardActiveType(selectedPayload.type);
+            });
+
+            node.addEventListener("dragstart", (event) => {
+                selectedPayload = readGraphResourcePayload(node);
+                const payloadText = JSON.stringify(selectedPayload);
+                event.dataTransfer.effectAllowed = "copy";
+                event.dataTransfer.setData("application/x-better-appearance-graph", payloadText);
+                event.dataTransfer.setData("text/plain", payloadText);
+                setConnectionBoardActiveType(selectedPayload.type);
+                startGraphDragAutoScroll(event);
+            });
+
+            node.addEventListener("dragend", () => {
+                stopGraphDragAutoScroll();
+                clearConnectionBoardTargetState();
+            });
+        });
+
+        slots.forEach((slot) => {
+            slot.addEventListener("click", () => {
+                if (!selectedPayload) {
+                    return;
+                }
+                applyGraphConnection(entity, slot, selectedPayload);
+            });
+
+            slot.addEventListener("dragover", (event) => {
+                const payload = readGraphTransferPayload(event) || selectedPayload;
+                if (payload && canConnectGraphResourceToSlot(payload, slot)) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "copy";
+                    slot.classList.add("is-drop-ready");
+                    slot.classList.remove("is-drop-blocked");
+                    return;
+                }
+                slot.classList.add("is-drop-blocked");
+            });
+
+            slot.addEventListener("dragleave", () => {
+                slot.classList.remove("is-drop-ready", "is-drop-blocked");
+            });
+
+            slot.addEventListener("drop", (event) => {
+                event.preventDefault();
+                stopGraphDragAutoScroll();
+                clearConnectionBoardTargetState();
+                const payload = readGraphTransferPayload(event);
+                if (payload) {
+                    applyGraphConnection(entity, slot, payload);
+                }
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-graph-clear-slot]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                clearGraphSlotConnection(entity, button);
+            });
+        });
+    }
+
+    /**
+     * 绑定连线板滚动重绘；资源或槽位滚动后，SVG 连线需要重新落点。
+     */
+    function bindConnectionBoardLineRedrawEvents() {
+        const redraw = () => window.requestAnimationFrame(drawConnectionBoardLines);
+        elements.inspector.querySelectorAll(".graph-lane-side").forEach((element) => {
+            element.addEventListener("scroll", redraw, { passive: true });
+        });
+
+        const panel = elements.inspector.closest(".panel");
+        if (panel && !panel.dataset.graphLineRedrawBound) {
+            panel.addEventListener("scroll", redraw, { passive: true });
+            panel.dataset.graphLineRedrawBound = "true";
+        }
+    }
+
+    /**
+     * 连线板内部重渲染时保留滚动位置，避免右侧装配区每次操作都跳回顶部。
+     */
+    function renderWithConnectionBoardScroll() {
+        const scrollState = captureConnectionBoardScrollState();
+        render();
+        restoreConnectionBoardScrollState(scrollState);
+    }
+
+    /**
+     * 记录详情面板和每条连线通道左右侧的滚动位置。
+     */
+    function captureConnectionBoardScrollState() {
+        const board = document.getElementById("connectionBoard");
+        if (!board) {
+            return null;
+        }
+
+        const panel = elements.inspector.closest(".panel");
+        return {
+            panelTop: panel ? panel.scrollTop : 0,
+            panelLeft: panel ? panel.scrollLeft : 0,
+            laneSides: Array.from(board.querySelectorAll(".graph-lane-side")).map((element) => ({
+                key: getConnectionBoardScrollKey(element),
+                top: element.scrollTop,
+                left: element.scrollLeft,
+            })),
+        };
+    }
+
+    /**
+     * 按通道类型和左右侧恢复滚动位置，并在恢复后重画连线。
+     */
+    function restoreConnectionBoardScrollState(scrollState) {
+        if (!scrollState) {
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            const panel = elements.inspector.closest(".panel");
+            if (panel) {
+                panel.scrollTop = scrollState.panelTop;
+                panel.scrollLeft = scrollState.panelLeft;
+            }
+
+            const sideScrollMap = new Map(scrollState.laneSides.map((item) => [item.key, item]));
+            elements.inspector.querySelectorAll(".graph-lane-side").forEach((element) => {
+                const item = sideScrollMap.get(getConnectionBoardScrollKey(element));
+                if (!item) {
+                    return;
+                }
+                element.scrollTop = item.top;
+                element.scrollLeft = item.left;
+            });
+            drawConnectionBoardLines();
+        });
+    }
+
+    /**
+     * 给连线板滚动容器生成稳定 key，重渲染后用它找回对应容器。
+     */
+    function getConnectionBoardScrollKey(element) {
+        const lane = element.closest(".graph-lane");
+        const laneType = lane
+            ? Array.from(lane.classList).find((className) => className.startsWith("graph-type-")) || "graph-type-unknown"
+            : "graph-type-unknown";
+        const sideType = element.classList.contains("graph-lane-target")
+            ? "target"
+            : element.classList.contains("graph-lane-source")
+                ? "source"
+                : "side";
+        return `${laneType}:${sideType}`;
+    }
+
+    /**
+     * 开始拖拽时启动自动滚动，解决资源和槽位数量不对等时拖不到目标的问题。
+     */
+    function startGraphDragAutoScroll(event) {
+        stopGraphDragAutoScroll();
+        graphDragAutoScrollState = {
+            pointerX: event.clientX,
+            pointerY: event.clientY,
+            frameId: 0,
+            onDragOver: (dragEvent) => {
+                if (!graphDragAutoScrollState) {
+                    return;
+                }
+                graphDragAutoScrollState.pointerX = dragEvent.clientX;
+                graphDragAutoScrollState.pointerY = dragEvent.clientY;
+            },
+            onDrop: () => {
+                stopGraphDragAutoScroll();
+            },
+        };
+        document.addEventListener("dragover", graphDragAutoScrollState.onDragOver);
+        document.addEventListener("drop", graphDragAutoScrollState.onDrop);
+        graphDragAutoScrollState.frameId = window.requestAnimationFrame(runGraphDragAutoScroll);
+    }
+
+    /**
+     * 停止拖拽自动滚动，并释放临时监听。
+     */
+    function stopGraphDragAutoScroll() {
+        if (!graphDragAutoScrollState) {
+            return;
+        }
+        document.removeEventListener("dragover", graphDragAutoScrollState.onDragOver);
+        document.removeEventListener("drop", graphDragAutoScrollState.onDrop);
+        if (graphDragAutoScrollState.frameId) {
+            window.cancelAnimationFrame(graphDragAutoScrollState.frameId);
+        }
+        graphDragAutoScrollState = null;
+    }
+
+    /**
+     * 根据鼠标距离滚动区域边缘的距离，持续推动最近的可滚动容器。
+     */
+    function runGraphDragAutoScroll() {
+        if (!graphDragAutoScrollState) {
+            return;
+        }
+
+        const scrollContainers = collectGraphDragScrollContainers();
+        let didScroll = false;
+        scrollContainers.forEach((container) => {
+            const speed = calculateGraphAutoScrollSpeed(container, graphDragAutoScrollState.pointerX, graphDragAutoScrollState.pointerY);
+            if (!speed) {
+                return;
+            }
+            container.scrollTop += speed;
+            didScroll = true;
+        });
+
+        if (didScroll) {
+            drawConnectionBoardLines();
+        }
+        graphDragAutoScrollState.frameId = window.requestAnimationFrame(runGraphDragAutoScroll);
+    }
+
+    /**
+     * 收集拖拽时允许自动滚动的容器，优先当前通道左右两侧，其次详情面板。
+     */
+    function collectGraphDragScrollContainers() {
+        const board = document.getElementById("connectionBoard");
+        const candidates = [
+            ...Array.from(elements.inspector.querySelectorAll(".graph-lane-side")),
+            elements.inspector.closest(".panel"),
+            board ? board.closest(".panel") : null,
+        ].filter(Boolean);
+        return [...new Set(candidates)].filter((container) => container.scrollHeight > container.clientHeight + 2);
+    }
+
+    /**
+     * 鼠标靠近滚动容器上下边缘时返回滚动速度，否则返回 0。
+     */
+    function calculateGraphAutoScrollSpeed(container, pointerX, pointerY) {
+        const rect = container.getBoundingClientRect();
+        const edgeSize = 92;
+        const maxSpeed = 32;
+        const insideHorizontal = pointerX >= rect.left - 32 && pointerX <= rect.right + 32;
+        const insideVertical = pointerY >= rect.top && pointerY <= rect.bottom;
+        if (!insideHorizontal || !insideVertical) {
+            return 0;
+        }
+
+        if (pointerY < rect.top + edgeSize) {
+            const ratio = (rect.top + edgeSize - pointerY) / edgeSize;
+            return -Math.ceil(maxSpeed * ratio);
+        }
+        if (pointerY > rect.bottom - edgeSize) {
+            const ratio = (pointerY - (rect.bottom - edgeSize)) / edgeSize;
+            return Math.ceil(maxSpeed * ratio);
+        }
+        return 0;
+    }
+
+    /**
+     * 根据当前选中或拖拽的资源类型，高亮可连接槽位并弱化不兼容槽位。
+     */
+    function setConnectionBoardActiveType(type) {
+        const board = document.getElementById("connectionBoard");
+        if (!board) {
+            return;
+        }
+
+        board.dataset.activeGraphType = type || "";
+        board.querySelectorAll("[data-graph-slot-type]").forEach((slot) => {
+            const isActive = Boolean(type);
+            const isCompatible = isActive && slot.dataset.graphSlotType === type;
+            slot.classList.toggle("is-compatible-target", isCompatible);
+            slot.classList.toggle("is-incompatible-target", isActive && !isCompatible);
+        });
+    }
+
+    /**
+     * 清理拖拽过程中的临时投放状态；不改变已经点击选中的资源。
+     */
+    function clearConnectionBoardTargetState() {
+        const board = document.getElementById("connectionBoard");
+        if (!board) {
+            return;
+        }
+
+        board.removeAttribute("data-active-graph-type");
+        board.querySelectorAll("[data-graph-slot-type]").forEach((slot) => {
+            slot.classList.remove("is-compatible-target", "is-incompatible-target", "is-drop-ready", "is-drop-blocked");
+        });
+    }
+
+    /**
+     * 从资源节点读取可传输的连线信息。
+     */
+    function readGraphResourcePayload(node) {
+        return {
+            type: node.dataset.graphResourceType || "",
+            resourceId: node.dataset.graphResourceId || "",
+            animationName: node.dataset.graphAnimationName || "",
+        };
+    }
+
+    /**
+     * 从拖拽事件读取资源信息，兼容自定义类型和 text/plain。
+     */
+    function readGraphTransferPayload(event) {
+        const raw = event.dataTransfer.getData("application/x-better-appearance-graph")
+            || event.dataTransfer.getData("text/plain");
+        if (!raw) {
+            return null;
+        }
+        try {
+            return JSON.parse(raw);
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    /**
+     * 判断资源类型和目标槽位是否匹配。
+     */
+    function canConnectGraphResourceToSlot(payload, slot) {
+        return payload && payload.type === slot.dataset.graphSlotType;
+    }
+
+    /**
+     * 将一次连线写入现有实体映射结构。
+     */
+    function applyGraphConnection(entity, slot, payload) {
+        if (!canConnectGraphResourceToSlot(payload, slot)) {
+            addMessage("资源类型和槽位类型不匹配，未建立连线。", "warn");
+            renderWithConnectionBoardScroll();
+            return;
+        }
+
+        const slotType = slot.dataset.graphSlotType;
+        const bindingId = slot.dataset.graphBindingId;
+        const slotKey = slot.dataset.graphSlotKey;
+
+        if (slotType === "geometry" || slotType === "texture") {
+            const binding = findRenderControllerBinding(entity, bindingId);
+            const resourceExists = slotType === "geometry"
+                ? Boolean(findGeometryResource(entity, payload.resourceId))
+                : Boolean(findTextureResource(entity, payload.resourceId));
+            if (!binding || !resourceExists) {
+                addMessage("目标渲染控制器或资源不存在，未建立连线。", "warn");
+                renderWithConnectionBoardScroll();
+                return;
+            }
+            const mappings = slotType === "geometry" ? binding.geometryMappings : binding.textureMappings;
+            mappings[slotKey] = payload.resourceId;
+            addMessage(`${typeLabel(slotType)}已连接到 ${slotType === "geometry" ? "Geometry" : "Texture"}.${slotKey}。`, "info");
+            renderWithConnectionBoardScroll();
+            return;
+        }
+
+        if (slotType === "animation") {
+            const binding = findAnimationControllerBinding(entity, bindingId);
+            if (!binding || !payload.animationName) {
+                addMessage("目标动画控制器或动作片段不存在，未建立连线。", "warn");
+                renderWithConnectionBoardScroll();
+                return;
+            }
+            binding.animationMappings[slotKey] = payload.animationName;
+            addMessage(`动作 ${payload.animationName} 已连接到 ${slotKey}。`, "info");
+            renderWithConnectionBoardScroll();
+        }
+    }
+
+    /**
+     * 断开动作槽位；渲染槽位保持默认资源，不在这里清空。
+     */
+    function clearGraphSlotConnection(entity, button) {
+        if (button.dataset.graphSlotType !== "animation") {
+            addMessage("模型和贴图槽位需要保持有效资源，请拖入其他资源完成重连。", "warn");
+            renderWithConnectionBoardScroll();
+            return;
+        }
+
+        const binding = findAnimationControllerBinding(entity, button.dataset.graphBindingId);
+        if (!binding) {
+            return;
+        }
+        delete binding.animationMappings[button.dataset.graphSlotKey];
+        addMessage(`已断开动作槽位 ${button.dataset.graphSlotKey}。`, "info");
+        renderWithConnectionBoardScroll();
+    }
+
+    /**
+     * 根据当前 DOM 位置绘制资源节点到槽位的可视连线。
+     */
+    function drawConnectionBoardLines() {
+        const board = document.getElementById("connectionBoard");
+        const svg = document.getElementById("connectionBoardLines");
+        if (!board || !svg) {
+            return;
+        }
+
+        const boardRect = board.getBoundingClientRect();
+        const nodeMap = new Map();
+        board.querySelectorAll("[data-graph-node-id]").forEach((node) => {
+            nodeMap.set(node.dataset.graphNodeId, node);
+        });
+
+        svg.innerHTML = "";
+        svg.setAttribute("viewBox", `0 0 ${boardRect.width} ${boardRect.height}`);
+        svg.setAttribute("width", String(boardRect.width));
+        svg.setAttribute("height", String(boardRect.height));
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        svg.appendChild(defs);
+        const laneClipIds = new Map();
+
+        board.querySelectorAll("[data-graph-current-node-id]").forEach((slot) => {
+            const nodeId = slot.dataset.graphCurrentNodeId;
+            const source = nodeMap.get(nodeId);
+            if (!source) {
+                return;
+            }
+            const lane = slot.closest(".graph-lane");
+            if (!lane || source.closest(".graph-lane") !== lane) {
+                return;
+            }
+            const sourcePoint = getGraphConnectionPoint(source, boardRect, "source");
+            const slotPoint = getGraphConnectionPoint(slot, boardRect, "target");
+            if (!sourcePoint || !slotPoint) {
+                return;
+            }
+            const x1 = sourcePoint.x;
+            const y1 = sourcePoint.y;
+            const x2 = slotPoint.x;
+            const y2 = slotPoint.y;
+            const curve = Math.max(42, Math.abs(x2 - x1) * 0.42);
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("class", `connection-line graph-type-${slot.dataset.graphSlotType || ""}`);
+            path.setAttribute("clip-path", `url(#${getGraphLaneClipId(lane, boardRect, defs, laneClipIds)})`);
+            path.setAttribute("d", `M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`);
+            svg.appendChild(path);
+        });
+    }
+
+    /**
+     * 计算连线端点；端点滚出所属通道可视区域后不再画线。
+     */
+    function getGraphConnectionPoint(element, boardRect, side) {
+        const scrollSide = element.closest(".graph-lane-side");
+        if (!scrollSide) {
+            return null;
+        }
+
+        const elementRect = element.getBoundingClientRect();
+        const scrollRect = scrollSide.getBoundingClientRect();
+        const centerY = elementRect.top + elementRect.height / 2;
+        const isVisibleY = centerY >= scrollRect.top
+            && centerY <= scrollRect.bottom
+            && elementRect.bottom >= scrollRect.top
+            && elementRect.top <= scrollRect.bottom;
+        if (!isVisibleY) {
+            return null;
+        }
+
+        const x = side === "source"
+            ? Math.min(elementRect.right, scrollRect.right)
+            : Math.max(elementRect.left, scrollRect.left);
+        return {
+            x: x - boardRect.left,
+            y: centerY - boardRect.top,
+        };
+    }
+
+    /**
+     * 给每条类型通道创建 SVG 裁剪区域，防止连线穿出自己的通道。
+     */
+    function getGraphLaneClipId(lane, boardRect, defs, laneClipIds) {
+        if (laneClipIds.has(lane)) {
+            return laneClipIds.get(lane);
+        }
+
+        const clipId = `graphLaneClip${laneClipIds.size}`;
+        const laneRect = lane.getBoundingClientRect();
+        const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+        const clipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        clipPath.setAttribute("id", clipId);
+        clipRect.setAttribute("x", String(laneRect.left - boardRect.left));
+        clipRect.setAttribute("y", String(laneRect.top - boardRect.top));
+        clipRect.setAttribute("width", String(laneRect.width));
+        clipRect.setAttribute("height", String(laneRect.height));
+        clipPath.appendChild(clipRect);
+        defs.appendChild(clipPath);
+        laneClipIds.set(lane, clipId);
+        return clipId;
     }
 
     function renderFileCard(title, type, fileName) {
