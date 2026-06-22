@@ -16,6 +16,22 @@
         }
       ]
     },
+    "controller.render.entity_default_wings.third_person": {
+      "geometry": "Geometry.default_wings",
+      "textures": [
+        "Texture.default_wings"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": true
+        }
+      ]
+    },
     "controller.render.entity_default.a.third_person": {
       "geometry": "Geometry.a",
       "textures": [
@@ -28,7 +44,7 @@
       ],
       "part_visibility": [
         {
-          "*": true
+          "*": "query.mod.entity_skill_a > 0.0"
         }
       ]
     },

@@ -10,6 +10,16 @@
       },
       "initial_state": "idle"
     },
+    "controller.animation.entity_idle_wings.default": {
+      "states": {
+        "idle_wings": {
+          "animations": [
+            "idle_wings"
+          ]
+        }
+      },
+      "initial_state": "idle_wings"
+    },
     "controller.animation.entity_idle.a": {
       "states": {
         "idleA": {

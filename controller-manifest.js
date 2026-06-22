@@ -1,6 +1,6 @@
 // Generated from ./use_controllers by scripts/generate-controller-manifest.js
 window.BA_CONTROLLER_MANIFEST = {
-  "generatedAt": "2026-06-15T10:23:17.758Z",
+  "generatedAt": "2026-06-18T16:48:33.213Z",
   "animationControllers": [
     {
       "source": "entity_default.animation_controllers.json",
@@ -114,6 +114,18 @@ window.BA_CONTROLLER_MANIFEST = {
       "description": "只包含 idle，适合完全静止或只需要待机表现的实体。",
       "slotDescriptions": {
         "idle": "配置待机动作。"
+      }
+    },
+    {
+      "source": "entity_idle.animation_controllers.json",
+      "name": "controller.animation.entity_idle_wings.default",
+      "slots": [
+        "idle_wings"
+      ],
+      "label": "翅膀待机控制器",
+      "description": "专门给翅膀使用的待机控制器，适合把翅膀动作拆成独立动画控制器。",
+      "slotDescriptions": {
+        "idle_wings": "配置翅膀待机动作。"
       }
     },
     {
@@ -897,6 +909,24 @@ window.BA_CONTROLLER_MANIFEST = {
     },
     {
       "source": "entity_default.render_controllers.json",
+      "name": "controller.render.entity_default_wings.third_person",
+      "geometryKeys": [
+        "default_wings"
+      ],
+      "textureKeys": [
+        "default_wings"
+      ],
+      "materialKeys": [
+        "default"
+      ],
+      "partVisibilityKeys": [
+        "*"
+      ],
+      "label": "翅膀第三人称渲染控制器",
+      "description": "专门给翅膀使用的渲染控制器，绑定 Geometry.default_wings / Texture.default_wings。"
+    },
+    {
+      "source": "entity_default.render_controllers.json",
       "name": "controller.render.entity_default.a.third_person",
       "geometryKeys": [
         "a"
@@ -965,7 +995,7 @@ window.BA_CONTROLLER_MANIFEST = {
     },
     {
       "path": "use_controllers/animation_controllers/entity/entity_idle.animation_controllers.json",
-      "content": "{\n  \"animation_controllers\": {\n    \"controller.animation.entity_idle.default\": {\n      \"states\": {\n        \"idle\": {\n          \"animations\": [\n            \"idle\"\n          ]\n        }\n      },\n      \"initial_state\": \"idle\"\n    },\n    \"controller.animation.entity_idle.a\": {\n      \"states\": {\n        \"idleA\": {\n          \"animations\": [\n            \"idleA\"\n          ]\n        }\n      },\n      \"initial_state\": \"idleA\"\n    },\n    \"controller.animation.entity_idle.b\": {\n      \"states\": {\n        \"idleB\": {\n          \"animations\": [\n            \"idleB\"\n          ]\n        }\n      },\n      \"initial_state\": \"idleB\"\n    }\n  },\n  \"format_version\": \"1.10.0\"\n}\n"
+      "content": "{\n  \"animation_controllers\": {\n    \"controller.animation.entity_idle.default\": {\n      \"states\": {\n        \"idle\": {\n          \"animations\": [\n            \"idle\"\n          ]\n        }\n      },\n      \"initial_state\": \"idle\"\n    },\n    \"controller.animation.entity_idle_wings.default\": {\n      \"states\": {\n        \"idle_wings\": {\n          \"animations\": [\n            \"idle_wings\"\n          ]\n        }\n      },\n      \"initial_state\": \"idle_wings\"\n    },\n    \"controller.animation.entity_idle.a\": {\n      \"states\": {\n        \"idleA\": {\n          \"animations\": [\n            \"idleA\"\n          ]\n        }\n      },\n      \"initial_state\": \"idleA\"\n    },\n    \"controller.animation.entity_idle.b\": {\n      \"states\": {\n        \"idleB\": {\n          \"animations\": [\n            \"idleB\"\n          ]\n        }\n      },\n      \"initial_state\": \"idleB\"\n    }\n  },\n  \"format_version\": \"1.10.0\"\n}\n"
     },
     {
       "path": "use_controllers/animation_controllers/entity/entity_normal.animation_controllers.json",
@@ -1005,7 +1035,7 @@ window.BA_CONTROLLER_MANIFEST = {
     },
     {
       "path": "use_controllers/render_controllers/entity_default.render_controllers.json",
-      "content": "{\r\n  \"render_controllers\": {\r\n    \"controller.render.entity_default.third_person\": {\n      \"geometry\": \"Geometry.default\",\n      \"textures\": [\n        \"Texture.default\"\n      ],\n      \"materials\": [\r\n        {\r\n          \"*\": \"Material.default\"\r\n        }\r\n      ],\r\n      \"part_visibility\": [\r\n        {\r\n          \"*\": true\n        }\n      ]\n    },\n    \"controller.render.entity_default.a.third_person\": {\n      \"geometry\": \"Geometry.a\",\n      \"textures\": [\n        \"Texture.a\"\n      ],\n      \"materials\": [\n        {\n          \"*\": \"Material.default\"\n        }\n      ],\n      \"part_visibility\": [\n        {\n          \"*\": true\n        }\n      ]\n    },\n    \"controller.render.entity_default.b.third_person\": {\n      \"geometry\": \"Geometry.b\",\n      \"textures\": [\n        \"Texture.b\"\n      ],\n      \"materials\": [\n        {\n          \"*\": \"Material.default\"\n        }\n      ],\n      \"part_visibility\": [\n        {\n          \"*\": \"query.mod.entity_skill_b > 0.0\"\n        }\n      ]\n    }\n  },\n  \"format_version\": \"1.8.0\"\n}\n"
+      "content": "{\r\n  \"render_controllers\": {\r\n    \"controller.render.entity_default.third_person\": {\r\n      \"geometry\": \"Geometry.default\",\r\n      \"textures\": [\r\n        \"Texture.default\"\r\n      ],\r\n      \"materials\": [\r\n        {\r\n          \"*\": \"Material.default\"\r\n        }\r\n      ],\r\n      \"part_visibility\": [\r\n        {\r\n          \"*\": true\r\n        }\r\n      ]\r\n    },\r\n    \"controller.render.entity_default_wings.third_person\": {\r\n      \"geometry\": \"Geometry.default_wings\",\r\n      \"textures\": [\r\n        \"Texture.default_wings\"\r\n      ],\r\n      \"materials\": [\r\n        {\r\n          \"*\": \"Material.default\"\r\n        }\r\n      ],\r\n      \"part_visibility\": [\r\n        {\r\n          \"*\": true\r\n        }\r\n      ]\r\n    },\r\n    \"controller.render.entity_default.a.third_person\": {\r\n      \"geometry\": \"Geometry.a\",\r\n      \"textures\": [\r\n        \"Texture.a\"\r\n      ],\r\n      \"materials\": [\r\n        {\r\n          \"*\": \"Material.default\"\r\n        }\r\n      ],\r\n      \"part_visibility\": [\r\n        {\r\n          \"*\": \"query.mod.entity_skill_a > 0.0\"\r\n        }\r\n      ]\r\n    },\r\n    \"controller.render.entity_default.b.third_person\": {\r\n      \"geometry\": \"Geometry.b\",\r\n      \"textures\": [\r\n        \"Texture.b\"\r\n      ],\r\n      \"materials\": [\r\n        {\r\n          \"*\": \"Material.default\"\r\n        }\r\n      ],\r\n      \"part_visibility\": [\r\n        {\r\n          \"*\": \"query.mod.entity_skill_b > 0.0\"\r\n        }\r\n      ]\r\n    }\r\n  },\r\n  \"format_version\": \"1.8.0\"\r\n}\r\n"
     },
     {
       "path": "use_controllers/render_controllers/entity_skill.render_controllers.json",
