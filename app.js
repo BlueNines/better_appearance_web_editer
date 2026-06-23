@@ -1292,7 +1292,11 @@
         return null;
     }
 
-    function bindEntityProfileInput(input, entity, key, fallback) {
+    function bindEntityProfileInput(input, entity, key, fallback, rerender = render) {
+        if (!input) {
+            return;
+        }
+
         input.addEventListener("input", (event) => {
             entity.entityProfile[key] = parseEntityProfileValue(event.target.value, fallback);
         });
@@ -1300,14 +1304,18 @@
         input.addEventListener("change", (event) => {
             entity.entityProfile[key] = parseEntityProfileValue(event.target.value, fallback);
             event.target.value = String(entity.entityProfile[key]);
-            render();
+            rerender();
         });
     }
 
     /**
      * 绑定实体透明度输入框，透明度固定限制在 0..1。
      */
-    function bindEntityProfileOpacityInput(input, entity) {
+    function bindEntityProfileOpacityInput(input, entity, rerender = render) {
+        if (!input) {
+            return;
+        }
+
         input.addEventListener("input", (event) => {
             entity.entityProfile.opacity = parseColorAlpha(event.target.value, DEFAULT_ENTITY_PROFILE.opacity);
         });
@@ -1315,14 +1323,18 @@
         input.addEventListener("change", (event) => {
             entity.entityProfile.opacity = parseColorAlpha(event.target.value, DEFAULT_ENTITY_PROFILE.opacity);
             event.target.value = formatColorUnit(entity.entityProfile.opacity);
-            render();
+            rerender();
         });
     }
 
     /**
      * 绑定整数型实体 profile 输入框，保证值始终不低于配置要求。
      */
-    function bindEntityProfileIntegerInput(input, entity, key, fallback, minValue) {
+    function bindEntityProfileIntegerInput(input, entity, key, fallback, minValue, rerender = render) {
+        if (!input) {
+            return;
+        }
+
         input.addEventListener("input", (event) => {
             entity.entityProfile[key] = parseEntityProfileIntegerValue(event.target.value, fallback, minValue);
         });
@@ -1330,7 +1342,7 @@
         input.addEventListener("change", (event) => {
             entity.entityProfile[key] = parseEntityProfileIntegerValue(event.target.value, fallback, minValue);
             event.target.value = String(entity.entityProfile[key]);
-            render();
+            rerender();
         });
     }
 
@@ -1338,6 +1350,10 @@
      * 绑定布尔型实体 profile 下拉框，直接同步到当前实体。
      */
     function bindEntityProfileBooleanSelect(select, entity, key) {
+        if (!select) {
+            return;
+        }
+
         select.addEventListener("change", (event) => {
             entity.entityProfile[key] = event.target.value === "true";
             renderOutputPreview();
@@ -1347,24 +1363,32 @@
     /**
      * 绑定标题 profile 的普通文本输入框。
      */
-    function bindTitleProfileInput(input, entity, key) {
+    function bindTitleProfileInput(input, entity, key, rerender = render) {
+        if (!input) {
+            return;
+        }
+
         input.addEventListener("input", (event) => {
             getEntityTitleProfile(entity)[key] = event.target.value;
         });
 
         input.addEventListener("change", (event) => {
             getEntityTitleProfile(entity)[key] = event.target.value;
-            render();
+            rerender();
         });
     }
 
     /**
      * 绑定标题 profile 的深度测试下拉框。
      */
-    function bindTitleDepthTestSelect(select, entity) {
+    function bindTitleDepthTestSelect(select, entity, rerender = render) {
+        if (!select) {
+            return;
+        }
+
         select.addEventListener("change", (event) => {
             getEntityTitleProfile(entity).depthTest = parseOptionalBoolean(event.target.value);
-            render();
+            rerender();
         });
     }
 
@@ -1740,6 +1764,13 @@
                 availableAnimations,
                 mergedAnimationData,
                 unusedAnimations,
+                entityProfile,
+                titleProfile,
+                titleTextColorState,
+                titleBackgroundColorState,
+                titleDepthTestValue,
+                renderBindings,
+                animationSlotNames,
             })}`
             : `${inspectorModeSwitchHtml}${legacyInspectorHtml}`;
 
@@ -1771,12 +1802,253 @@
             <section class="section-card inspector-mode-card">
                 <div>
                     <h3>实体详情编辑方式</h3>
-                    <p class="field-hint">连连看用于快速装配资源和控制器；旧表单保留完整细项配置。</p>
+                    <p class="field-hint">连连看负责资源装配和细项配置；旧表单仅作为兼容入口保留。</p>
                 </div>
                 <div class="inspector-mode-switch">
                     <button class="button secondary ${detailMode === "graph" ? "is-active" : ""}" type="button" data-inspector-mode="graph">连连看</button>
                     <button class="button ghost ${detailMode === "legacy" ? "is-active" : ""}" type="button" data-inspector-mode="legacy">旧表单</button>
                 </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染服务端 profile 细项，连连看和旧表单都写回同一份 entityProfile。
+     */
+    function renderEntityProfileSectionHtml(entityProfile) {
+        return `
+            <section class="section-card">
+                <h3>服务端实体 Profile</h3>
+                <div class="slot-grid">
+                    <div class="field">
+                        <label for="profileWidthInput">碰撞箱宽度</label>
+                        <input id="profileWidthInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.width)}">
+                        <p class="field-hint">默认值为 <code>1</code>，支持小数，仅在服务端插件配置中使用。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileHeightInput">碰撞箱高度</label>
+                        <input id="profileHeightInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.height)}">
+                        <p class="field-hint">默认值为 <code>2</code>，支持小数，仅在服务端插件配置中使用。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileScaleInput">模型缩放</label>
+                        <input id="profileScaleInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.scale)}">
+                        <p class="field-hint">默认值为 <code>1</code>，支持小数。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileOpacityInput">实体透明度</label>
+                        <input id="profileOpacityInput" type="number" min="0" max="1" step="any" value="${escapeAttribute(entityProfile.opacity)}">
+                        <p class="field-hint">默认值为 <code>1</code>，范围 <code>0..1</code>，会导出为 <code>render.alpha</code>。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileRedGainInput">红色通道增益</label>
+                        <input id="profileRedGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.redGain)}">
+                        <p class="field-hint">默认值为 <code>1</code>，最终颜色的 R 通道会乘以该值。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileGreenGainInput">绿色通道增益</label>
+                        <input id="profileGreenGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.greenGain)}">
+                        <p class="field-hint">默认值为 <code>1</code>，最终颜色的 G 通道会乘以该值。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileBlueGainInput">蓝色通道增益</label>
+                        <input id="profileBlueGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.blueGain)}">
+                        <p class="field-hint">默认值为 <code>1</code>，最终颜色的 B 通道会乘以该值。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileBrightnessInput">整体亮度</label>
+                        <input id="profileBrightnessInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.brightness)}">
+                        <p class="field-hint">默认值为 <code>1</code>，在环境光计算前乘到 RGB。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileIgnoreLightSelect">忽略环境光</label>
+                        <select id="profileIgnoreLightSelect">
+                            <option value="false" ${!entityProfile.ignoreLight ? "selected" : ""}>false</option>
+                            <option value="true" ${entityProfile.ignoreLight ? "selected" : ""}>true</option>
+                        </select>
+                        <p class="field-hint">为 <code>true</code> 时跳过环境光乘法，但仍保留雾效。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileHealthBarVisibleSelect">显示血条</label>
+                        <select id="profileHealthBarVisibleSelect">
+                            <option value="true" ${entityProfile.healthBarVisible ? "selected" : ""}>true</option>
+                            <option value="false" ${!entityProfile.healthBarVisible ? "selected" : ""}>false</option>
+                        </select>
+                        <p class="field-hint">默认值为 <code>true</code>，未改动时不会导出。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileBossBarVisibleSelect">显示 Boss 血条</label>
+                        <select id="profileBossBarVisibleSelect">
+                            <option value="true" ${entityProfile.bossBarVisible ? "selected" : ""}>true</option>
+                            <option value="false" ${!entityProfile.bossBarVisible ? "selected" : ""}>false</option>
+                        </select>
+                        <p class="field-hint">默认值为 <code>false</code>，未改动时不会导出。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileCurrentHealthCountInput">当前血条段数</label>
+                        <input id="profileCurrentHealthCountInput" type="number" min="100" step="1" value="${escapeAttribute(entityProfile.currentHealthCount)}">
+                        <p class="field-hint">默认值为 <code>10000</code>，必须是大于等于 <code>100</code> 的整数。</p>
+                    </div>
+                    <div class="field">
+                        <label for="profileForceSelect">强制同步 Identifier</label>
+                        <select id="profileForceSelect">
+                            <option value="true" ${entityProfile.force ? "selected" : ""}>true</option>
+                            <option value="false" ${!entityProfile.force ? "selected" : ""}>false</option>
+                        </select>
+                        <p class="field-hint">默认值为 <code>true</code>，未改动时不会导出。</p>
+                    </div>
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染头顶标题 profile，颜色编辑器仍复用原有色盘和 RGBA 输入逻辑。
+     */
+    function renderTitleProfileSectionHtml(titleProfile, titleTextColorState, titleBackgroundColorState, titleDepthTestValue) {
+        return `
+            <section class="section-card">
+                <h3>头顶标题</h3>
+                <div class="form-grid">
+                    <div class="field field-wide">
+                        <label for="titleTextInput">标题文本</label>
+                        <input id="titleTextInput" type="text" value="${escapeAttribute(titleProfile.text)}" placeholder="例如 松鼠">
+                        <p class="field-hint">默认标题配置只有改动项会导出；标题文本仍然必须非空才会生成 <code>entity_profile.title</code>。</p>
+                    </div>
+
+                    ${renderTitleColorField({
+                        idPrefix: "titleTextColor",
+                        label: "文字颜色",
+                        value: titleProfile.textColor,
+                        placeholder: DEFAULT_TITLE_PROFILE.textColor,
+                        hint: "默认值是白色；可直接用色盘选色，透明度单独调，下方原始 RGBA 仍可手改。",
+                        colorState: titleTextColorState,
+                    })}
+
+                    ${renderTitleColorField({
+                        idPrefix: "titleBackgroundColor",
+                        label: "背景颜色",
+                        value: titleProfile.backgroundColor,
+                        placeholder: DEFAULT_TITLE_PROFILE.backgroundColor,
+                        hint: "默认值是半透明黑底；支持色盘与透明度，只有改动项才会导出。",
+                        colorState: titleBackgroundColorState,
+                    })}
+
+                    <div class="field">
+                        <label for="titleOffsetInput">偏移</label>
+                        <input id="titleOffsetInput" type="text" value="${escapeAttribute(titleProfile.offset)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.offset)}">
+                        <p class="field-hint">XYZ，默认值为 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.offset)}</code>。</p>
+                    </div>
+
+                    <div class="field">
+                        <label for="titleRotationInput">旋转</label>
+                        <input id="titleRotationInput" type="text" value="${escapeAttribute(titleProfile.rotation)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.rotation)}">
+                        <p class="field-hint">XYZ，默认值为 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.rotation)}</code>。</p>
+                    </div>
+
+                    <div class="field">
+                        <label for="titleScaleInput">标题缩放</label>
+                        <input id="titleScaleInput" type="text" value="${escapeAttribute(titleProfile.scale)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.scale)}">
+                        <p class="field-hint">默认值是 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.scale)}</code>。</p>
+                    </div>
+
+                    <div class="field">
+                        <label for="titleDepthTestSelect">深度测试</label>
+                        <select id="titleDepthTestSelect">
+                            <option value="" ${titleDepthTestValue === "" ? "selected" : ""}>使用默认值（true）</option>
+                            <option value="true" ${titleDepthTestValue === "true" ? "selected" : ""}>true</option>
+                            <option value="false" ${titleDepthTestValue === "false" ? "selected" : ""}>false</option>
+                        </select>
+                        <p class="field-hint">默认值为 <code>true</code>，只有改成 <code>false</code> 才会导出。</p>
+                    </div>
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染资源明细区，把旧表单里的替换和移除入口搬到连连看下方。
+     */
+    function renderResourceDetailSectionsHtml(entity, textureResources, geometryResources, animationResources) {
+        return `
+            <section class="section-card">
+                <div class="detail-actions">
+                    <h3>贴图资源</h3>
+                    <button class="button ghost" type="button" data-action="add-texture-resource">新增贴图资源</button>
+                </div>
+                <div class="file-stack">
+                    ${textureResources.length
+                        ? textureResources.map((resource) => renderResourceFileCard("贴图资源", "texture", resource, entity)).join("")
+                        : '<p class="empty-state">还没有贴图资源。</p>'}
+                </div>
+            </section>
+
+            <section class="section-card">
+                <div class="detail-actions">
+                    <h3>模型资源</h3>
+                    <button class="button ghost" type="button" data-action="add-geometry-resource">新增模型资源</button>
+                </div>
+                <div class="file-stack">
+                    ${geometryResources.length
+                        ? geometryResources.map((resource) => renderResourceFileCard("模型资源", "geometry", resource, entity)).join("")
+                        : '<p class="empty-state">还没有模型资源。</p>'}
+                </div>
+            </section>
+
+            <section class="section-card">
+                <div class="detail-actions">
+                    <h3>动作资源</h3>
+                    <button class="button ghost" type="button" data-action="add-animation-resource">新增动作资源</button>
+                </div>
+                <div class="file-stack">
+                    ${animationResources.length
+                        ? animationResources.map((resource) => renderAnimationResourceFileCard(resource)).join("")
+                        : '<p class="empty-state">还没有动作资源。</p>'}
+                </div>
+                <p class="field-hint">多个动作资源会在导出时自动合并成一个最终的 <code>${escapeHtml(entity.baseName || "实体名")}.animation.json</code>。</p>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染控制器 key 参考，方便在连连看里直接核对最终导出的槽位。
+     */
+    function renderControllerKeyReferenceSectionHtml(renderBindings, animationSlotNames) {
+        return `
+            <section class="section-card">
+                <h3>控制器 Key 参考</h3>
+                <div class="file-stack">
+                    <div class="file-card">
+                        <p class="file-title">渲染控制器绑定</p>
+                        <div class="chip-row">
+                            ${renderBindings.geometryKeys.length ? renderBindings.geometryKeys.map((key) => `<span class="chip">Geometry.${escapeHtml(key)}</span>`).join("") : '<span class="chip muted">无 geometry key</span>'}
+                        </div>
+                        <div class="chip-row">
+                            ${renderBindings.textureKeys.length ? renderBindings.textureKeys.map((key) => `<span class="chip">Texture.${escapeHtml(key)}</span>`).join("") : '<span class="chip muted">无 texture key</span>'}
+                        </div>
+                        <div class="chip-row">
+                            ${renderBindings.materialKeys.length ? renderBindings.materialKeys.map((key) => `<span class="chip muted">Material.${escapeHtml(key)}</span>`).join("") : '<span class="chip muted">无 material key</span>'}
+                        </div>
+                    </div>
+                    <div class="file-card">
+                        <p class="file-title">动画控制器可用 key</p>
+                        <div class="chip-row">
+                            ${animationSlotNames.length ? animationSlotNames.map((slotName) => `<span class="chip">${escapeHtml(slotName)}</span>`).join("") : '<span class="chip muted">当前控制器没有动画 key</span>'}
+                        </div>
+                    </div>
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染未使用动作列表，帮助检查导入动作是否都被连到控制器槽位。
+     */
+    function renderUnusedAnimationsSectionHtml(unusedAnimations) {
+        return `
+            <section class="section-card">
+                <h3>未使用动作</h3>
+                ${unusedAnimations.length ? `<div class="chip-row">${unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint">当前动作文件中的动画块都已被控制器映射使用。</p>'}
             </section>
         `;
     }
@@ -1882,11 +2154,16 @@
                 </div>
             </section>
 
-            <section class="section-card">
-                <h3>旧表单仍负责的细项</h3>
-                <p class="field-hint">服务端 Profile、头顶标题、资源替换细节和控制器 Key 参考仍保留在旧表单里；这里先把高频装配动作收束到连线板。</p>
-                ${context.unusedAnimations.length ? `<div class="chip-row">${context.unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint">当前没有未使用动作。</p>'}
-            </section>
+            ${renderEntityProfileSectionHtml(context.entityProfile)}
+            ${renderTitleProfileSectionHtml(
+                context.titleProfile,
+                context.titleTextColorState,
+                context.titleBackgroundColorState,
+                context.titleDepthTestValue
+            )}
+            ${renderResourceDetailSectionsHtml(entity, context.textureResources, context.geometryResources, context.animationResources)}
+            ${renderControllerKeyReferenceSectionHtml(context.renderBindings, context.animationSlotNames)}
+            ${renderUnusedAnimationsSectionHtml(context.unusedAnimations)}
         `;
     }
 
@@ -2668,6 +2945,7 @@
     function bindConnectionBoardEvents(entity) {
         const mergedAnimationFile = getMergedAnimationFile(entity);
         bindConnectionBoardBaseInfoEvents(entity);
+        bindConnectionBoardProfileAndTitleEvents(entity);
         bindEntityActionEvents(entity);
         bindConnectionBoardResourceEvents(entity);
         bindConnectionBoardControllerEvents(entity, mergedAnimationFile);
@@ -2714,6 +2992,57 @@
                 window.requestAnimationFrame(drawConnectionBoardLines);
             });
         }
+    }
+
+    /**
+     * 绑定连线板下方的 profile 和标题细项，保证迁移后旧表单不再是唯一编辑入口。
+     */
+    function bindConnectionBoardProfileAndTitleEvents(entity) {
+        const profileWidthInput = document.getElementById("profileWidthInput");
+        const profileHeightInput = document.getElementById("profileHeightInput");
+        const profileScaleInput = document.getElementById("profileScaleInput");
+        const profileOpacityInput = document.getElementById("profileOpacityInput");
+        const profileRedGainInput = document.getElementById("profileRedGainInput");
+        const profileGreenGainInput = document.getElementById("profileGreenGainInput");
+        const profileBlueGainInput = document.getElementById("profileBlueGainInput");
+        const profileBrightnessInput = document.getElementById("profileBrightnessInput");
+        const profileIgnoreLightSelect = document.getElementById("profileIgnoreLightSelect");
+        const profileHealthBarVisibleSelect = document.getElementById("profileHealthBarVisibleSelect");
+        const profileBossBarVisibleSelect = document.getElementById("profileBossBarVisibleSelect");
+        const profileCurrentHealthCountInput = document.getElementById("profileCurrentHealthCountInput");
+        const profileForceSelect = document.getElementById("profileForceSelect");
+        const titleTextInput = document.getElementById("titleTextInput");
+        const titleTextColorInput = document.getElementById("titleTextColorInput");
+        const titleTextColorPicker = document.getElementById("titleTextColorPicker");
+        const titleTextColorAlphaInput = document.getElementById("titleTextColorAlphaInput");
+        const titleBackgroundColorInput = document.getElementById("titleBackgroundColorInput");
+        const titleBackgroundColorPicker = document.getElementById("titleBackgroundColorPicker");
+        const titleBackgroundColorAlphaInput = document.getElementById("titleBackgroundColorAlphaInput");
+        const titleOffsetInput = document.getElementById("titleOffsetInput");
+        const titleRotationInput = document.getElementById("titleRotationInput");
+        const titleScaleInput = document.getElementById("titleScaleInput");
+        const titleDepthTestSelect = document.getElementById("titleDepthTestSelect");
+
+        bindEntityProfileInput(profileWidthInput, entity, "width", DEFAULT_ENTITY_PROFILE.width, renderWithConnectionBoardScroll);
+        bindEntityProfileInput(profileHeightInput, entity, "height", DEFAULT_ENTITY_PROFILE.height, renderWithConnectionBoardScroll);
+        bindEntityProfileInput(profileScaleInput, entity, "scale", DEFAULT_ENTITY_PROFILE.scale, renderWithConnectionBoardScroll);
+        bindEntityProfileOpacityInput(profileOpacityInput, entity, renderWithConnectionBoardScroll);
+        bindEntityProfileInput(profileRedGainInput, entity, "redGain", DEFAULT_ENTITY_PROFILE.redGain, renderWithConnectionBoardScroll);
+        bindEntityProfileInput(profileGreenGainInput, entity, "greenGain", DEFAULT_ENTITY_PROFILE.greenGain, renderWithConnectionBoardScroll);
+        bindEntityProfileInput(profileBlueGainInput, entity, "blueGain", DEFAULT_ENTITY_PROFILE.blueGain, renderWithConnectionBoardScroll);
+        bindEntityProfileInput(profileBrightnessInput, entity, "brightness", DEFAULT_ENTITY_PROFILE.brightness, renderWithConnectionBoardScroll);
+        bindEntityProfileBooleanSelect(profileIgnoreLightSelect, entity, "ignoreLight");
+        bindEntityProfileBooleanSelect(profileHealthBarVisibleSelect, entity, "healthBarVisible");
+        bindEntityProfileBooleanSelect(profileBossBarVisibleSelect, entity, "bossBarVisible");
+        bindEntityProfileIntegerInput(profileCurrentHealthCountInput, entity, "currentHealthCount", DEFAULT_ENTITY_PROFILE.currentHealthCount, 100, renderWithConnectionBoardScroll);
+        bindEntityProfileBooleanSelect(profileForceSelect, entity, "force");
+        bindTitleProfileInput(titleTextInput, entity, "text", renderWithConnectionBoardScroll);
+        bindTitleColorEditor(entity, "textColor", titleTextColorInput, titleTextColorPicker, titleTextColorAlphaInput, renderWithConnectionBoardScroll);
+        bindTitleColorEditor(entity, "backgroundColor", titleBackgroundColorInput, titleBackgroundColorPicker, titleBackgroundColorAlphaInput, renderWithConnectionBoardScroll);
+        bindTitleProfileInput(titleOffsetInput, entity, "offset", renderWithConnectionBoardScroll);
+        bindTitleProfileInput(titleRotationInput, entity, "rotation", renderWithConnectionBoardScroll);
+        bindTitleProfileInput(titleScaleInput, entity, "scale", renderWithConnectionBoardScroll);
+        bindTitleDepthTestSelect(titleDepthTestSelect, entity, renderWithConnectionBoardScroll);
     }
 
     /**
@@ -2827,33 +3156,78 @@
      * 绑定连线板中的资源新增按钮。
      */
     function bindConnectionBoardResourceEvents(entity) {
-        const textureButton = elements.inspector.querySelector("[data-action='add-texture-resource']");
-        const geometryButton = elements.inspector.querySelector("[data-action='add-geometry-resource']");
-        const animationButton = elements.inspector.querySelector("[data-action='add-animation-resource']");
-
-        if (textureButton) {
+        elements.inspector.querySelectorAll("[data-action='add-texture-resource']").forEach((textureButton) => {
             textureButton.addEventListener("click", () => {
                 state.pendingAssignment = { entityId: entity.id, type: "texture" };
                 elements.assignInput.accept = ".png";
                 elements.assignInput.click();
             });
-        }
+        });
 
-        if (geometryButton) {
+        elements.inspector.querySelectorAll("[data-action='add-geometry-resource']").forEach((geometryButton) => {
             geometryButton.addEventListener("click", () => {
                 state.pendingAssignment = { entityId: entity.id, type: "geometry" };
                 elements.assignInput.accept = ".json";
                 elements.assignInput.click();
             });
-        }
+        });
 
-        if (animationButton) {
+        elements.inspector.querySelectorAll("[data-action='add-animation-resource']").forEach((animationButton) => {
             animationButton.addEventListener("click", () => {
                 state.pendingAssignment = { entityId: entity.id, type: "animation" };
                 elements.assignInput.accept = ".json";
                 elements.assignInput.click();
             });
-        }
+        });
+
+        elements.inspector.querySelectorAll("[data-resource-assign]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const type = button.dataset.resourceAssign;
+                state.pendingAssignment = {
+                    entityId: entity.id,
+                    type,
+                    resourceId: button.dataset.resourceId,
+                };
+                elements.assignInput.accept = type === "texture" ? ".png" : ".json";
+                elements.assignInput.click();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-resource-remove]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const type = button.dataset.resourceRemove;
+                const resourceId = button.dataset.resourceId;
+                if (type === "texture") {
+                    entity.files.textures = getTextureResources(entity).filter((resource) => resource.id !== resourceId);
+                } else if (type === "geometry") {
+                    entity.files.geometries = getGeometryResources(entity).filter((resource) => resource.id !== resourceId);
+                }
+                setStatus(`已移除 ${typeLabel(type)}资源。`);
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-animation-resource-assign]").forEach((button) => {
+            button.addEventListener("click", () => {
+                state.pendingAssignment = {
+                    entityId: entity.id,
+                    type: "animation",
+                    resourceId: button.dataset.animationResourceAssign,
+                };
+                elements.assignInput.accept = ".json";
+                elements.assignInput.click();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-animation-resource-remove]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const resourceId = button.dataset.animationResourceRemove;
+                entity.files.animations = getAnimationResources(entity).filter((resource) => resource.id !== resourceId);
+                refreshAnimationBindings(entity);
+                setStatus("已移除动作资源。");
+                renderWithConnectionBoardScroll();
+            });
+        });
     }
 
     /**
@@ -4924,7 +5298,7 @@
     /**
      * 绑定标题颜色编辑器，让色盘、透明度和原始 RGBA 文本始终保持同步。
      */
-    function bindTitleColorEditor(entity, key, textInput, colorInput, alphaInput) {
+    function bindTitleColorEditor(entity, key, textInput, colorInput, alphaInput, rerender = render) {
         if (!textInput || !colorInput || !alphaInput) {
             return;
         }
@@ -4937,7 +5311,7 @@
         textInput.addEventListener("change", (event) => {
             getEntityTitleProfile(entity)[key] = event.target.value;
             syncTitleColorControls(textInput, colorInput, alphaInput);
-            render();
+            rerender();
         });
 
         colorInput.addEventListener("input", () => {
@@ -4946,7 +5320,7 @@
 
         colorInput.addEventListener("change", () => {
             applyColorEditorValue(entity, key, textInput, colorInput, alphaInput);
-            render();
+            rerender();
         });
 
         alphaInput.addEventListener("input", () => {
@@ -4956,7 +5330,7 @@
         alphaInput.addEventListener("change", (event) => {
             event.target.value = formatColorUnit(parseColorAlpha(event.target.value, 1));
             applyColorEditorValue(entity, key, textInput, colorInput, alphaInput);
-            render();
+            rerender();
         });
 
         syncTitleColorControls(textInput, colorInput, alphaInput);
