@@ -80,6 +80,654 @@
         }
       },
       "initial_state": "idleB"
+    },
+    "controller.animation.entity_idle_walk.c": {
+      "states": {
+        "idleC": {
+          "transitions": [
+            {
+              "walkC": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleC"
+          ]
+        },
+        "walkC": {
+          "transitions": [
+            {
+              "idleC": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkC"
+          ]
+        }
+      },
+      "initial_state": "idleC"
+    },
+    "controller.animation.entity_idle_walk.d": {
+      "states": {
+        "idleD": {
+          "transitions": [
+            {
+              "walkD": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleD"
+          ]
+        },
+        "walkD": {
+          "transitions": [
+            {
+              "idleD": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkD"
+          ]
+        }
+      },
+      "initial_state": "idleD"
+    },
+    "controller.animation.entity_idle_walk.e": {
+      "states": {
+        "idleE": {
+          "transitions": [
+            {
+              "walkE": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleE"
+          ]
+        },
+        "walkE": {
+          "transitions": [
+            {
+              "idleE": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkE"
+          ]
+        }
+      },
+      "initial_state": "idleE"
+    },
+    "controller.animation.entity_idle_walk.f": {
+      "states": {
+        "idleF": {
+          "transitions": [
+            {
+              "walkF": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleF"
+          ]
+        },
+        "walkF": {
+          "transitions": [
+            {
+              "idleF": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkF"
+          ]
+        }
+      },
+      "initial_state": "idleF"
+    },
+    "controller.animation.entity_idle_walk.g": {
+      "states": {
+        "idleG": {
+          "transitions": [
+            {
+              "walkG": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleG"
+          ]
+        },
+        "walkG": {
+          "transitions": [
+            {
+              "idleG": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkG"
+          ]
+        }
+      },
+      "initial_state": "idleG"
+    },
+    "controller.animation.entity_idle_walk.h": {
+      "states": {
+        "idleH": {
+          "transitions": [
+            {
+              "walkH": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleH"
+          ]
+        },
+        "walkH": {
+          "transitions": [
+            {
+              "idleH": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkH"
+          ]
+        }
+      },
+      "initial_state": "idleH"
+    },
+    "controller.animation.entity_idle_walk.i": {
+      "states": {
+        "idleI": {
+          "transitions": [
+            {
+              "walkI": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleI"
+          ]
+        },
+        "walkI": {
+          "transitions": [
+            {
+              "idleI": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkI"
+          ]
+        }
+      },
+      "initial_state": "idleI"
+    },
+    "controller.animation.entity_idle_walk.j": {
+      "states": {
+        "idleJ": {
+          "transitions": [
+            {
+              "walkJ": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleJ"
+          ]
+        },
+        "walkJ": {
+          "transitions": [
+            {
+              "idleJ": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkJ"
+          ]
+        }
+      },
+      "initial_state": "idleJ"
+    },
+    "controller.animation.entity_idle_walk.k": {
+      "states": {
+        "idleK": {
+          "transitions": [
+            {
+              "walkK": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleK"
+          ]
+        },
+        "walkK": {
+          "transitions": [
+            {
+              "idleK": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkK"
+          ]
+        }
+      },
+      "initial_state": "idleK"
+    },
+    "controller.animation.entity_idle_walk.l": {
+      "states": {
+        "idleL": {
+          "transitions": [
+            {
+              "walkL": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleL"
+          ]
+        },
+        "walkL": {
+          "transitions": [
+            {
+              "idleL": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkL"
+          ]
+        }
+      },
+      "initial_state": "idleL"
+    },
+    "controller.animation.entity_idle_walk.m": {
+      "states": {
+        "idleM": {
+          "transitions": [
+            {
+              "walkM": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleM"
+          ]
+        },
+        "walkM": {
+          "transitions": [
+            {
+              "idleM": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkM"
+          ]
+        }
+      },
+      "initial_state": "idleM"
+    },
+    "controller.animation.entity_idle_walk.n": {
+      "states": {
+        "idleN": {
+          "transitions": [
+            {
+              "walkN": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleN"
+          ]
+        },
+        "walkN": {
+          "transitions": [
+            {
+              "idleN": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkN"
+          ]
+        }
+      },
+      "initial_state": "idleN"
+    },
+    "controller.animation.entity_idle_walk.o": {
+      "states": {
+        "idleO": {
+          "transitions": [
+            {
+              "walkO": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleO"
+          ]
+        },
+        "walkO": {
+          "transitions": [
+            {
+              "idleO": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkO"
+          ]
+        }
+      },
+      "initial_state": "idleO"
+    },
+    "controller.animation.entity_idle_walk.p": {
+      "states": {
+        "idleP": {
+          "transitions": [
+            {
+              "walkP": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleP"
+          ]
+        },
+        "walkP": {
+          "transitions": [
+            {
+              "idleP": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkP"
+          ]
+        }
+      },
+      "initial_state": "idleP"
+    },
+    "controller.animation.entity_idle_walk.q": {
+      "states": {
+        "idleQ": {
+          "transitions": [
+            {
+              "walkQ": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleQ"
+          ]
+        },
+        "walkQ": {
+          "transitions": [
+            {
+              "idleQ": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkQ"
+          ]
+        }
+      },
+      "initial_state": "idleQ"
+    },
+    "controller.animation.entity_idle_walk.r": {
+      "states": {
+        "idleR": {
+          "transitions": [
+            {
+              "walkR": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleR"
+          ]
+        },
+        "walkR": {
+          "transitions": [
+            {
+              "idleR": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkR"
+          ]
+        }
+      },
+      "initial_state": "idleR"
+    },
+    "controller.animation.entity_idle_walk.s": {
+      "states": {
+        "idleS": {
+          "transitions": [
+            {
+              "walkS": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleS"
+          ]
+        },
+        "walkS": {
+          "transitions": [
+            {
+              "idleS": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkS"
+          ]
+        }
+      },
+      "initial_state": "idleS"
+    },
+    "controller.animation.entity_idle_walk.t": {
+      "states": {
+        "idleT": {
+          "transitions": [
+            {
+              "walkT": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleT"
+          ]
+        },
+        "walkT": {
+          "transitions": [
+            {
+              "idleT": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkT"
+          ]
+        }
+      },
+      "initial_state": "idleT"
+    },
+    "controller.animation.entity_idle_walk.u": {
+      "states": {
+        "idleU": {
+          "transitions": [
+            {
+              "walkU": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleU"
+          ]
+        },
+        "walkU": {
+          "transitions": [
+            {
+              "idleU": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkU"
+          ]
+        }
+      },
+      "initial_state": "idleU"
+    },
+    "controller.animation.entity_idle_walk.v": {
+      "states": {
+        "idleV": {
+          "transitions": [
+            {
+              "walkV": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleV"
+          ]
+        },
+        "walkV": {
+          "transitions": [
+            {
+              "idleV": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkV"
+          ]
+        }
+      },
+      "initial_state": "idleV"
+    },
+    "controller.animation.entity_idle_walk.w": {
+      "states": {
+        "idleW": {
+          "transitions": [
+            {
+              "walkW": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleW"
+          ]
+        },
+        "walkW": {
+          "transitions": [
+            {
+              "idleW": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkW"
+          ]
+        }
+      },
+      "initial_state": "idleW"
+    },
+    "controller.animation.entity_idle_walk.x": {
+      "states": {
+        "idleX": {
+          "transitions": [
+            {
+              "walkX": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleX"
+          ]
+        },
+        "walkX": {
+          "transitions": [
+            {
+              "idleX": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkX"
+          ]
+        }
+      },
+      "initial_state": "idleX"
+    },
+    "controller.animation.entity_idle_walk.y": {
+      "states": {
+        "idleY": {
+          "transitions": [
+            {
+              "walkY": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleY"
+          ]
+        },
+        "walkY": {
+          "transitions": [
+            {
+              "idleY": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkY"
+          ]
+        }
+      },
+      "initial_state": "idleY"
+    },
+    "controller.animation.entity_idle_walk.z": {
+      "states": {
+        "idleZ": {
+          "transitions": [
+            {
+              "walkZ": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "idleZ"
+          ]
+        },
+        "walkZ": {
+          "transitions": [
+            {
+              "idleZ": "query.modified_move_speed < 0.05"
+            }
+          ],
+          "blend_transition": 0.1,
+          "animations": [
+            "walkZ"
+          ]
+        }
+      },
+      "initial_state": "idleZ"
     }
   },
   "format_version": "1.10.0"

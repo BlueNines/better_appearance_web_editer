@@ -52,6 +52,7 @@
 
     const elements = {
         resourceInput: document.getElementById("resourceInput"),
+        resourcePackInput: document.getElementById("resourcePackInput"),
         exportUseControllersButton: document.getElementById("exportUseControllersButton"),
         newEntityButton: document.getElementById("newEntityButton"),
         exportButton: document.getElementById("exportButton"),
@@ -77,6 +78,11 @@
     function bindEvents() {
         elements.resourceInput.addEventListener("change", async (event) => {
             await importFiles(event.target.files);
+            event.target.value = "";
+        });
+
+        elements.resourcePackInput.addEventListener("change", async (event) => {
+            await importResourcePackFiles(event.target.files);
             event.target.value = "";
         });
 
@@ -168,6 +174,812 @@
             addMessage(`有 ${skipped} 个文件未识别或导入失败。`, "warn");
         }
         render();
+    }
+
+    /**
+     * 从完整资源包目录导入实体配置，入口只消费浏览器给出的 FileList，不修改源目录。
+     */
+    async function importResourcePackFiles(fileList) {
+        const files = Array.from(fileList || []);
+        if (!files.length) {
+            return;
+        }
+
+        setStatus(`正在扫描资源包：${files.length} 个文件。`);
+        try {
+            const context = await buildResourcePackImportContext(files);
+            context.warnings.slice(0, 6).forEach((message) => addMessage(message, "warn"));
+            if (context.warnings.length > 6) {
+                addMessage(`资源包扫描还有 ${context.warnings.length - 6} 条警告未展示。`, "warn");
+            }
+            if (!context.clientEntities.length) {
+                addMessage("没有在资源包中找到 entity/*.entity.json，无法自动还原实体。", "warn");
+                setStatus("资源包导入失败：没有找到客户端实体配置。");
+                render();
+                return;
+            }
+
+            const selectedCandidates = chooseResourcePackCandidates(context.clientEntities);
+            if (!selectedCandidates.length) {
+                setStatus("已取消资源包导入。");
+                render();
+                return;
+            }
+
+            const importedEntities = [];
+            for (const candidate of selectedCandidates) {
+                const entity = await importResourcePackCandidate(candidate, context);
+                if (entity) {
+                    importedEntities.push(entity);
+                }
+            }
+
+            importedEntities.slice().reverse().forEach((entity) => state.entities.unshift(entity));
+            if (importedEntities.length) {
+                selectEntity(importedEntities[0].id);
+                setStatus(`已从资源包导入 ${importedEntities.length} 个实体。`);
+                addMessage(`资源包导入完成：${importedEntities.map((entity) => entity.baseName).join("、")}`, "info");
+            } else {
+                setStatus("资源包中没有可导入的实体。");
+            }
+        } catch (error) {
+            addMessage(`资源包导入失败：${error.message}`, "error");
+            setStatus("资源包导入失败。");
+        }
+        render();
+    }
+
+    /**
+     * 扫描资源包文件并建立反查索引，JSON 在扫描期读取，PNG 只记录路径避免无谓占用内存。
+     */
+    async function buildResourcePackImportContext(files) {
+        const context = {
+            clientEntities: [],
+            geometryByIdentifier: new Map(),
+            textureByPath: new Map(),
+            animationByName: new Map(),
+            warnings: [],
+        };
+
+        for (const file of files) {
+            const logicalPath = getResourcePackLogicalPath(file);
+            const lowerPath = logicalPath.toLowerCase();
+            try {
+                if (isResourcePackClientEntityPath(lowerPath)) {
+                    const json = await readJsonImportFile(file);
+                    const candidate = createResourcePackCandidate(file, logicalPath, json);
+                    if (candidate) {
+                        context.clientEntities.push(candidate);
+                    }
+                    continue;
+                }
+
+                if (isResourcePackGeometryPath(lowerPath)) {
+                    const json = await readJsonImportFile(file);
+                    registerResourcePackGeometryFile(context, file, logicalPath, json);
+                    continue;
+                }
+
+                if (isResourcePackAnimationPath(lowerPath)) {
+                    const json = await readJsonImportFile(file);
+                    registerResourcePackAnimationFile(context, file, logicalPath, json);
+                    continue;
+                }
+
+                if (isResourcePackTexturePath(lowerPath)) {
+                    registerResourcePackTextureFile(context, file, logicalPath);
+                }
+            } catch (error) {
+                context.warnings.push(`已跳过 ${logicalPath}：${error.message}`);
+            }
+        }
+
+        context.clientEntities.sort((left, right) => left.baseName.localeCompare(right.baseName));
+        return context;
+    }
+
+    /**
+     * 读取并解析导入用 JSON，错误中保留文件名方便用户定位资源包坏文件。
+     */
+    async function readJsonImportFile(file) {
+        const text = await file.text();
+        try {
+            return JSON.parse(text);
+        } catch (firstError) {
+            try {
+                return JSON.parse(stripJsonComments(text));
+            } catch (_secondError) {
+                throw new Error(`JSON 无法解析：${file.name}（${firstError.message}）`);
+            }
+        }
+    }
+
+    /**
+     * 去掉 JSONC 风格注释，只处理字符串外的行注释和块注释，兼容资源包里手写注释。
+     */
+    function stripJsonComments(text) {
+        let result = "";
+        let inString = false;
+        let escaped = false;
+        for (let index = 0; index < text.length; index += 1) {
+            const current = text[index];
+            const next = text[index + 1];
+
+            if (inString) {
+                result += current;
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+                if (current === "\\") {
+                    escaped = true;
+                    continue;
+                }
+                if (current === "\"") {
+                    inString = false;
+                }
+                continue;
+            }
+
+            if (current === "\"") {
+                inString = true;
+                result += current;
+                continue;
+            }
+
+            if (current === "/" && next === "/") {
+                while (index < text.length && text[index] !== "\n") {
+                    index += 1;
+                }
+                result += "\n";
+                continue;
+            }
+
+            if (current === "/" && next === "*") {
+                index += 2;
+                while (index < text.length && !(text[index] === "*" && text[index + 1] === "/")) {
+                    index += 1;
+                }
+                index += 1;
+                continue;
+            }
+
+            result += current;
+        }
+        return result;
+    }
+
+    /**
+     * 把 webkitRelativePath 裁剪到资源包内部路径，兼容用户选择资源包本身或上级目录。
+     */
+    function getResourcePackLogicalPath(file) {
+        const rawPath = String(file.webkitRelativePath || file.name || "")
+            .replace(/\\/g, "/")
+            .replace(/^\/+/, "");
+        const parts = rawPath.split("/").filter(Boolean);
+        const rootSegments = ["entity", "models", "textures", "animations"];
+        const rootIndex = parts.findIndex((segment) => rootSegments.includes(segment));
+        return rootIndex >= 0 ? parts.slice(rootIndex).join("/") : rawPath;
+    }
+
+    /**
+     * 判断资源包客户端实体配置路径。
+     */
+    function isResourcePackClientEntityPath(lowerPath) {
+        return lowerPath.endsWith(".entity.json") && (lowerPath.startsWith("entity/") || !lowerPath.includes("/"));
+    }
+
+    /**
+     * 判断资源包模型路径。
+     */
+    function isResourcePackGeometryPath(lowerPath) {
+        return lowerPath.endsWith(".geo.json") && (lowerPath.startsWith("models/") || !lowerPath.includes("/"));
+    }
+
+    /**
+     * 判断资源包动作路径。
+     */
+    function isResourcePackAnimationPath(lowerPath) {
+        return lowerPath.endsWith(".animation.json") && (lowerPath.startsWith("animations/") || !lowerPath.includes("/"));
+    }
+
+    /**
+     * 判断资源包贴图路径。
+     */
+    function isResourcePackTexturePath(lowerPath) {
+        return lowerPath.endsWith(".png") && (lowerPath.startsWith("textures/") || !lowerPath.includes("/"));
+    }
+
+    /**
+     * 从客户端实体 JSON 中提取可导入候选，保留原始引用关系供后续连线。
+     */
+    function createResourcePackCandidate(file, logicalPath, json) {
+        const description = json
+            && json["minecraft:client_entity"]
+            && json["minecraft:client_entity"].description;
+        if (!description || typeof description !== "object") {
+            return null;
+        }
+
+        const baseName = normalizeImportedBaseName(deriveClientEntityBaseName(logicalPath));
+        const identifier = typeof description.identifier === "string" && description.identifier.trim()
+            ? description.identifier.trim()
+            : `netease:${baseName}`;
+        const geometryRefs = normalizeClientEntityStringMap(description.geometry);
+        const textureRefs = normalizeClientEntityStringMap(description.textures);
+        const animationRefs = normalizeClientEntityStringMap(description.animations);
+
+        return {
+            file,
+            logicalPath,
+            baseName,
+            identifier,
+            geometryRefs,
+            textureRefs,
+            animationRefs,
+            renderControllers: parseClientRenderControllers(description.render_controllers),
+            animationControllers: parseClientAnimationControllers(description.animation_controllers),
+        };
+    }
+
+    /**
+     * 从 entity 文件路径推导基础名，避免普通 deriveBaseName 把 .entity 留在名字里。
+     */
+    function deriveClientEntityBaseName(logicalPath) {
+        const fileName = getFileNameFromPath(logicalPath);
+        if (fileName.toLowerCase().endsWith(".entity.json")) {
+            return fileName.slice(0, -12);
+        }
+        return fileName.replace(/\.[^.]+$/, "");
+    }
+
+    /**
+     * 导入实体基础名必须满足导出校验，非法字符统一压成下划线。
+     */
+    function normalizeImportedBaseName(value) {
+        const normalized = normalizeResourceKey(value);
+        return normalized || "imported_entity";
+    }
+
+    /**
+     * 清洗客户端实体 description 中的 key -> string 字段。
+     */
+    function normalizeClientEntityStringMap(input) {
+        const result = {};
+        if (!input || typeof input !== "object" || Array.isArray(input)) {
+            return result;
+        }
+
+        Object.keys(input).forEach((key) => {
+            const value = input[key];
+            if (typeof value === "string" && value.trim()) {
+                result[key] = value.trim();
+            }
+        });
+        return result;
+    }
+
+    /**
+     * 还原 render_controllers，兼容字符串和 {控制器: 条件} 两种客户端写法。
+     */
+    function parseClientRenderControllers(input) {
+        const entries = [];
+        const list = Array.isArray(input) ? input : [input];
+        list.forEach((item) => {
+            if (typeof item === "string" && item.trim()) {
+                entries.push({ controller: item.trim(), condition: "" });
+                return;
+            }
+            if (!item || typeof item !== "object" || Array.isArray(item)) {
+                return;
+            }
+            Object.keys(item).forEach((controller) => {
+                if (!controller.trim()) {
+                    return;
+                }
+                entries.push({
+                    controller: controller.trim(),
+                    condition: typeof item[controller] === "string" ? item[controller] : "",
+                });
+            });
+        });
+        return entries.length ? entries : [{ controller: DEFAULT_RENDER_CONTROLLER, condition: "" }];
+    }
+
+    /**
+     * 还原 animation_controllers，并跳过系统内置 scale 控制器。
+     */
+    function parseClientAnimationControllers(input) {
+        const entries = [];
+        const list = Array.isArray(input) ? input : [input];
+        list.forEach((item) => {
+            if (!item || typeof item !== "object" || Array.isArray(item)) {
+                return;
+            }
+            Object.keys(item).forEach((key) => {
+                const controller = item[key];
+                if (!key || key === SYSTEM_SCALE_CONTROLLER_KEY || controller === SYSTEM_SCALE_CONTROLLER_NAME) {
+                    return;
+                }
+                if (typeof controller === "string" && controller.trim()) {
+                    entries.push({ key: key.trim(), controller: controller.trim() });
+                }
+            });
+        });
+        return entries;
+    }
+
+    /**
+     * 把 geo.json 内部每个 geometry identifier 建索引，解决文件名和 identifier 不一致的问题。
+     */
+    function registerResourcePackGeometryFile(context, file, logicalPath, json) {
+        const geometries = Array.isArray(json && json["minecraft:geometry"])
+            ? json["minecraft:geometry"]
+            : [];
+        geometries.forEach((geometryItem, index) => {
+            const identifier = geometryItem
+                && geometryItem.description
+                && typeof geometryItem.description.identifier === "string"
+                ? geometryItem.description.identifier.trim()
+                : "";
+            if (!identifier) {
+                return;
+            }
+            const key = normalizeImportLookupKey(identifier);
+            if (!context.geometryByIdentifier.has(key)) {
+                context.geometryByIdentifier.set(key, {
+                    file,
+                    logicalPath,
+                    sourceName: getFileNameFromPath(logicalPath),
+                    json,
+                    geometryItem,
+                    geometryIndex: index,
+                    identifier,
+                });
+            }
+        });
+    }
+
+    /**
+     * 把 animation.json 内部每个 animation 名建索引，导入时按客户端实体引用反查文件。
+     */
+    function registerResourcePackAnimationFile(context, file, logicalPath, json) {
+        const animations = json && json.animations && typeof json.animations === "object"
+            ? json.animations
+            : {};
+        const animationNames = Object.keys(animations);
+        const record = {
+            file,
+            logicalPath,
+            sourceName: getFileNameFromPath(logicalPath),
+            json,
+            animationNames,
+        };
+        animationNames.forEach((animationName) => {
+            const key = normalizeImportLookupKey(animationName);
+            if (!context.animationByName.has(key)) {
+                context.animationByName.set(key, record);
+            }
+        });
+    }
+
+    /**
+     * 贴图只按资源包路径建索引，真正读取 ArrayBuffer 放到用户确认导入之后。
+     */
+    function registerResourcePackTextureFile(context, file, logicalPath) {
+        const key = normalizeResourcePackAssetPath(logicalPath).toLowerCase();
+        if (!context.textureByPath.has(key)) {
+            context.textureByPath.set(key, {
+                file,
+                logicalPath,
+                sourceName: getFileNameFromPath(logicalPath),
+            });
+        }
+    }
+
+    /**
+     * 弹出轻量选择框，让用户决定导入哪些客户端实体。
+     */
+    function chooseResourcePackCandidates(candidates) {
+        if (candidates.length === 1) {
+            const candidate = candidates[0];
+            const confirmed = window.confirm(`发现 1 个实体：${candidate.baseName}\n\n是否导入？`);
+            return confirmed ? [candidate] : [];
+        }
+
+        const lines = candidates.slice(0, 80).map((candidate, index) => {
+            const geometryCount = Object.keys(candidate.geometryRefs).length;
+            const textureCount = Object.keys(candidate.textureRefs).length;
+            const animationCount = countImportableAnimationRefs(candidate.animationRefs);
+            return `${index + 1}. ${candidate.baseName} | ${candidate.identifier} | 模型${geometryCount}/贴图${textureCount}/动作${animationCount}`;
+        });
+        const overflowText = candidates.length > 80 ? `\n... 还有 ${candidates.length - 80} 个未显示，仍可输入序号导入。` : "";
+        const answer = window.prompt(
+            `扫描到 ${candidates.length} 个实体。\n输入 all 导入全部，或输入序号/范围，例如 1,3,5-8。\n\n${lines.join("\n")}${overflowText}`,
+            "all"
+        );
+        if (answer === null) {
+            return [];
+        }
+
+        const indexes = parseResourcePackSelection(answer, candidates.length);
+        return indexes.map((index) => candidates[index]).filter(Boolean);
+    }
+
+    /**
+     * 统计非系统动作引用数量，给导入选择框展示用。
+     */
+    function countImportableAnimationRefs(animationRefs) {
+        return Object.keys(animationRefs || {})
+            .filter((key) => !isSystemAnimationRef(key, animationRefs[key]))
+            .length;
+    }
+
+    /**
+     * 解析用户输入的导入序号，支持 all、逗号分隔和范围。
+     */
+    function parseResourcePackSelection(answer, total) {
+        const text = String(answer || "").trim().toLowerCase();
+        if (!text || text === "all" || text === "a" || text === "*" || text === "全部") {
+            return Array.from({ length: total }, (_item, index) => index);
+        }
+
+        const selected = new Set();
+        text.split(/[,\s，、]+/).forEach((token) => {
+            if (!token) {
+                return;
+            }
+            const rangeMatch = token.match(/^(\d+)-(\d+)$/);
+            if (rangeMatch) {
+                const start = Number.parseInt(rangeMatch[1], 10);
+                const end = Number.parseInt(rangeMatch[2], 10);
+                const min = Math.max(1, Math.min(start, end));
+                const max = Math.min(total, Math.max(start, end));
+                for (let index = min; index <= max; index += 1) {
+                    selected.add(index - 1);
+                }
+                return;
+            }
+
+            const number = Number.parseInt(token, 10);
+            if (Number.isInteger(number) && number >= 1 && number <= total) {
+                selected.add(number - 1);
+            }
+        });
+        return Array.from(selected).sort((left, right) => left - right);
+    }
+
+    /**
+     * 把一个客户端实体候选导入成编辑器实体，并按原配置连好模型、贴图、动作和控制器。
+     */
+    async function importResourcePackCandidate(candidate, context) {
+        const baseName = ensureUniqueEntityBaseName(candidate.baseName);
+        const entity = createEntity(baseName);
+        entity.identifier = candidate.identifier || `netease:${baseName}`;
+        entity.identifierMode = entity.identifier === `netease:${baseName}` ? "auto" : "manual";
+        entity.resourceSubdir = deriveResourcePackSubdir(candidate, context);
+        entity.files.textures = [];
+        entity.files.geometries = [];
+        entity.files.animations = [];
+
+        const missingMessages = [];
+        const geometryResourceByKey = importResourcePackGeometries(entity, candidate, context, missingMessages);
+        const textureResourceByKey = await importResourcePackTextures(entity, candidate, context, missingMessages);
+        const importedAnimationNames = importResourcePackAnimations(entity, candidate, context, missingMessages);
+
+        entity.renderControllers = buildImportedRenderControllerBindings(
+            candidate,
+            entity,
+            geometryResourceByKey,
+            textureResourceByKey
+        );
+        entity.animationControllerBindings = buildImportedAnimationControllerBindings(candidate, importedAnimationNames);
+
+        missingMessages.slice(0, 6).forEach((message) => addMessage(message, "warn"));
+        if (missingMessages.length > 6) {
+            addMessage(`${candidate.baseName} 还有 ${missingMessages.length - 6} 条资源缺失信息未展示。`, "warn");
+        }
+        return entity;
+    }
+
+    /**
+     * 导入候选实体引用的模型资源，并按 geometry key 建立连线用索引。
+     */
+    function importResourcePackGeometries(entity, candidate, context, missingMessages) {
+        const geometryResources = getGeometryResources(entity);
+        const resourceByKey = new Map();
+        Object.entries(candidate.geometryRefs).forEach(([key, identifier]) => {
+            const record = findResourcePackGeometryRecord(context, identifier);
+            if (!record) {
+                missingMessages.push(`${candidate.baseName} 缺少模型 identifier：${identifier}`);
+                return;
+            }
+
+            const resource = createGeometryResource({
+                resourceKey: ensureUniqueResourceKey(geometryResources.map((item) => item.resourceKey), key),
+                sourceName: `${record.sourceName}#${record.identifier}`,
+                json: cloneGeometryJsonForImport(record),
+            });
+            geometryResources.push(resource);
+            resourceByKey.set(normalizeResourceKey(key), resource);
+        });
+        return resourceByKey;
+    }
+
+    /**
+     * 导入候选实体引用的贴图资源，确认导入后才读取 PNG 内容。
+     */
+    async function importResourcePackTextures(entity, candidate, context, missingMessages) {
+        const textureResources = getTextureResources(entity);
+        const resourceByKey = new Map();
+        const bufferCache = new Map();
+        for (const [key, texturePath] of Object.entries(candidate.textureRefs)) {
+            const record = findResourcePackTextureRecord(context, texturePath);
+            if (!record) {
+                missingMessages.push(`${candidate.baseName} 缺少贴图：${texturePath}`);
+                continue;
+            }
+
+            const buffer = await readCachedTextureBuffer(record, bufferCache);
+            const resource = createTextureResource({
+                resourceKey: ensureUniqueResourceKey(textureResources.map((item) => item.resourceKey), key),
+                sourceName: record.sourceName,
+                buffer,
+            });
+            textureResources.push(resource);
+            resourceByKey.set(normalizeResourceKey(key), resource);
+        }
+        return resourceByKey;
+    }
+
+    /**
+     * 导入候选实体引用的动作文件，同一个 animation.json 只导入一份。
+     */
+    function importResourcePackAnimations(entity, candidate, context, missingMessages) {
+        const animationResources = getAnimationResources(entity);
+        const importedFilePaths = new Set();
+        const importedAnimationNames = new Set();
+
+        Object.entries(candidate.animationRefs).forEach(([key, animationName]) => {
+            if (isSystemAnimationRef(key, animationName)) {
+                return;
+            }
+            const record = findResourcePackAnimationRecord(context, animationName);
+            if (!record) {
+                missingMessages.push(`${candidate.baseName} 缺少动作：${animationName}`);
+                return;
+            }
+            if (!importedFilePaths.has(record.logicalPath)) {
+                animationResources.push(createAnimationResource({
+                    sourceName: record.sourceName,
+                    json: deepClone(record.json),
+                    animationNames: record.animationNames,
+                }));
+                importedFilePaths.add(record.logicalPath);
+            }
+            importedAnimationNames.add(animationName);
+        });
+
+        return importedAnimationNames;
+    }
+
+    /**
+     * 根据源客户端实体的 render_controllers 生成编辑器渲染控制器绑定。
+     */
+    function buildImportedRenderControllerBindings(candidate, entity, geometryResourceByKey, textureResourceByKey) {
+        const geometryResources = getGeometryResources(entity);
+        const textureResources = getTextureResources(entity);
+        return candidate.renderControllers.map((entry) => {
+            const binding = createRenderControllerBinding({
+                controller: entry.controller,
+                condition: entry.condition,
+            });
+            applyImportedRenderResourceMappings(binding, "geometry", geometryResourceByKey, geometryResources);
+            applyImportedRenderResourceMappings(binding, "texture", textureResourceByKey, textureResources);
+            syncRenderBindingMappings(binding, geometryResources, textureResources);
+            return binding;
+        });
+    }
+
+    /**
+     * 给单个渲染控制器按槽位名挂上同名资源，未知控制器则保留所有已导入资源 key。
+     */
+    function applyImportedRenderResourceMappings(binding, type, resourceByKey, resources) {
+        const mappingTarget = type === "geometry" ? binding.geometryMappings : binding.textureMappings;
+        const preset = getRenderControllerPreset(binding.controller);
+        const keys = preset
+            ? (type === "geometry" ? preset.geometryKeys : preset.textureKeys)
+            : Array.from(resourceByKey.keys());
+
+        keys.forEach((key) => {
+            const resource = resourceByKey.get(normalizeResourceKey(key)) || resources[0] || null;
+            if (resource) {
+                mappingTarget[key] = resource.id;
+            }
+        });
+    }
+
+    /**
+     * 根据源客户端实体的 animation_controllers 生成编辑器动画控制器绑定。
+     */
+    function buildImportedAnimationControllerBindings(candidate, importedAnimationNames) {
+        const importedNameSet = importedAnimationNames || new Set();
+        if (!candidate.animationControllers.length) {
+            return buildFallbackAnimationControllerBindings(importedNameSet);
+        }
+
+        return candidate.animationControllers.map((entry, index) => {
+            const presetSlots = getControllerSlots(entry.controller);
+            const slotNames = presetSlots.length
+                ? presetSlots
+                : Object.keys(candidate.animationRefs).filter((key) => !isSystemAnimationRef(key, candidate.animationRefs[key]));
+            const mappings = {};
+            slotNames.forEach((slotName) => {
+                const sourceName = candidate.animationRefs[slotName];
+                if (sourceName && importedNameSet.has(sourceName)) {
+                    mappings[slotName] = sourceName;
+                }
+            });
+
+            if (!presetSlots.length) {
+                addMessage(`${candidate.baseName} 的动画控制器未收录到 manifest：${entry.controller}`, "warn");
+            }
+
+            return createAnimationControllerBinding({
+                key: entry.key || (index === 0 ? DEFAULT_ANIMATION_BINDING_KEY : `imported${index + 1}`),
+                controller: entry.controller,
+                animationMappings: mappings,
+            });
+        });
+    }
+
+    /**
+     * 源配置没有声明动画控制器时，退回到编辑器原有推荐控制器逻辑。
+     */
+    function buildFallbackAnimationControllerBindings(importedAnimationNames) {
+        const animationNames = Array.from(importedAnimationNames || []);
+        const controller = recommendController(animationNames);
+        const slots = getControllerSlots(controller);
+        return [
+            createAnimationControllerBinding({
+                key: DEFAULT_ANIMATION_BINDING_KEY,
+                controller,
+                animationMappings: buildAnimationMappings({ animationNames }, slots, {}),
+            }),
+        ];
+    }
+
+    /**
+     * scale 动作由编辑器固定生成，不允许从资源包导入成可编辑轨道。
+     */
+    function isSystemAnimationRef(key, animationName) {
+        return key === SYSTEM_SCALE_CONTROLLER_KEY || animationName === "animation.entity.auto.scale";
+    }
+
+    /**
+     * 依据贴图路径优先推导导出子目录，缺失时再尝试模型路径。
+     */
+    function deriveResourcePackSubdir(candidate, context) {
+        const textureSubdir = Object.values(candidate.textureRefs)
+            .map((texturePath) => extractSubdirAfterPrefix(normalizeResourcePackAssetPath(texturePath), "textures/entity"))
+            .find(Boolean);
+        if (textureSubdir) {
+            return textureSubdir;
+        }
+
+        const geometrySubdir = Object.values(candidate.geometryRefs)
+            .map((identifier) => findResourcePackGeometryRecord(context, identifier))
+            .filter(Boolean)
+            .map((record) => extractSubdirAfterPrefix(record.logicalPath, "models/entity"))
+            .find(Boolean);
+        return geometrySubdir || DEFAULT_SUBDIR;
+    }
+
+    /**
+     * 从资源路径中取指定前缀后的第一段目录名。
+     */
+    function extractSubdirAfterPrefix(path, prefix) {
+        const normalizedPath = String(path || "").replace(/\\/g, "/");
+        const prefixParts = prefix.split("/").filter(Boolean);
+        const parts = normalizedPath.split("/").filter(Boolean);
+        for (let index = 0; index <= parts.length - prefixParts.length; index += 1) {
+            const matched = prefixParts.every((part, offset) => parts[index + offset] === part);
+            if (matched) {
+                return parts[index + prefixParts.length] || "";
+            }
+        }
+        return "";
+    }
+
+    /**
+     * 查找模型 identifier 对应的源 geo 记录。
+     */
+    function findResourcePackGeometryRecord(context, identifier) {
+        return context.geometryByIdentifier.get(normalizeImportLookupKey(identifier)) || null;
+    }
+
+    /**
+     * 查找贴图路径对应的源 PNG 记录。
+     */
+    function findResourcePackTextureRecord(context, texturePath) {
+        return context.textureByPath.get(normalizeResourcePackAssetPath(texturePath).toLowerCase()) || null;
+    }
+
+    /**
+     * 查找动作名对应的源 animation.json 记录。
+     */
+    function findResourcePackAnimationRecord(context, animationName) {
+        return context.animationByName.get(normalizeImportLookupKey(animationName)) || null;
+    }
+
+    /**
+     * 为导入模型创建只包含目标 geometry 的 geo.json 副本，避免把同文件其他模型一起塞进实体。
+     */
+    function cloneGeometryJsonForImport(record) {
+        return {
+            format_version: record.json.format_version || "1.12.0",
+            "minecraft:geometry": [
+                deepClone(record.geometryItem),
+            ],
+        };
+    }
+
+    /**
+     * 读取贴图 ArrayBuffer，并在单个实体导入过程中复用同一路径的读取结果。
+     */
+    async function readCachedTextureBuffer(record, bufferCache) {
+        if (!bufferCache.has(record.logicalPath)) {
+            bufferCache.set(record.logicalPath, await record.file.arrayBuffer());
+        }
+        return bufferCache.get(record.logicalPath);
+    }
+
+    /**
+     * 资源包资源路径统一去掉后缀和外层目录，方便和 client entity 引用互相匹配。
+     */
+    function normalizeResourcePackAssetPath(value) {
+        const rawPath = String(value || "")
+            .trim()
+            .replace(/\\/g, "/")
+            .replace(/^\/+/, "")
+            .replace(/\.png$/i, "");
+        const parts = rawPath.split("/").filter(Boolean);
+        const rootSegments = ["textures", "models", "animations", "entity"];
+        const rootIndex = parts.findIndex((segment) => rootSegments.includes(segment));
+        return rootIndex >= 0 ? parts.slice(rootIndex).join("/") : parts.join("/");
+    }
+
+    /**
+     * identifier 和 animation 名按大小写不敏感匹配，兼容 Windows 资源包常见大小写差异。
+     */
+    function normalizeImportLookupKey(value) {
+        return String(value || "").trim().toLowerCase();
+    }
+
+    /**
+     * 从路径中提取文件名。
+     */
+    function getFileNameFromPath(path) {
+        const parts = String(path || "").replace(/\\/g, "/").split("/").filter(Boolean);
+        return parts.length ? parts[parts.length - 1] : "";
+    }
+
+    /**
+     * 导入同名实体时自动追加后缀，避免覆盖当前编辑器已有内容。
+     */
+    function ensureUniqueEntityBaseName(baseName) {
+        const normalized = normalizeImportedBaseName(baseName || "imported_entity");
+        if (!findEntityByBaseName(normalized)) {
+            return normalized;
+        }
+
+        let index = 2;
+        let nextName = `${normalized}_${index}`;
+        while (findEntityByBaseName(nextName)) {
+            index += 1;
+            nextName = `${normalized}_${index}`;
+        }
+        return nextName;
     }
 
     /**

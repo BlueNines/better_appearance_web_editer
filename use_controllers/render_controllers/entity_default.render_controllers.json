@@ -1,9 +1,9 @@
 {
   "render_controllers": {
-    "controller.render.entity_default.third_person": {
-      "geometry": "Geometry.default",
+    "controller.render.entity_default_wings.third_person": {
+      "geometry": "Geometry.default_wings",
       "textures": [
-        "Texture.default"
+        "Texture.default_wings"
       ],
       "materials": [
         {
@@ -16,10 +16,10 @@
         }
       ]
     },
-    "controller.render.entity_default_wings.third_person": {
-      "geometry": "Geometry.default_wings",
+    "controller.render.entity_default.third_person": {
+      "geometry": "Geometry.default",
       "textures": [
-        "Texture.default_wings"
+        "Texture.default"
       ],
       "materials": [
         {
@@ -61,6 +61,390 @@
       "part_visibility": [
         {
           "*": "query.mod.entity_skill_b > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.c.third_person": {
+      "geometry": "Geometry.c",
+      "textures": [
+        "Texture.c"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_c > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.d.third_person": {
+      "geometry": "Geometry.d",
+      "textures": [
+        "Texture.d"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_d > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.e.third_person": {
+      "geometry": "Geometry.e",
+      "textures": [
+        "Texture.e"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_e > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.f.third_person": {
+      "geometry": "Geometry.f",
+      "textures": [
+        "Texture.f"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_f > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.g.third_person": {
+      "geometry": "Geometry.g",
+      "textures": [
+        "Texture.g"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_g > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.h.third_person": {
+      "geometry": "Geometry.h",
+      "textures": [
+        "Texture.h"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_h > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.i.third_person": {
+      "geometry": "Geometry.i",
+      "textures": [
+        "Texture.i"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_i > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.j.third_person": {
+      "geometry": "Geometry.j",
+      "textures": [
+        "Texture.j"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_j > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.k.third_person": {
+      "geometry": "Geometry.k",
+      "textures": [
+        "Texture.k"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_k > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.l.third_person": {
+      "geometry": "Geometry.l",
+      "textures": [
+        "Texture.l"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_l > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.m.third_person": {
+      "geometry": "Geometry.m",
+      "textures": [
+        "Texture.m"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_m > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.n.third_person": {
+      "geometry": "Geometry.n",
+      "textures": [
+        "Texture.n"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_n > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.o.third_person": {
+      "geometry": "Geometry.o",
+      "textures": [
+        "Texture.o"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_o > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.p.third_person": {
+      "geometry": "Geometry.p",
+      "textures": [
+        "Texture.p"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_p > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.q.third_person": {
+      "geometry": "Geometry.q",
+      "textures": [
+        "Texture.q"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_q > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.r.third_person": {
+      "geometry": "Geometry.r",
+      "textures": [
+        "Texture.r"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_r > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.s.third_person": {
+      "geometry": "Geometry.s",
+      "textures": [
+        "Texture.s"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_s > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.t.third_person": {
+      "geometry": "Geometry.t",
+      "textures": [
+        "Texture.t"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_t > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.u.third_person": {
+      "geometry": "Geometry.u",
+      "textures": [
+        "Texture.u"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_u > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.v.third_person": {
+      "geometry": "Geometry.v",
+      "textures": [
+        "Texture.v"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_v > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.w.third_person": {
+      "geometry": "Geometry.w",
+      "textures": [
+        "Texture.w"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_w > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.x.third_person": {
+      "geometry": "Geometry.x",
+      "textures": [
+        "Texture.x"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_x > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.y.third_person": {
+      "geometry": "Geometry.y",
+      "textures": [
+        "Texture.y"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_y > 0.0"
+        }
+      ]
+    },
+    "controller.render.entity_default.z.third_person": {
+      "geometry": "Geometry.z",
+      "textures": [
+        "Texture.z"
+      ],
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "part_visibility": [
+        {
+          "*": "query.mod.entity_skill_z > 0.0"
         }
       ]
     }

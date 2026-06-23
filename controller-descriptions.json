@@ -25,7 +25,7 @@
       "label": "待机控制器（B轨道）",
       "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）"
+        "idleB": "配置待机动作。"
       }
     },
     "controller.animation.entity_idle_skill1.default": {
@@ -48,8 +48,8 @@
       "label": "待机 + 1 技能控制器（B轨道）",
       "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "skill1B": "配置技能 1 动作。"
       }
     },
     "controller.animation.entity_idle_walk.default": {
@@ -72,8 +72,8 @@
       "label": "待机 + 移动控制器（B轨道）",
       "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。"
       }
     },
     "controller.animation.entity_normal.default": {
@@ -98,9 +98,9 @@
       "label": "待机 + 移动 + 1 技能控制器（B轨道）",
       "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。",
+        "skill1B": "配置技能 1 动作。"
       }
     },
     "controller.animation.entity_skill2.default": {
@@ -127,10 +127,10 @@
       "label": "2 技能控制器（B轨道）",
       "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）",
-        "skill2B": "配置技能 2 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。",
+        "skill1B": "配置技能 1 动作。",
+        "skill2B": "配置技能 2 动作。"
       }
     },
     "controller.animation.entity_skill3.default": {
@@ -159,11 +159,11 @@
       "label": "3 技能控制器（B轨道）",
       "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）",
-        "skill2B": "配置技能 2 动作。（第二套）",
-        "skill3B": "配置技能 3 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。",
+        "skill1B": "配置技能 1 动作。",
+        "skill2B": "配置技能 2 动作。",
+        "skill3B": "配置技能 3 动作。"
       }
     },
     "controller.animation.entity_skill4.default": {
@@ -194,12 +194,12 @@
       "label": "4 技能控制器（B轨道）",
       "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）",
-        "skill2B": "配置技能 2 动作。（第二套）",
-        "skill3B": "配置技能 3 动作。（第二套）",
-        "skill4B": "配置技能 4 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。",
+        "skill1B": "配置技能 1 动作。",
+        "skill2B": "配置技能 2 动作。",
+        "skill3B": "配置技能 3 动作。",
+        "skill4B": "配置技能 4 动作。"
       }
     },
     "controller.animation.entity_skill5.default": {
@@ -232,13 +232,13 @@
       "label": "5 技能控制器（B轨道）",
       "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）",
-        "skill2B": "配置技能 2 动作。（第二套）",
-        "skill3B": "配置技能 3 动作。（第二套）",
-        "skill4B": "配置技能 4 动作。（第二套）",
-        "skill5B": "配置技能 5 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。",
+        "skill1B": "配置技能 1 动作。",
+        "skill2B": "配置技能 2 动作。",
+        "skill3B": "配置技能 3 动作。",
+        "skill4B": "配置技能 4 动作。",
+        "skill5B": "配置技能 5 动作。"
       }
     },
     "controller.animation.entity_skill6.default": {
@@ -273,14 +273,14 @@
       "label": "6 技能控制器（B轨道）",
       "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）",
-        "skill2B": "配置技能 2 动作。（第二套）",
-        "skill3B": "配置技能 3 动作。（第二套）",
-        "skill4B": "配置技能 4 动作。（第二套）",
-        "skill5B": "配置技能 5 动作。（第二套）",
-        "skill6B": "配置技能 6 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。",
+        "skill1B": "配置技能 1 动作。",
+        "skill2B": "配置技能 2 动作。",
+        "skill3B": "配置技能 3 动作。",
+        "skill4B": "配置技能 4 动作。",
+        "skill5B": "配置技能 5 动作。",
+        "skill6B": "配置技能 6 动作。"
       }
     },
     "controller.animation.entity_skill7.default": {
@@ -317,15 +317,15 @@
       "label": "7 技能控制器（B轨道）",
       "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）",
-        "skill2B": "配置技能 2 动作。（第二套）",
-        "skill3B": "配置技能 3 动作。（第二套）",
-        "skill4B": "配置技能 4 动作。（第二套）",
-        "skill5B": "配置技能 5 动作。（第二套）",
-        "skill6B": "配置技能 6 动作。（第二套）",
-        "skill7B": "配置技能 7 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。",
+        "skill1B": "配置技能 1 动作。",
+        "skill2B": "配置技能 2 动作。",
+        "skill3B": "配置技能 3 动作。",
+        "skill4B": "配置技能 4 动作。",
+        "skill5B": "配置技能 5 动作。",
+        "skill6B": "配置技能 6 动作。",
+        "skill7B": "配置技能 7 动作。"
       }
     },
     "controller.animation.entity_skill8.default": {
@@ -364,16 +364,16 @@
       "label": "8 技能控制器（B轨道）",
       "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）",
-        "skill2B": "配置技能 2 动作。（第二套）",
-        "skill3B": "配置技能 3 动作。（第二套）",
-        "skill4B": "配置技能 4 动作。（第二套）",
-        "skill5B": "配置技能 5 动作。（第二套）",
-        "skill6B": "配置技能 6 动作。（第二套）",
-        "skill7B": "配置技能 7 动作。（第二套）",
-        "skill8B": "配置技能 8 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。",
+        "skill1B": "配置技能 1 动作。",
+        "skill2B": "配置技能 2 动作。",
+        "skill3B": "配置技能 3 动作。",
+        "skill4B": "配置技能 4 动作。",
+        "skill5B": "配置技能 5 动作。",
+        "skill6B": "配置技能 6 动作。",
+        "skill7B": "配置技能 7 动作。",
+        "skill8B": "配置技能 8 动作。"
       }
     },
     "controller.animation.test_entity.default": {
@@ -416,18 +416,3402 @@
       "label": "测试实体多技能控制器（B轨道）",
       "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_b。动作 key 使用 B 后缀。",
       "slots": {
-        "idleB": "配置待机动作。（第二套）",
-        "walkB": "配置移动动作。（第二套）",
-        "skill1B": "配置技能 1 动作。（第二套）",
-        "skill2B": "配置技能 2 动作。（第二套）",
-        "skill3B": "配置技能 3 动作。（第二套）",
-        "skill4B": "配置技能 4 动作。（第二套）",
-        "skill5B": "配置技能 5 动作。（第二套）",
-        "skill6B": "配置技能 6 动作。（第二套）",
-        "skill7B": "配置技能 7 动作。（第二套）",
-        "skill8B": "配置技能 8 动作。（第二套）",
-        "skill9B": "配置技能 9 动作。（第二套）",
-        "skill10B": "配置技能 10 动作。（第二套）"
+        "idleB": "配置待机动作。",
+        "walkB": "配置移动动作。",
+        "skill1B": "配置技能 1 动作。",
+        "skill2B": "配置技能 2 动作。",
+        "skill3B": "配置技能 3 动作。",
+        "skill4B": "配置技能 4 动作。",
+        "skill5B": "配置技能 5 动作。",
+        "skill6B": "配置技能 6 动作。",
+        "skill7B": "配置技能 7 动作。",
+        "skill8B": "配置技能 8 动作。",
+        "skill9B": "配置技能 9 动作。",
+        "skill10B": "配置技能 10 动作。"
+      }
+    },
+    "controller.animation.test_entity.c": {
+      "label": "测试实体多技能控制器（C轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill9C": "配置技能 9 动作。",
+        "skill8C": "配置技能 8 动作。",
+        "skill3C": "配置技能 3 动作。",
+        "skill2C": "配置技能 2 动作。",
+        "skill1C": "配置技能 1 动作。",
+        "skill7C": "配置技能 7 动作。",
+        "skill6C": "配置技能 6 动作。",
+        "skill5C": "配置技能 5 动作。",
+        "skill4C": "配置技能 4 动作。",
+        "idleC": "配置待机动作。",
+        "skill10C": "配置技能 10 动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.d": {
+      "label": "测试实体多技能控制器（D轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill9D": "配置技能 9 动作。",
+        "skill8D": "配置技能 8 动作。",
+        "skill3D": "配置技能 3 动作。",
+        "skill2D": "配置技能 2 动作。",
+        "skill1D": "配置技能 1 动作。",
+        "skill7D": "配置技能 7 动作。",
+        "skill6D": "配置技能 6 动作。",
+        "skill5D": "配置技能 5 动作。",
+        "skill4D": "配置技能 4 动作。",
+        "idleD": "配置待机动作。",
+        "skill10D": "配置技能 10 动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.e": {
+      "label": "测试实体多技能控制器（E轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill9E": "配置技能 9 动作。",
+        "skill8E": "配置技能 8 动作。",
+        "skill3E": "配置技能 3 动作。",
+        "skill2E": "配置技能 2 动作。",
+        "skill1E": "配置技能 1 动作。",
+        "skill7E": "配置技能 7 动作。",
+        "skill6E": "配置技能 6 动作。",
+        "skill5E": "配置技能 5 动作。",
+        "skill4E": "配置技能 4 动作。",
+        "idleE": "配置待机动作。",
+        "skill10E": "配置技能 10 动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.f": {
+      "label": "测试实体多技能控制器（F轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill9F": "配置技能 9 动作。",
+        "skill8F": "配置技能 8 动作。",
+        "skill3F": "配置技能 3 动作。",
+        "skill2F": "配置技能 2 动作。",
+        "skill1F": "配置技能 1 动作。",
+        "skill7F": "配置技能 7 动作。",
+        "skill6F": "配置技能 6 动作。",
+        "skill5F": "配置技能 5 动作。",
+        "skill4F": "配置技能 4 动作。",
+        "idleF": "配置待机动作。",
+        "skill10F": "配置技能 10 动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.g": {
+      "label": "测试实体多技能控制器（G轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill9G": "配置技能 9 动作。",
+        "skill8G": "配置技能 8 动作。",
+        "skill3G": "配置技能 3 动作。",
+        "skill2G": "配置技能 2 动作。",
+        "skill1G": "配置技能 1 动作。",
+        "skill7G": "配置技能 7 动作。",
+        "skill6G": "配置技能 6 动作。",
+        "skill5G": "配置技能 5 动作。",
+        "skill4G": "配置技能 4 动作。",
+        "idleG": "配置待机动作。",
+        "skill10G": "配置技能 10 动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.h": {
+      "label": "测试实体多技能控制器（H轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill9H": "配置技能 9 动作。",
+        "skill8H": "配置技能 8 动作。",
+        "skill3H": "配置技能 3 动作。",
+        "skill2H": "配置技能 2 动作。",
+        "skill1H": "配置技能 1 动作。",
+        "skill7H": "配置技能 7 动作。",
+        "skill6H": "配置技能 6 动作。",
+        "skill5H": "配置技能 5 动作。",
+        "skill4H": "配置技能 4 动作。",
+        "idleH": "配置待机动作。",
+        "skill10H": "配置技能 10 动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.i": {
+      "label": "测试实体多技能控制器（I轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill9I": "配置技能 9 动作。",
+        "skill8I": "配置技能 8 动作。",
+        "skill3I": "配置技能 3 动作。",
+        "skill2I": "配置技能 2 动作。",
+        "skill1I": "配置技能 1 动作。",
+        "skill7I": "配置技能 7 动作。",
+        "skill6I": "配置技能 6 动作。",
+        "skill5I": "配置技能 5 动作。",
+        "skill4I": "配置技能 4 动作。",
+        "idleI": "配置待机动作。",
+        "skill10I": "配置技能 10 动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.j": {
+      "label": "测试实体多技能控制器（J轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill9J": "配置技能 9 动作。",
+        "skill8J": "配置技能 8 动作。",
+        "skill3J": "配置技能 3 动作。",
+        "skill2J": "配置技能 2 动作。",
+        "skill1J": "配置技能 1 动作。",
+        "skill7J": "配置技能 7 动作。",
+        "skill6J": "配置技能 6 动作。",
+        "skill5J": "配置技能 5 动作。",
+        "skill4J": "配置技能 4 动作。",
+        "idleJ": "配置待机动作。",
+        "skill10J": "配置技能 10 动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.k": {
+      "label": "测试实体多技能控制器（K轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill9K": "配置技能 9 动作。",
+        "skill8K": "配置技能 8 动作。",
+        "skill3K": "配置技能 3 动作。",
+        "skill2K": "配置技能 2 动作。",
+        "skill1K": "配置技能 1 动作。",
+        "skill7K": "配置技能 7 动作。",
+        "skill6K": "配置技能 6 动作。",
+        "skill5K": "配置技能 5 动作。",
+        "skill4K": "配置技能 4 动作。",
+        "idleK": "配置待机动作。",
+        "skill10K": "配置技能 10 动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.l": {
+      "label": "测试实体多技能控制器（L轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill9L": "配置技能 9 动作。",
+        "skill8L": "配置技能 8 动作。",
+        "skill3L": "配置技能 3 动作。",
+        "skill2L": "配置技能 2 动作。",
+        "skill1L": "配置技能 1 动作。",
+        "skill7L": "配置技能 7 动作。",
+        "skill6L": "配置技能 6 动作。",
+        "skill5L": "配置技能 5 动作。",
+        "skill4L": "配置技能 4 动作。",
+        "idleL": "配置待机动作。",
+        "skill10L": "配置技能 10 动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.m": {
+      "label": "测试实体多技能控制器（M轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill9M": "配置技能 9 动作。",
+        "skill8M": "配置技能 8 动作。",
+        "skill3M": "配置技能 3 动作。",
+        "skill2M": "配置技能 2 动作。",
+        "skill1M": "配置技能 1 动作。",
+        "skill7M": "配置技能 7 动作。",
+        "skill6M": "配置技能 6 动作。",
+        "skill5M": "配置技能 5 动作。",
+        "skill4M": "配置技能 4 动作。",
+        "idleM": "配置待机动作。",
+        "skill10M": "配置技能 10 动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.n": {
+      "label": "测试实体多技能控制器（N轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill9N": "配置技能 9 动作。",
+        "skill8N": "配置技能 8 动作。",
+        "skill3N": "配置技能 3 动作。",
+        "skill2N": "配置技能 2 动作。",
+        "skill1N": "配置技能 1 动作。",
+        "skill7N": "配置技能 7 动作。",
+        "skill6N": "配置技能 6 动作。",
+        "skill5N": "配置技能 5 动作。",
+        "skill4N": "配置技能 4 动作。",
+        "idleN": "配置待机动作。",
+        "skill10N": "配置技能 10 动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.o": {
+      "label": "测试实体多技能控制器（O轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill9O": "配置技能 9 动作。",
+        "skill8O": "配置技能 8 动作。",
+        "skill3O": "配置技能 3 动作。",
+        "skill2O": "配置技能 2 动作。",
+        "skill1O": "配置技能 1 动作。",
+        "skill7O": "配置技能 7 动作。",
+        "skill6O": "配置技能 6 动作。",
+        "skill5O": "配置技能 5 动作。",
+        "skill4O": "配置技能 4 动作。",
+        "idleO": "配置待机动作。",
+        "skill10O": "配置技能 10 动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.p": {
+      "label": "测试实体多技能控制器（P轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill9P": "配置技能 9 动作。",
+        "skill8P": "配置技能 8 动作。",
+        "skill3P": "配置技能 3 动作。",
+        "skill2P": "配置技能 2 动作。",
+        "skill1P": "配置技能 1 动作。",
+        "skill7P": "配置技能 7 动作。",
+        "skill6P": "配置技能 6 动作。",
+        "skill5P": "配置技能 5 动作。",
+        "skill4P": "配置技能 4 动作。",
+        "idleP": "配置待机动作。",
+        "skill10P": "配置技能 10 动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.q": {
+      "label": "测试实体多技能控制器（Q轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill9Q": "配置技能 9 动作。",
+        "skill8Q": "配置技能 8 动作。",
+        "skill3Q": "配置技能 3 动作。",
+        "skill2Q": "配置技能 2 动作。",
+        "skill1Q": "配置技能 1 动作。",
+        "skill7Q": "配置技能 7 动作。",
+        "skill6Q": "配置技能 6 动作。",
+        "skill5Q": "配置技能 5 动作。",
+        "skill4Q": "配置技能 4 动作。",
+        "idleQ": "配置待机动作。",
+        "skill10Q": "配置技能 10 动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.r": {
+      "label": "测试实体多技能控制器（R轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill9R": "配置技能 9 动作。",
+        "skill8R": "配置技能 8 动作。",
+        "skill3R": "配置技能 3 动作。",
+        "skill2R": "配置技能 2 动作。",
+        "skill1R": "配置技能 1 动作。",
+        "skill7R": "配置技能 7 动作。",
+        "skill6R": "配置技能 6 动作。",
+        "skill5R": "配置技能 5 动作。",
+        "skill4R": "配置技能 4 动作。",
+        "idleR": "配置待机动作。",
+        "skill10R": "配置技能 10 动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.s": {
+      "label": "测试实体多技能控制器（S轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill9S": "配置技能 9 动作。",
+        "skill8S": "配置技能 8 动作。",
+        "skill3S": "配置技能 3 动作。",
+        "skill2S": "配置技能 2 动作。",
+        "skill1S": "配置技能 1 动作。",
+        "skill7S": "配置技能 7 动作。",
+        "skill6S": "配置技能 6 动作。",
+        "skill5S": "配置技能 5 动作。",
+        "skill4S": "配置技能 4 动作。",
+        "idleS": "配置待机动作。",
+        "skill10S": "配置技能 10 动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.t": {
+      "label": "测试实体多技能控制器（T轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill9T": "配置技能 9 动作。",
+        "skill8T": "配置技能 8 动作。",
+        "skill3T": "配置技能 3 动作。",
+        "skill2T": "配置技能 2 动作。",
+        "skill1T": "配置技能 1 动作。",
+        "skill7T": "配置技能 7 动作。",
+        "skill6T": "配置技能 6 动作。",
+        "skill5T": "配置技能 5 动作。",
+        "skill4T": "配置技能 4 动作。",
+        "idleT": "配置待机动作。",
+        "skill10T": "配置技能 10 动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.u": {
+      "label": "测试实体多技能控制器（U轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill9U": "配置技能 9 动作。",
+        "skill8U": "配置技能 8 动作。",
+        "skill3U": "配置技能 3 动作。",
+        "skill2U": "配置技能 2 动作。",
+        "skill1U": "配置技能 1 动作。",
+        "skill7U": "配置技能 7 动作。",
+        "skill6U": "配置技能 6 动作。",
+        "skill5U": "配置技能 5 动作。",
+        "skill4U": "配置技能 4 动作。",
+        "idleU": "配置待机动作。",
+        "skill10U": "配置技能 10 动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.v": {
+      "label": "测试实体多技能控制器（V轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill9V": "配置技能 9 动作。",
+        "skill8V": "配置技能 8 动作。",
+        "skill3V": "配置技能 3 动作。",
+        "skill2V": "配置技能 2 动作。",
+        "skill1V": "配置技能 1 动作。",
+        "skill7V": "配置技能 7 动作。",
+        "skill6V": "配置技能 6 动作。",
+        "skill5V": "配置技能 5 动作。",
+        "skill4V": "配置技能 4 动作。",
+        "idleV": "配置待机动作。",
+        "skill10V": "配置技能 10 动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.w": {
+      "label": "测试实体多技能控制器（W轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill9W": "配置技能 9 动作。",
+        "skill8W": "配置技能 8 动作。",
+        "skill3W": "配置技能 3 动作。",
+        "skill2W": "配置技能 2 动作。",
+        "skill1W": "配置技能 1 动作。",
+        "skill7W": "配置技能 7 动作。",
+        "skill6W": "配置技能 6 动作。",
+        "skill5W": "配置技能 5 动作。",
+        "skill4W": "配置技能 4 动作。",
+        "idleW": "配置待机动作。",
+        "skill10W": "配置技能 10 动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.x": {
+      "label": "测试实体多技能控制器（X轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill9X": "配置技能 9 动作。",
+        "skill8X": "配置技能 8 动作。",
+        "skill3X": "配置技能 3 动作。",
+        "skill2X": "配置技能 2 动作。",
+        "skill1X": "配置技能 1 动作。",
+        "skill7X": "配置技能 7 动作。",
+        "skill6X": "配置技能 6 动作。",
+        "skill5X": "配置技能 5 动作。",
+        "skill4X": "配置技能 4 动作。",
+        "idleX": "配置待机动作。",
+        "skill10X": "配置技能 10 动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.y": {
+      "label": "测试实体多技能控制器（Y轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill9Y": "配置技能 9 动作。",
+        "skill8Y": "配置技能 8 动作。",
+        "skill3Y": "配置技能 3 动作。",
+        "skill2Y": "配置技能 2 动作。",
+        "skill1Y": "配置技能 1 动作。",
+        "skill7Y": "配置技能 7 动作。",
+        "skill6Y": "配置技能 6 动作。",
+        "skill5Y": "配置技能 5 动作。",
+        "skill4Y": "配置技能 4 动作。",
+        "idleY": "配置待机动作。",
+        "skill10Y": "配置技能 10 动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.test_entity.z": {
+      "label": "测试实体多技能控制器（Z轨道）",
+      "description": "包含 idle、walk，以及 skill1~skill10 中的大部分槽位，适合复杂技能实体测试。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill9Z": "配置技能 9 动作。",
+        "skill8Z": "配置技能 8 动作。",
+        "skill3Z": "配置技能 3 动作。",
+        "skill2Z": "配置技能 2 动作。",
+        "skill1Z": "配置技能 1 动作。",
+        "skill7Z": "配置技能 7 动作。",
+        "skill6Z": "配置技能 6 动作。",
+        "skill5Z": "配置技能 5 动作。",
+        "skill4Z": "配置技能 4 动作。",
+        "idleZ": "配置待机动作。",
+        "skill10Z": "配置技能 10 动作。",
+        "walkZ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle.c": {
+      "label": "待机控制器（C轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "idleC": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.d": {
+      "label": "待机控制器（D轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "idleD": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.e": {
+      "label": "待机控制器（E轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "idleE": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.f": {
+      "label": "待机控制器（F轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "idleF": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.g": {
+      "label": "待机控制器（G轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "idleG": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.h": {
+      "label": "待机控制器（H轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "idleH": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.i": {
+      "label": "待机控制器（I轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "idleI": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.j": {
+      "label": "待机控制器（J轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "idleJ": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.k": {
+      "label": "待机控制器（K轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "idleK": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.l": {
+      "label": "待机控制器（L轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "idleL": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.m": {
+      "label": "待机控制器（M轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "idleM": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.n": {
+      "label": "待机控制器（N轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "idleN": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.o": {
+      "label": "待机控制器（O轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "idleO": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.p": {
+      "label": "待机控制器（P轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "idleP": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.q": {
+      "label": "待机控制器（Q轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "idleQ": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.r": {
+      "label": "待机控制器（R轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "idleR": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.s": {
+      "label": "待机控制器（S轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "idleS": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.t": {
+      "label": "待机控制器（T轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "idleT": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.u": {
+      "label": "待机控制器（U轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "idleU": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.v": {
+      "label": "待机控制器（V轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "idleV": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.w": {
+      "label": "待机控制器（W轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "idleW": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.x": {
+      "label": "待机控制器（X轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "idleX": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.y": {
+      "label": "待机控制器（Y轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "idleY": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle.z": {
+      "label": "待机控制器（Z轨道）",
+      "description": "只包含 idle，适合完全静止或只需要待机表现的实体。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "idleZ": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.c": {
+      "label": "待机 + 1 技能控制器（C轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill1C": "配置技能 1 动作。",
+        "idleC": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.d": {
+      "label": "待机 + 1 技能控制器（D轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill1D": "配置技能 1 动作。",
+        "idleD": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.e": {
+      "label": "待机 + 1 技能控制器（E轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill1E": "配置技能 1 动作。",
+        "idleE": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.f": {
+      "label": "待机 + 1 技能控制器（F轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill1F": "配置技能 1 动作。",
+        "idleF": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.g": {
+      "label": "待机 + 1 技能控制器（G轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill1G": "配置技能 1 动作。",
+        "idleG": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.h": {
+      "label": "待机 + 1 技能控制器（H轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill1H": "配置技能 1 动作。",
+        "idleH": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.i": {
+      "label": "待机 + 1 技能控制器（I轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill1I": "配置技能 1 动作。",
+        "idleI": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.j": {
+      "label": "待机 + 1 技能控制器（J轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill1J": "配置技能 1 动作。",
+        "idleJ": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.k": {
+      "label": "待机 + 1 技能控制器（K轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill1K": "配置技能 1 动作。",
+        "idleK": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.l": {
+      "label": "待机 + 1 技能控制器（L轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill1L": "配置技能 1 动作。",
+        "idleL": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.m": {
+      "label": "待机 + 1 技能控制器（M轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill1M": "配置技能 1 动作。",
+        "idleM": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.n": {
+      "label": "待机 + 1 技能控制器（N轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill1N": "配置技能 1 动作。",
+        "idleN": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.o": {
+      "label": "待机 + 1 技能控制器（O轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill1O": "配置技能 1 动作。",
+        "idleO": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.p": {
+      "label": "待机 + 1 技能控制器（P轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill1P": "配置技能 1 动作。",
+        "idleP": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.q": {
+      "label": "待机 + 1 技能控制器（Q轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill1Q": "配置技能 1 动作。",
+        "idleQ": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.r": {
+      "label": "待机 + 1 技能控制器（R轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill1R": "配置技能 1 动作。",
+        "idleR": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.s": {
+      "label": "待机 + 1 技能控制器（S轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill1S": "配置技能 1 动作。",
+        "idleS": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.t": {
+      "label": "待机 + 1 技能控制器（T轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill1T": "配置技能 1 动作。",
+        "idleT": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.u": {
+      "label": "待机 + 1 技能控制器（U轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill1U": "配置技能 1 动作。",
+        "idleU": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.v": {
+      "label": "待机 + 1 技能控制器（V轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill1V": "配置技能 1 动作。",
+        "idleV": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.w": {
+      "label": "待机 + 1 技能控制器（W轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill1W": "配置技能 1 动作。",
+        "idleW": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.x": {
+      "label": "待机 + 1 技能控制器（X轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill1X": "配置技能 1 动作。",
+        "idleX": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.y": {
+      "label": "待机 + 1 技能控制器（Y轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill1Y": "配置技能 1 动作。",
+        "idleY": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_skill1.z": {
+      "label": "待机 + 1 技能控制器（Z轨道）",
+      "description": "包含 idle 和 skill1，适合只有一个主动技能的实体。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill1Z": "配置技能 1 动作。",
+        "idleZ": "配置待机动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.c": {
+      "label": "待机 + 移动控制器（C轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "idleC": "配置待机动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.d": {
+      "label": "待机 + 移动控制器（D轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "idleD": "配置待机动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.e": {
+      "label": "待机 + 移动控制器（E轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "idleE": "配置待机动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.f": {
+      "label": "待机 + 移动控制器（F轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "idleF": "配置待机动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.g": {
+      "label": "待机 + 移动控制器（G轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "idleG": "配置待机动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.h": {
+      "label": "待机 + 移动控制器（H轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "idleH": "配置待机动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.i": {
+      "label": "待机 + 移动控制器（I轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "idleI": "配置待机动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.j": {
+      "label": "待机 + 移动控制器（J轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "idleJ": "配置待机动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.k": {
+      "label": "待机 + 移动控制器（K轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "idleK": "配置待机动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.l": {
+      "label": "待机 + 移动控制器（L轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "idleL": "配置待机动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.m": {
+      "label": "待机 + 移动控制器（M轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "idleM": "配置待机动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.n": {
+      "label": "待机 + 移动控制器（N轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "idleN": "配置待机动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.o": {
+      "label": "待机 + 移动控制器（O轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "idleO": "配置待机动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.p": {
+      "label": "待机 + 移动控制器（P轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "idleP": "配置待机动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.q": {
+      "label": "待机 + 移动控制器（Q轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "idleQ": "配置待机动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.r": {
+      "label": "待机 + 移动控制器（R轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "idleR": "配置待机动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.s": {
+      "label": "待机 + 移动控制器（S轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "idleS": "配置待机动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.t": {
+      "label": "待机 + 移动控制器（T轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "idleT": "配置待机动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.u": {
+      "label": "待机 + 移动控制器（U轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "idleU": "配置待机动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.v": {
+      "label": "待机 + 移动控制器（V轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "idleV": "配置待机动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.w": {
+      "label": "待机 + 移动控制器（W轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "idleW": "配置待机动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.x": {
+      "label": "待机 + 移动控制器（X轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "idleX": "配置待机动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.y": {
+      "label": "待机 + 移动控制器（Y轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "idleY": "配置待机动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_idle_walk.z": {
+      "label": "待机 + 移动控制器（Z轨道）",
+      "description": "包含 idle 和 walk，适合普通移动实体。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "idleZ": "配置待机动作。",
+        "walkZ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.c": {
+      "label": "待机 + 移动 + 1 技能控制器（C轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill1C": "配置技能 1 动作。",
+        "idleC": "配置待机动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.d": {
+      "label": "待机 + 移动 + 1 技能控制器（D轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill1D": "配置技能 1 动作。",
+        "idleD": "配置待机动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.e": {
+      "label": "待机 + 移动 + 1 技能控制器（E轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill1E": "配置技能 1 动作。",
+        "idleE": "配置待机动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.f": {
+      "label": "待机 + 移动 + 1 技能控制器（F轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill1F": "配置技能 1 动作。",
+        "idleF": "配置待机动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.g": {
+      "label": "待机 + 移动 + 1 技能控制器（G轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill1G": "配置技能 1 动作。",
+        "idleG": "配置待机动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.h": {
+      "label": "待机 + 移动 + 1 技能控制器（H轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill1H": "配置技能 1 动作。",
+        "idleH": "配置待机动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.i": {
+      "label": "待机 + 移动 + 1 技能控制器（I轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill1I": "配置技能 1 动作。",
+        "idleI": "配置待机动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.j": {
+      "label": "待机 + 移动 + 1 技能控制器（J轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill1J": "配置技能 1 动作。",
+        "idleJ": "配置待机动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.k": {
+      "label": "待机 + 移动 + 1 技能控制器（K轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill1K": "配置技能 1 动作。",
+        "idleK": "配置待机动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.l": {
+      "label": "待机 + 移动 + 1 技能控制器（L轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill1L": "配置技能 1 动作。",
+        "idleL": "配置待机动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.m": {
+      "label": "待机 + 移动 + 1 技能控制器（M轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill1M": "配置技能 1 动作。",
+        "idleM": "配置待机动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.n": {
+      "label": "待机 + 移动 + 1 技能控制器（N轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill1N": "配置技能 1 动作。",
+        "idleN": "配置待机动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.o": {
+      "label": "待机 + 移动 + 1 技能控制器（O轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill1O": "配置技能 1 动作。",
+        "idleO": "配置待机动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.p": {
+      "label": "待机 + 移动 + 1 技能控制器（P轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill1P": "配置技能 1 动作。",
+        "idleP": "配置待机动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.q": {
+      "label": "待机 + 移动 + 1 技能控制器（Q轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill1Q": "配置技能 1 动作。",
+        "idleQ": "配置待机动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.r": {
+      "label": "待机 + 移动 + 1 技能控制器（R轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill1R": "配置技能 1 动作。",
+        "idleR": "配置待机动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.s": {
+      "label": "待机 + 移动 + 1 技能控制器（S轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill1S": "配置技能 1 动作。",
+        "idleS": "配置待机动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.t": {
+      "label": "待机 + 移动 + 1 技能控制器（T轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill1T": "配置技能 1 动作。",
+        "idleT": "配置待机动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.u": {
+      "label": "待机 + 移动 + 1 技能控制器（U轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill1U": "配置技能 1 动作。",
+        "idleU": "配置待机动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.v": {
+      "label": "待机 + 移动 + 1 技能控制器（V轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill1V": "配置技能 1 动作。",
+        "idleV": "配置待机动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.w": {
+      "label": "待机 + 移动 + 1 技能控制器（W轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill1W": "配置技能 1 动作。",
+        "idleW": "配置待机动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.x": {
+      "label": "待机 + 移动 + 1 技能控制器（X轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill1X": "配置技能 1 动作。",
+        "idleX": "配置待机动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.y": {
+      "label": "待机 + 移动 + 1 技能控制器（Y轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill1Y": "配置技能 1 动作。",
+        "idleY": "配置待机动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_normal.z": {
+      "label": "待机 + 移动 + 1 技能控制器（Z轨道）",
+      "description": "包含 idle、walk、skill1，适合最常见的普通怪物。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill1Z": "配置技能 1 动作。",
+        "idleZ": "配置待机动作。",
+        "walkZ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.c": {
+      "label": "2 技能控制器（C轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill2C": "配置技能 2 动作。",
+        "skill1C": "配置技能 1 动作。",
+        "idleC": "配置待机动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.d": {
+      "label": "2 技能控制器（D轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill2D": "配置技能 2 动作。",
+        "skill1D": "配置技能 1 动作。",
+        "idleD": "配置待机动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.e": {
+      "label": "2 技能控制器（E轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill2E": "配置技能 2 动作。",
+        "skill1E": "配置技能 1 动作。",
+        "idleE": "配置待机动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.f": {
+      "label": "2 技能控制器（F轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill2F": "配置技能 2 动作。",
+        "skill1F": "配置技能 1 动作。",
+        "idleF": "配置待机动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.g": {
+      "label": "2 技能控制器（G轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill2G": "配置技能 2 动作。",
+        "skill1G": "配置技能 1 动作。",
+        "idleG": "配置待机动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.h": {
+      "label": "2 技能控制器（H轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill2H": "配置技能 2 动作。",
+        "skill1H": "配置技能 1 动作。",
+        "idleH": "配置待机动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.i": {
+      "label": "2 技能控制器（I轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill2I": "配置技能 2 动作。",
+        "skill1I": "配置技能 1 动作。",
+        "idleI": "配置待机动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.j": {
+      "label": "2 技能控制器（J轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill2J": "配置技能 2 动作。",
+        "skill1J": "配置技能 1 动作。",
+        "idleJ": "配置待机动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.k": {
+      "label": "2 技能控制器（K轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill2K": "配置技能 2 动作。",
+        "skill1K": "配置技能 1 动作。",
+        "idleK": "配置待机动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.l": {
+      "label": "2 技能控制器（L轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill2L": "配置技能 2 动作。",
+        "skill1L": "配置技能 1 动作。",
+        "idleL": "配置待机动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.m": {
+      "label": "2 技能控制器（M轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill2M": "配置技能 2 动作。",
+        "skill1M": "配置技能 1 动作。",
+        "idleM": "配置待机动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.n": {
+      "label": "2 技能控制器（N轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill2N": "配置技能 2 动作。",
+        "skill1N": "配置技能 1 动作。",
+        "idleN": "配置待机动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.o": {
+      "label": "2 技能控制器（O轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill2O": "配置技能 2 动作。",
+        "skill1O": "配置技能 1 动作。",
+        "idleO": "配置待机动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.p": {
+      "label": "2 技能控制器（P轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill2P": "配置技能 2 动作。",
+        "skill1P": "配置技能 1 动作。",
+        "idleP": "配置待机动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.q": {
+      "label": "2 技能控制器（Q轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill2Q": "配置技能 2 动作。",
+        "skill1Q": "配置技能 1 动作。",
+        "idleQ": "配置待机动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.r": {
+      "label": "2 技能控制器（R轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill2R": "配置技能 2 动作。",
+        "skill1R": "配置技能 1 动作。",
+        "idleR": "配置待机动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.s": {
+      "label": "2 技能控制器（S轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill2S": "配置技能 2 动作。",
+        "skill1S": "配置技能 1 动作。",
+        "idleS": "配置待机动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.t": {
+      "label": "2 技能控制器（T轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill2T": "配置技能 2 动作。",
+        "skill1T": "配置技能 1 动作。",
+        "idleT": "配置待机动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.u": {
+      "label": "2 技能控制器（U轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill2U": "配置技能 2 动作。",
+        "skill1U": "配置技能 1 动作。",
+        "idleU": "配置待机动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.v": {
+      "label": "2 技能控制器（V轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill2V": "配置技能 2 动作。",
+        "skill1V": "配置技能 1 动作。",
+        "idleV": "配置待机动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.w": {
+      "label": "2 技能控制器（W轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill2W": "配置技能 2 动作。",
+        "skill1W": "配置技能 1 动作。",
+        "idleW": "配置待机动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.x": {
+      "label": "2 技能控制器（X轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill2X": "配置技能 2 动作。",
+        "skill1X": "配置技能 1 动作。",
+        "idleX": "配置待机动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.y": {
+      "label": "2 技能控制器（Y轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill2Y": "配置技能 2 动作。",
+        "skill1Y": "配置技能 1 动作。",
+        "idleY": "配置待机动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill2.z": {
+      "label": "2 技能控制器（Z轨道）",
+      "description": "包含 idle、walk、skill1、skill2，适合双技能实体。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill2Z": "配置技能 2 动作。",
+        "skill1Z": "配置技能 1 动作。",
+        "idleZ": "配置待机动作。",
+        "walkZ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.c": {
+      "label": "3 技能控制器（C轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill3C": "配置技能 3 动作。",
+        "skill2C": "配置技能 2 动作。",
+        "skill1C": "配置技能 1 动作。",
+        "idleC": "配置待机动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.d": {
+      "label": "3 技能控制器（D轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill3D": "配置技能 3 动作。",
+        "skill2D": "配置技能 2 动作。",
+        "skill1D": "配置技能 1 动作。",
+        "idleD": "配置待机动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.e": {
+      "label": "3 技能控制器（E轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill3E": "配置技能 3 动作。",
+        "skill2E": "配置技能 2 动作。",
+        "skill1E": "配置技能 1 动作。",
+        "idleE": "配置待机动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.f": {
+      "label": "3 技能控制器（F轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill3F": "配置技能 3 动作。",
+        "skill2F": "配置技能 2 动作。",
+        "skill1F": "配置技能 1 动作。",
+        "idleF": "配置待机动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.g": {
+      "label": "3 技能控制器（G轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill3G": "配置技能 3 动作。",
+        "skill2G": "配置技能 2 动作。",
+        "skill1G": "配置技能 1 动作。",
+        "idleG": "配置待机动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.h": {
+      "label": "3 技能控制器（H轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill3H": "配置技能 3 动作。",
+        "skill2H": "配置技能 2 动作。",
+        "skill1H": "配置技能 1 动作。",
+        "idleH": "配置待机动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.i": {
+      "label": "3 技能控制器（I轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill3I": "配置技能 3 动作。",
+        "skill2I": "配置技能 2 动作。",
+        "skill1I": "配置技能 1 动作。",
+        "idleI": "配置待机动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.j": {
+      "label": "3 技能控制器（J轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill3J": "配置技能 3 动作。",
+        "skill2J": "配置技能 2 动作。",
+        "skill1J": "配置技能 1 动作。",
+        "idleJ": "配置待机动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.k": {
+      "label": "3 技能控制器（K轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill3K": "配置技能 3 动作。",
+        "skill2K": "配置技能 2 动作。",
+        "skill1K": "配置技能 1 动作。",
+        "idleK": "配置待机动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.l": {
+      "label": "3 技能控制器（L轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill3L": "配置技能 3 动作。",
+        "skill2L": "配置技能 2 动作。",
+        "skill1L": "配置技能 1 动作。",
+        "idleL": "配置待机动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.m": {
+      "label": "3 技能控制器（M轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill3M": "配置技能 3 动作。",
+        "skill2M": "配置技能 2 动作。",
+        "skill1M": "配置技能 1 动作。",
+        "idleM": "配置待机动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.n": {
+      "label": "3 技能控制器（N轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill3N": "配置技能 3 动作。",
+        "skill2N": "配置技能 2 动作。",
+        "skill1N": "配置技能 1 动作。",
+        "idleN": "配置待机动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.o": {
+      "label": "3 技能控制器（O轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill3O": "配置技能 3 动作。",
+        "skill2O": "配置技能 2 动作。",
+        "skill1O": "配置技能 1 动作。",
+        "idleO": "配置待机动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.p": {
+      "label": "3 技能控制器（P轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill3P": "配置技能 3 动作。",
+        "skill2P": "配置技能 2 动作。",
+        "skill1P": "配置技能 1 动作。",
+        "idleP": "配置待机动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.q": {
+      "label": "3 技能控制器（Q轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill3Q": "配置技能 3 动作。",
+        "skill2Q": "配置技能 2 动作。",
+        "skill1Q": "配置技能 1 动作。",
+        "idleQ": "配置待机动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.r": {
+      "label": "3 技能控制器（R轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill3R": "配置技能 3 动作。",
+        "skill2R": "配置技能 2 动作。",
+        "skill1R": "配置技能 1 动作。",
+        "idleR": "配置待机动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.s": {
+      "label": "3 技能控制器（S轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill3S": "配置技能 3 动作。",
+        "skill2S": "配置技能 2 动作。",
+        "skill1S": "配置技能 1 动作。",
+        "idleS": "配置待机动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.t": {
+      "label": "3 技能控制器（T轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill3T": "配置技能 3 动作。",
+        "skill2T": "配置技能 2 动作。",
+        "skill1T": "配置技能 1 动作。",
+        "idleT": "配置待机动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.u": {
+      "label": "3 技能控制器（U轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill3U": "配置技能 3 动作。",
+        "skill2U": "配置技能 2 动作。",
+        "skill1U": "配置技能 1 动作。",
+        "idleU": "配置待机动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.v": {
+      "label": "3 技能控制器（V轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill3V": "配置技能 3 动作。",
+        "skill2V": "配置技能 2 动作。",
+        "skill1V": "配置技能 1 动作。",
+        "idleV": "配置待机动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.w": {
+      "label": "3 技能控制器（W轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill3W": "配置技能 3 动作。",
+        "skill2W": "配置技能 2 动作。",
+        "skill1W": "配置技能 1 动作。",
+        "idleW": "配置待机动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.x": {
+      "label": "3 技能控制器（X轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill3X": "配置技能 3 动作。",
+        "skill2X": "配置技能 2 动作。",
+        "skill1X": "配置技能 1 动作。",
+        "idleX": "配置待机动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.y": {
+      "label": "3 技能控制器（Y轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill3Y": "配置技能 3 动作。",
+        "skill2Y": "配置技能 2 动作。",
+        "skill1Y": "配置技能 1 动作。",
+        "idleY": "配置待机动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill3.z": {
+      "label": "3 技能控制器（Z轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill3Z": "配置技能 3 动作。",
+        "skill2Z": "配置技能 2 动作。",
+        "skill1Z": "配置技能 1 动作。",
+        "idleZ": "配置待机动作。",
+        "walkZ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.c": {
+      "label": "4 技能控制器（C轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill3C": "配置技能 3 动作。",
+        "skill2C": "配置技能 2 动作。",
+        "skill1C": "配置技能 1 动作。",
+        "skill4C": "配置技能 4 动作。",
+        "idleC": "配置待机动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.d": {
+      "label": "4 技能控制器（D轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill3D": "配置技能 3 动作。",
+        "skill2D": "配置技能 2 动作。",
+        "skill1D": "配置技能 1 动作。",
+        "skill4D": "配置技能 4 动作。",
+        "idleD": "配置待机动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.e": {
+      "label": "4 技能控制器（E轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill3E": "配置技能 3 动作。",
+        "skill2E": "配置技能 2 动作。",
+        "skill1E": "配置技能 1 动作。",
+        "skill4E": "配置技能 4 动作。",
+        "idleE": "配置待机动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.f": {
+      "label": "4 技能控制器（F轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill3F": "配置技能 3 动作。",
+        "skill2F": "配置技能 2 动作。",
+        "skill1F": "配置技能 1 动作。",
+        "skill4F": "配置技能 4 动作。",
+        "idleF": "配置待机动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.g": {
+      "label": "4 技能控制器（G轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill3G": "配置技能 3 动作。",
+        "skill2G": "配置技能 2 动作。",
+        "skill1G": "配置技能 1 动作。",
+        "skill4G": "配置技能 4 动作。",
+        "idleG": "配置待机动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.h": {
+      "label": "4 技能控制器（H轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill3H": "配置技能 3 动作。",
+        "skill2H": "配置技能 2 动作。",
+        "skill1H": "配置技能 1 动作。",
+        "skill4H": "配置技能 4 动作。",
+        "idleH": "配置待机动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.i": {
+      "label": "4 技能控制器（I轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill3I": "配置技能 3 动作。",
+        "skill2I": "配置技能 2 动作。",
+        "skill1I": "配置技能 1 动作。",
+        "skill4I": "配置技能 4 动作。",
+        "idleI": "配置待机动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.j": {
+      "label": "4 技能控制器（J轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill3J": "配置技能 3 动作。",
+        "skill2J": "配置技能 2 动作。",
+        "skill1J": "配置技能 1 动作。",
+        "skill4J": "配置技能 4 动作。",
+        "idleJ": "配置待机动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.k": {
+      "label": "4 技能控制器（K轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill3K": "配置技能 3 动作。",
+        "skill2K": "配置技能 2 动作。",
+        "skill1K": "配置技能 1 动作。",
+        "skill4K": "配置技能 4 动作。",
+        "idleK": "配置待机动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.l": {
+      "label": "4 技能控制器（L轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill3L": "配置技能 3 动作。",
+        "skill2L": "配置技能 2 动作。",
+        "skill1L": "配置技能 1 动作。",
+        "skill4L": "配置技能 4 动作。",
+        "idleL": "配置待机动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.m": {
+      "label": "4 技能控制器（M轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill3M": "配置技能 3 动作。",
+        "skill2M": "配置技能 2 动作。",
+        "skill1M": "配置技能 1 动作。",
+        "skill4M": "配置技能 4 动作。",
+        "idleM": "配置待机动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.n": {
+      "label": "4 技能控制器（N轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill3N": "配置技能 3 动作。",
+        "skill2N": "配置技能 2 动作。",
+        "skill1N": "配置技能 1 动作。",
+        "skill4N": "配置技能 4 动作。",
+        "idleN": "配置待机动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.o": {
+      "label": "4 技能控制器（O轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill3O": "配置技能 3 动作。",
+        "skill2O": "配置技能 2 动作。",
+        "skill1O": "配置技能 1 动作。",
+        "skill4O": "配置技能 4 动作。",
+        "idleO": "配置待机动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.p": {
+      "label": "4 技能控制器（P轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill3P": "配置技能 3 动作。",
+        "skill2P": "配置技能 2 动作。",
+        "skill1P": "配置技能 1 动作。",
+        "skill4P": "配置技能 4 动作。",
+        "idleP": "配置待机动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.q": {
+      "label": "4 技能控制器（Q轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill3Q": "配置技能 3 动作。",
+        "skill2Q": "配置技能 2 动作。",
+        "skill1Q": "配置技能 1 动作。",
+        "skill4Q": "配置技能 4 动作。",
+        "idleQ": "配置待机动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.r": {
+      "label": "4 技能控制器（R轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill3R": "配置技能 3 动作。",
+        "skill2R": "配置技能 2 动作。",
+        "skill1R": "配置技能 1 动作。",
+        "skill4R": "配置技能 4 动作。",
+        "idleR": "配置待机动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.s": {
+      "label": "4 技能控制器（S轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill3S": "配置技能 3 动作。",
+        "skill2S": "配置技能 2 动作。",
+        "skill1S": "配置技能 1 动作。",
+        "skill4S": "配置技能 4 动作。",
+        "idleS": "配置待机动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.t": {
+      "label": "4 技能控制器（T轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill3T": "配置技能 3 动作。",
+        "skill2T": "配置技能 2 动作。",
+        "skill1T": "配置技能 1 动作。",
+        "skill4T": "配置技能 4 动作。",
+        "idleT": "配置待机动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.u": {
+      "label": "4 技能控制器（U轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill3U": "配置技能 3 动作。",
+        "skill2U": "配置技能 2 动作。",
+        "skill1U": "配置技能 1 动作。",
+        "skill4U": "配置技能 4 动作。",
+        "idleU": "配置待机动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.v": {
+      "label": "4 技能控制器（V轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill3V": "配置技能 3 动作。",
+        "skill2V": "配置技能 2 动作。",
+        "skill1V": "配置技能 1 动作。",
+        "skill4V": "配置技能 4 动作。",
+        "idleV": "配置待机动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.w": {
+      "label": "4 技能控制器（W轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill3W": "配置技能 3 动作。",
+        "skill2W": "配置技能 2 动作。",
+        "skill1W": "配置技能 1 动作。",
+        "skill4W": "配置技能 4 动作。",
+        "idleW": "配置待机动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.x": {
+      "label": "4 技能控制器（X轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill3X": "配置技能 3 动作。",
+        "skill2X": "配置技能 2 动作。",
+        "skill1X": "配置技能 1 动作。",
+        "skill4X": "配置技能 4 动作。",
+        "idleX": "配置待机动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.y": {
+      "label": "4 技能控制器（Y轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill3Y": "配置技能 3 动作。",
+        "skill2Y": "配置技能 2 动作。",
+        "skill1Y": "配置技能 1 动作。",
+        "skill4Y": "配置技能 4 动作。",
+        "idleY": "配置待机动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill4.z": {
+      "label": "4 技能控制器（Z轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill3Z": "配置技能 3 动作。",
+        "skill2Z": "配置技能 2 动作。",
+        "skill1Z": "配置技能 1 动作。",
+        "skill4Z": "配置技能 4 动作。",
+        "idleZ": "配置待机动作。",
+        "walkZ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.c": {
+      "label": "5 技能控制器（C轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill3C": "配置技能 3 动作。",
+        "skill2C": "配置技能 2 动作。",
+        "skill1C": "配置技能 1 动作。",
+        "skill5C": "配置技能 5 动作。",
+        "skill4C": "配置技能 4 动作。",
+        "idleC": "配置待机动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.d": {
+      "label": "5 技能控制器（D轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill3D": "配置技能 3 动作。",
+        "skill2D": "配置技能 2 动作。",
+        "skill1D": "配置技能 1 动作。",
+        "skill5D": "配置技能 5 动作。",
+        "skill4D": "配置技能 4 动作。",
+        "idleD": "配置待机动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.e": {
+      "label": "5 技能控制器（E轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill3E": "配置技能 3 动作。",
+        "skill2E": "配置技能 2 动作。",
+        "skill1E": "配置技能 1 动作。",
+        "skill5E": "配置技能 5 动作。",
+        "skill4E": "配置技能 4 动作。",
+        "idleE": "配置待机动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.f": {
+      "label": "5 技能控制器（F轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill3F": "配置技能 3 动作。",
+        "skill2F": "配置技能 2 动作。",
+        "skill1F": "配置技能 1 动作。",
+        "skill5F": "配置技能 5 动作。",
+        "skill4F": "配置技能 4 动作。",
+        "idleF": "配置待机动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.g": {
+      "label": "5 技能控制器（G轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill3G": "配置技能 3 动作。",
+        "skill2G": "配置技能 2 动作。",
+        "skill1G": "配置技能 1 动作。",
+        "skill5G": "配置技能 5 动作。",
+        "skill4G": "配置技能 4 动作。",
+        "idleG": "配置待机动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.h": {
+      "label": "5 技能控制器（H轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill3H": "配置技能 3 动作。",
+        "skill2H": "配置技能 2 动作。",
+        "skill1H": "配置技能 1 动作。",
+        "skill5H": "配置技能 5 动作。",
+        "skill4H": "配置技能 4 动作。",
+        "idleH": "配置待机动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.i": {
+      "label": "5 技能控制器（I轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill3I": "配置技能 3 动作。",
+        "skill2I": "配置技能 2 动作。",
+        "skill1I": "配置技能 1 动作。",
+        "skill5I": "配置技能 5 动作。",
+        "skill4I": "配置技能 4 动作。",
+        "idleI": "配置待机动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.j": {
+      "label": "5 技能控制器（J轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill3J": "配置技能 3 动作。",
+        "skill2J": "配置技能 2 动作。",
+        "skill1J": "配置技能 1 动作。",
+        "skill5J": "配置技能 5 动作。",
+        "skill4J": "配置技能 4 动作。",
+        "idleJ": "配置待机动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.k": {
+      "label": "5 技能控制器（K轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill3K": "配置技能 3 动作。",
+        "skill2K": "配置技能 2 动作。",
+        "skill1K": "配置技能 1 动作。",
+        "skill5K": "配置技能 5 动作。",
+        "skill4K": "配置技能 4 动作。",
+        "idleK": "配置待机动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.l": {
+      "label": "5 技能控制器（L轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill3L": "配置技能 3 动作。",
+        "skill2L": "配置技能 2 动作。",
+        "skill1L": "配置技能 1 动作。",
+        "skill5L": "配置技能 5 动作。",
+        "skill4L": "配置技能 4 动作。",
+        "idleL": "配置待机动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.m": {
+      "label": "5 技能控制器（M轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill3M": "配置技能 3 动作。",
+        "skill2M": "配置技能 2 动作。",
+        "skill1M": "配置技能 1 动作。",
+        "skill5M": "配置技能 5 动作。",
+        "skill4M": "配置技能 4 动作。",
+        "idleM": "配置待机动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.n": {
+      "label": "5 技能控制器（N轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill3N": "配置技能 3 动作。",
+        "skill2N": "配置技能 2 动作。",
+        "skill1N": "配置技能 1 动作。",
+        "skill5N": "配置技能 5 动作。",
+        "skill4N": "配置技能 4 动作。",
+        "idleN": "配置待机动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.o": {
+      "label": "5 技能控制器（O轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill3O": "配置技能 3 动作。",
+        "skill2O": "配置技能 2 动作。",
+        "skill1O": "配置技能 1 动作。",
+        "skill5O": "配置技能 5 动作。",
+        "skill4O": "配置技能 4 动作。",
+        "idleO": "配置待机动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.p": {
+      "label": "5 技能控制器（P轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill3P": "配置技能 3 动作。",
+        "skill2P": "配置技能 2 动作。",
+        "skill1P": "配置技能 1 动作。",
+        "skill5P": "配置技能 5 动作。",
+        "skill4P": "配置技能 4 动作。",
+        "idleP": "配置待机动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.q": {
+      "label": "5 技能控制器（Q轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill3Q": "配置技能 3 动作。",
+        "skill2Q": "配置技能 2 动作。",
+        "skill1Q": "配置技能 1 动作。",
+        "skill5Q": "配置技能 5 动作。",
+        "skill4Q": "配置技能 4 动作。",
+        "idleQ": "配置待机动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.r": {
+      "label": "5 技能控制器（R轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill3R": "配置技能 3 动作。",
+        "skill2R": "配置技能 2 动作。",
+        "skill1R": "配置技能 1 动作。",
+        "skill5R": "配置技能 5 动作。",
+        "skill4R": "配置技能 4 动作。",
+        "idleR": "配置待机动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.s": {
+      "label": "5 技能控制器（S轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill3S": "配置技能 3 动作。",
+        "skill2S": "配置技能 2 动作。",
+        "skill1S": "配置技能 1 动作。",
+        "skill5S": "配置技能 5 动作。",
+        "skill4S": "配置技能 4 动作。",
+        "idleS": "配置待机动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.t": {
+      "label": "5 技能控制器（T轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill3T": "配置技能 3 动作。",
+        "skill2T": "配置技能 2 动作。",
+        "skill1T": "配置技能 1 动作。",
+        "skill5T": "配置技能 5 动作。",
+        "skill4T": "配置技能 4 动作。",
+        "idleT": "配置待机动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.u": {
+      "label": "5 技能控制器（U轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill3U": "配置技能 3 动作。",
+        "skill2U": "配置技能 2 动作。",
+        "skill1U": "配置技能 1 动作。",
+        "skill5U": "配置技能 5 动作。",
+        "skill4U": "配置技能 4 动作。",
+        "idleU": "配置待机动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.v": {
+      "label": "5 技能控制器（V轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill3V": "配置技能 3 动作。",
+        "skill2V": "配置技能 2 动作。",
+        "skill1V": "配置技能 1 动作。",
+        "skill5V": "配置技能 5 动作。",
+        "skill4V": "配置技能 4 动作。",
+        "idleV": "配置待机动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.w": {
+      "label": "5 技能控制器（W轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill3W": "配置技能 3 动作。",
+        "skill2W": "配置技能 2 动作。",
+        "skill1W": "配置技能 1 动作。",
+        "skill5W": "配置技能 5 动作。",
+        "skill4W": "配置技能 4 动作。",
+        "idleW": "配置待机动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.x": {
+      "label": "5 技能控制器（X轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill3X": "配置技能 3 动作。",
+        "skill2X": "配置技能 2 动作。",
+        "skill1X": "配置技能 1 动作。",
+        "skill5X": "配置技能 5 动作。",
+        "skill4X": "配置技能 4 动作。",
+        "idleX": "配置待机动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.y": {
+      "label": "5 技能控制器（Y轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill3Y": "配置技能 3 动作。",
+        "skill2Y": "配置技能 2 动作。",
+        "skill1Y": "配置技能 1 动作。",
+        "skill5Y": "配置技能 5 动作。",
+        "skill4Y": "配置技能 4 动作。",
+        "idleY": "配置待机动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill5.z": {
+      "label": "5 技能控制器（Z轨道）",
+      "description": "包含 idle、walk、skill1、skill2、skill3、skill4、skill5。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill3Z": "配置技能 3 动作。",
+        "skill2Z": "配置技能 2 动作。",
+        "skill1Z": "配置技能 1 动作。",
+        "skill5Z": "配置技能 5 动作。",
+        "skill4Z": "配置技能 4 动作。",
+        "idleZ": "配置待机动作。",
+        "walkZ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.c": {
+      "label": "6 技能控制器（C轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill3C": "配置技能 3 动作。",
+        "skill2C": "配置技能 2 动作。",
+        "skill1C": "配置技能 1 动作。",
+        "skill6C": "配置技能 6 动作。",
+        "skill5C": "配置技能 5 动作。",
+        "skill4C": "配置技能 4 动作。",
+        "idleC": "配置待机动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.d": {
+      "label": "6 技能控制器（D轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill3D": "配置技能 3 动作。",
+        "skill2D": "配置技能 2 动作。",
+        "skill1D": "配置技能 1 动作。",
+        "skill6D": "配置技能 6 动作。",
+        "skill5D": "配置技能 5 动作。",
+        "skill4D": "配置技能 4 动作。",
+        "idleD": "配置待机动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.e": {
+      "label": "6 技能控制器（E轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill3E": "配置技能 3 动作。",
+        "skill2E": "配置技能 2 动作。",
+        "skill1E": "配置技能 1 动作。",
+        "skill6E": "配置技能 6 动作。",
+        "skill5E": "配置技能 5 动作。",
+        "skill4E": "配置技能 4 动作。",
+        "idleE": "配置待机动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.f": {
+      "label": "6 技能控制器（F轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill3F": "配置技能 3 动作。",
+        "skill2F": "配置技能 2 动作。",
+        "skill1F": "配置技能 1 动作。",
+        "skill6F": "配置技能 6 动作。",
+        "skill5F": "配置技能 5 动作。",
+        "skill4F": "配置技能 4 动作。",
+        "idleF": "配置待机动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.g": {
+      "label": "6 技能控制器（G轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill3G": "配置技能 3 动作。",
+        "skill2G": "配置技能 2 动作。",
+        "skill1G": "配置技能 1 动作。",
+        "skill6G": "配置技能 6 动作。",
+        "skill5G": "配置技能 5 动作。",
+        "skill4G": "配置技能 4 动作。",
+        "idleG": "配置待机动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.h": {
+      "label": "6 技能控制器（H轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill3H": "配置技能 3 动作。",
+        "skill2H": "配置技能 2 动作。",
+        "skill1H": "配置技能 1 动作。",
+        "skill6H": "配置技能 6 动作。",
+        "skill5H": "配置技能 5 动作。",
+        "skill4H": "配置技能 4 动作。",
+        "idleH": "配置待机动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.i": {
+      "label": "6 技能控制器（I轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill3I": "配置技能 3 动作。",
+        "skill2I": "配置技能 2 动作。",
+        "skill1I": "配置技能 1 动作。",
+        "skill6I": "配置技能 6 动作。",
+        "skill5I": "配置技能 5 动作。",
+        "skill4I": "配置技能 4 动作。",
+        "idleI": "配置待机动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.j": {
+      "label": "6 技能控制器（J轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill3J": "配置技能 3 动作。",
+        "skill2J": "配置技能 2 动作。",
+        "skill1J": "配置技能 1 动作。",
+        "skill6J": "配置技能 6 动作。",
+        "skill5J": "配置技能 5 动作。",
+        "skill4J": "配置技能 4 动作。",
+        "idleJ": "配置待机动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.k": {
+      "label": "6 技能控制器（K轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill3K": "配置技能 3 动作。",
+        "skill2K": "配置技能 2 动作。",
+        "skill1K": "配置技能 1 动作。",
+        "skill6K": "配置技能 6 动作。",
+        "skill5K": "配置技能 5 动作。",
+        "skill4K": "配置技能 4 动作。",
+        "idleK": "配置待机动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.l": {
+      "label": "6 技能控制器（L轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill3L": "配置技能 3 动作。",
+        "skill2L": "配置技能 2 动作。",
+        "skill1L": "配置技能 1 动作。",
+        "skill6L": "配置技能 6 动作。",
+        "skill5L": "配置技能 5 动作。",
+        "skill4L": "配置技能 4 动作。",
+        "idleL": "配置待机动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.m": {
+      "label": "6 技能控制器（M轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill3M": "配置技能 3 动作。",
+        "skill2M": "配置技能 2 动作。",
+        "skill1M": "配置技能 1 动作。",
+        "skill6M": "配置技能 6 动作。",
+        "skill5M": "配置技能 5 动作。",
+        "skill4M": "配置技能 4 动作。",
+        "idleM": "配置待机动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.n": {
+      "label": "6 技能控制器（N轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill3N": "配置技能 3 动作。",
+        "skill2N": "配置技能 2 动作。",
+        "skill1N": "配置技能 1 动作。",
+        "skill6N": "配置技能 6 动作。",
+        "skill5N": "配置技能 5 动作。",
+        "skill4N": "配置技能 4 动作。",
+        "idleN": "配置待机动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.o": {
+      "label": "6 技能控制器（O轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill3O": "配置技能 3 动作。",
+        "skill2O": "配置技能 2 动作。",
+        "skill1O": "配置技能 1 动作。",
+        "skill6O": "配置技能 6 动作。",
+        "skill5O": "配置技能 5 动作。",
+        "skill4O": "配置技能 4 动作。",
+        "idleO": "配置待机动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.p": {
+      "label": "6 技能控制器（P轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill3P": "配置技能 3 动作。",
+        "skill2P": "配置技能 2 动作。",
+        "skill1P": "配置技能 1 动作。",
+        "skill6P": "配置技能 6 动作。",
+        "skill5P": "配置技能 5 动作。",
+        "skill4P": "配置技能 4 动作。",
+        "idleP": "配置待机动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.q": {
+      "label": "6 技能控制器（Q轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill3Q": "配置技能 3 动作。",
+        "skill2Q": "配置技能 2 动作。",
+        "skill1Q": "配置技能 1 动作。",
+        "skill6Q": "配置技能 6 动作。",
+        "skill5Q": "配置技能 5 动作。",
+        "skill4Q": "配置技能 4 动作。",
+        "idleQ": "配置待机动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.r": {
+      "label": "6 技能控制器（R轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill3R": "配置技能 3 动作。",
+        "skill2R": "配置技能 2 动作。",
+        "skill1R": "配置技能 1 动作。",
+        "skill6R": "配置技能 6 动作。",
+        "skill5R": "配置技能 5 动作。",
+        "skill4R": "配置技能 4 动作。",
+        "idleR": "配置待机动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.s": {
+      "label": "6 技能控制器（S轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill3S": "配置技能 3 动作。",
+        "skill2S": "配置技能 2 动作。",
+        "skill1S": "配置技能 1 动作。",
+        "skill6S": "配置技能 6 动作。",
+        "skill5S": "配置技能 5 动作。",
+        "skill4S": "配置技能 4 动作。",
+        "idleS": "配置待机动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.t": {
+      "label": "6 技能控制器（T轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill3T": "配置技能 3 动作。",
+        "skill2T": "配置技能 2 动作。",
+        "skill1T": "配置技能 1 动作。",
+        "skill6T": "配置技能 6 动作。",
+        "skill5T": "配置技能 5 动作。",
+        "skill4T": "配置技能 4 动作。",
+        "idleT": "配置待机动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.u": {
+      "label": "6 技能控制器（U轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill3U": "配置技能 3 动作。",
+        "skill2U": "配置技能 2 动作。",
+        "skill1U": "配置技能 1 动作。",
+        "skill6U": "配置技能 6 动作。",
+        "skill5U": "配置技能 5 动作。",
+        "skill4U": "配置技能 4 动作。",
+        "idleU": "配置待机动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.v": {
+      "label": "6 技能控制器（V轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill3V": "配置技能 3 动作。",
+        "skill2V": "配置技能 2 动作。",
+        "skill1V": "配置技能 1 动作。",
+        "skill6V": "配置技能 6 动作。",
+        "skill5V": "配置技能 5 动作。",
+        "skill4V": "配置技能 4 动作。",
+        "idleV": "配置待机动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.w": {
+      "label": "6 技能控制器（W轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill3W": "配置技能 3 动作。",
+        "skill2W": "配置技能 2 动作。",
+        "skill1W": "配置技能 1 动作。",
+        "skill6W": "配置技能 6 动作。",
+        "skill5W": "配置技能 5 动作。",
+        "skill4W": "配置技能 4 动作。",
+        "idleW": "配置待机动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.x": {
+      "label": "6 技能控制器（X轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill3X": "配置技能 3 动作。",
+        "skill2X": "配置技能 2 动作。",
+        "skill1X": "配置技能 1 动作。",
+        "skill6X": "配置技能 6 动作。",
+        "skill5X": "配置技能 5 动作。",
+        "skill4X": "配置技能 4 动作。",
+        "idleX": "配置待机动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.y": {
+      "label": "6 技能控制器（Y轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill3Y": "配置技能 3 动作。",
+        "skill2Y": "配置技能 2 动作。",
+        "skill1Y": "配置技能 1 动作。",
+        "skill6Y": "配置技能 6 动作。",
+        "skill5Y": "配置技能 5 动作。",
+        "skill4Y": "配置技能 4 动作。",
+        "idleY": "配置待机动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill6.z": {
+      "label": "6 技能控制器（Z轨道）",
+      "description": "包含 idle、walk、skill1~skill6。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill3Z": "配置技能 3 动作。",
+        "skill2Z": "配置技能 2 动作。",
+        "skill1Z": "配置技能 1 动作。",
+        "skill6Z": "配置技能 6 动作。",
+        "skill5Z": "配置技能 5 动作。",
+        "skill4Z": "配置技能 4 动作。",
+        "idleZ": "配置待机动作。",
+        "walkZ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.c": {
+      "label": "7 技能控制器（C轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill3C": "配置技能 3 动作。",
+        "skill2C": "配置技能 2 动作。",
+        "skill1C": "配置技能 1 动作。",
+        "skill7C": "配置技能 7 动作。",
+        "skill6C": "配置技能 6 动作。",
+        "skill5C": "配置技能 5 动作。",
+        "skill4C": "配置技能 4 动作。",
+        "idleC": "配置待机动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.d": {
+      "label": "7 技能控制器（D轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill3D": "配置技能 3 动作。",
+        "skill2D": "配置技能 2 动作。",
+        "skill1D": "配置技能 1 动作。",
+        "skill7D": "配置技能 7 动作。",
+        "skill6D": "配置技能 6 动作。",
+        "skill5D": "配置技能 5 动作。",
+        "skill4D": "配置技能 4 动作。",
+        "idleD": "配置待机动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.e": {
+      "label": "7 技能控制器（E轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill3E": "配置技能 3 动作。",
+        "skill2E": "配置技能 2 动作。",
+        "skill1E": "配置技能 1 动作。",
+        "skill7E": "配置技能 7 动作。",
+        "skill6E": "配置技能 6 动作。",
+        "skill5E": "配置技能 5 动作。",
+        "skill4E": "配置技能 4 动作。",
+        "idleE": "配置待机动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.f": {
+      "label": "7 技能控制器（F轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill3F": "配置技能 3 动作。",
+        "skill2F": "配置技能 2 动作。",
+        "skill1F": "配置技能 1 动作。",
+        "skill7F": "配置技能 7 动作。",
+        "skill6F": "配置技能 6 动作。",
+        "skill5F": "配置技能 5 动作。",
+        "skill4F": "配置技能 4 动作。",
+        "idleF": "配置待机动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.g": {
+      "label": "7 技能控制器（G轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill3G": "配置技能 3 动作。",
+        "skill2G": "配置技能 2 动作。",
+        "skill1G": "配置技能 1 动作。",
+        "skill7G": "配置技能 7 动作。",
+        "skill6G": "配置技能 6 动作。",
+        "skill5G": "配置技能 5 动作。",
+        "skill4G": "配置技能 4 动作。",
+        "idleG": "配置待机动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.h": {
+      "label": "7 技能控制器（H轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill3H": "配置技能 3 动作。",
+        "skill2H": "配置技能 2 动作。",
+        "skill1H": "配置技能 1 动作。",
+        "skill7H": "配置技能 7 动作。",
+        "skill6H": "配置技能 6 动作。",
+        "skill5H": "配置技能 5 动作。",
+        "skill4H": "配置技能 4 动作。",
+        "idleH": "配置待机动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.i": {
+      "label": "7 技能控制器（I轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill3I": "配置技能 3 动作。",
+        "skill2I": "配置技能 2 动作。",
+        "skill1I": "配置技能 1 动作。",
+        "skill7I": "配置技能 7 动作。",
+        "skill6I": "配置技能 6 动作。",
+        "skill5I": "配置技能 5 动作。",
+        "skill4I": "配置技能 4 动作。",
+        "idleI": "配置待机动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.j": {
+      "label": "7 技能控制器（J轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill3J": "配置技能 3 动作。",
+        "skill2J": "配置技能 2 动作。",
+        "skill1J": "配置技能 1 动作。",
+        "skill7J": "配置技能 7 动作。",
+        "skill6J": "配置技能 6 动作。",
+        "skill5J": "配置技能 5 动作。",
+        "skill4J": "配置技能 4 动作。",
+        "idleJ": "配置待机动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.k": {
+      "label": "7 技能控制器（K轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill3K": "配置技能 3 动作。",
+        "skill2K": "配置技能 2 动作。",
+        "skill1K": "配置技能 1 动作。",
+        "skill7K": "配置技能 7 动作。",
+        "skill6K": "配置技能 6 动作。",
+        "skill5K": "配置技能 5 动作。",
+        "skill4K": "配置技能 4 动作。",
+        "idleK": "配置待机动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.l": {
+      "label": "7 技能控制器（L轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill3L": "配置技能 3 动作。",
+        "skill2L": "配置技能 2 动作。",
+        "skill1L": "配置技能 1 动作。",
+        "skill7L": "配置技能 7 动作。",
+        "skill6L": "配置技能 6 动作。",
+        "skill5L": "配置技能 5 动作。",
+        "skill4L": "配置技能 4 动作。",
+        "idleL": "配置待机动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.m": {
+      "label": "7 技能控制器（M轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill3M": "配置技能 3 动作。",
+        "skill2M": "配置技能 2 动作。",
+        "skill1M": "配置技能 1 动作。",
+        "skill7M": "配置技能 7 动作。",
+        "skill6M": "配置技能 6 动作。",
+        "skill5M": "配置技能 5 动作。",
+        "skill4M": "配置技能 4 动作。",
+        "idleM": "配置待机动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.n": {
+      "label": "7 技能控制器（N轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill3N": "配置技能 3 动作。",
+        "skill2N": "配置技能 2 动作。",
+        "skill1N": "配置技能 1 动作。",
+        "skill7N": "配置技能 7 动作。",
+        "skill6N": "配置技能 6 动作。",
+        "skill5N": "配置技能 5 动作。",
+        "skill4N": "配置技能 4 动作。",
+        "idleN": "配置待机动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.o": {
+      "label": "7 技能控制器（O轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill3O": "配置技能 3 动作。",
+        "skill2O": "配置技能 2 动作。",
+        "skill1O": "配置技能 1 动作。",
+        "skill7O": "配置技能 7 动作。",
+        "skill6O": "配置技能 6 动作。",
+        "skill5O": "配置技能 5 动作。",
+        "skill4O": "配置技能 4 动作。",
+        "idleO": "配置待机动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.p": {
+      "label": "7 技能控制器（P轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill3P": "配置技能 3 动作。",
+        "skill2P": "配置技能 2 动作。",
+        "skill1P": "配置技能 1 动作。",
+        "skill7P": "配置技能 7 动作。",
+        "skill6P": "配置技能 6 动作。",
+        "skill5P": "配置技能 5 动作。",
+        "skill4P": "配置技能 4 动作。",
+        "idleP": "配置待机动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.q": {
+      "label": "7 技能控制器（Q轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill3Q": "配置技能 3 动作。",
+        "skill2Q": "配置技能 2 动作。",
+        "skill1Q": "配置技能 1 动作。",
+        "skill7Q": "配置技能 7 动作。",
+        "skill6Q": "配置技能 6 动作。",
+        "skill5Q": "配置技能 5 动作。",
+        "skill4Q": "配置技能 4 动作。",
+        "idleQ": "配置待机动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.r": {
+      "label": "7 技能控制器（R轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill3R": "配置技能 3 动作。",
+        "skill2R": "配置技能 2 动作。",
+        "skill1R": "配置技能 1 动作。",
+        "skill7R": "配置技能 7 动作。",
+        "skill6R": "配置技能 6 动作。",
+        "skill5R": "配置技能 5 动作。",
+        "skill4R": "配置技能 4 动作。",
+        "idleR": "配置待机动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.s": {
+      "label": "7 技能控制器（S轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill3S": "配置技能 3 动作。",
+        "skill2S": "配置技能 2 动作。",
+        "skill1S": "配置技能 1 动作。",
+        "skill7S": "配置技能 7 动作。",
+        "skill6S": "配置技能 6 动作。",
+        "skill5S": "配置技能 5 动作。",
+        "skill4S": "配置技能 4 动作。",
+        "idleS": "配置待机动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.t": {
+      "label": "7 技能控制器（T轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill3T": "配置技能 3 动作。",
+        "skill2T": "配置技能 2 动作。",
+        "skill1T": "配置技能 1 动作。",
+        "skill7T": "配置技能 7 动作。",
+        "skill6T": "配置技能 6 动作。",
+        "skill5T": "配置技能 5 动作。",
+        "skill4T": "配置技能 4 动作。",
+        "idleT": "配置待机动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.u": {
+      "label": "7 技能控制器（U轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill3U": "配置技能 3 动作。",
+        "skill2U": "配置技能 2 动作。",
+        "skill1U": "配置技能 1 动作。",
+        "skill7U": "配置技能 7 动作。",
+        "skill6U": "配置技能 6 动作。",
+        "skill5U": "配置技能 5 动作。",
+        "skill4U": "配置技能 4 动作。",
+        "idleU": "配置待机动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.v": {
+      "label": "7 技能控制器（V轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill3V": "配置技能 3 动作。",
+        "skill2V": "配置技能 2 动作。",
+        "skill1V": "配置技能 1 动作。",
+        "skill7V": "配置技能 7 动作。",
+        "skill6V": "配置技能 6 动作。",
+        "skill5V": "配置技能 5 动作。",
+        "skill4V": "配置技能 4 动作。",
+        "idleV": "配置待机动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.w": {
+      "label": "7 技能控制器（W轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill3W": "配置技能 3 动作。",
+        "skill2W": "配置技能 2 动作。",
+        "skill1W": "配置技能 1 动作。",
+        "skill7W": "配置技能 7 动作。",
+        "skill6W": "配置技能 6 动作。",
+        "skill5W": "配置技能 5 动作。",
+        "skill4W": "配置技能 4 动作。",
+        "idleW": "配置待机动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.x": {
+      "label": "7 技能控制器（X轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill3X": "配置技能 3 动作。",
+        "skill2X": "配置技能 2 动作。",
+        "skill1X": "配置技能 1 动作。",
+        "skill7X": "配置技能 7 动作。",
+        "skill6X": "配置技能 6 动作。",
+        "skill5X": "配置技能 5 动作。",
+        "skill4X": "配置技能 4 动作。",
+        "idleX": "配置待机动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.y": {
+      "label": "7 技能控制器（Y轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill3Y": "配置技能 3 动作。",
+        "skill2Y": "配置技能 2 动作。",
+        "skill1Y": "配置技能 1 动作。",
+        "skill7Y": "配置技能 7 动作。",
+        "skill6Y": "配置技能 6 动作。",
+        "skill5Y": "配置技能 5 动作。",
+        "skill4Y": "配置技能 4 动作。",
+        "idleY": "配置待机动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill7.z": {
+      "label": "7 技能控制器（Z轨道）",
+      "description": "包含 idle、walk、skill1~skill7。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill3Z": "配置技能 3 动作。",
+        "skill2Z": "配置技能 2 动作。",
+        "skill1Z": "配置技能 1 动作。",
+        "skill7Z": "配置技能 7 动作。",
+        "skill6Z": "配置技能 6 动作。",
+        "skill5Z": "配置技能 5 动作。",
+        "skill4Z": "配置技能 4 动作。",
+        "idleZ": "配置待机动作。",
+        "walkZ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.c": {
+      "label": "8 技能控制器（C轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_c。动作 key 使用 C 后缀。",
+      "slots": {
+        "skill8C": "配置技能 8 动作。",
+        "skill3C": "配置技能 3 动作。",
+        "skill2C": "配置技能 2 动作。",
+        "skill1C": "配置技能 1 动作。",
+        "skill7C": "配置技能 7 动作。",
+        "skill6C": "配置技能 6 动作。",
+        "skill5C": "配置技能 5 动作。",
+        "skill4C": "配置技能 4 动作。",
+        "idleC": "配置待机动作。",
+        "walkC": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.d": {
+      "label": "8 技能控制器（D轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_d。动作 key 使用 D 后缀。",
+      "slots": {
+        "skill8D": "配置技能 8 动作。",
+        "skill3D": "配置技能 3 动作。",
+        "skill2D": "配置技能 2 动作。",
+        "skill1D": "配置技能 1 动作。",
+        "skill7D": "配置技能 7 动作。",
+        "skill6D": "配置技能 6 动作。",
+        "skill5D": "配置技能 5 动作。",
+        "skill4D": "配置技能 4 动作。",
+        "idleD": "配置待机动作。",
+        "walkD": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.e": {
+      "label": "8 技能控制器（E轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_e。动作 key 使用 E 后缀。",
+      "slots": {
+        "skill8E": "配置技能 8 动作。",
+        "skill3E": "配置技能 3 动作。",
+        "skill2E": "配置技能 2 动作。",
+        "skill1E": "配置技能 1 动作。",
+        "skill7E": "配置技能 7 动作。",
+        "skill6E": "配置技能 6 动作。",
+        "skill5E": "配置技能 5 动作。",
+        "skill4E": "配置技能 4 动作。",
+        "idleE": "配置待机动作。",
+        "walkE": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.f": {
+      "label": "8 技能控制器（F轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_f。动作 key 使用 F 后缀。",
+      "slots": {
+        "skill8F": "配置技能 8 动作。",
+        "skill3F": "配置技能 3 动作。",
+        "skill2F": "配置技能 2 动作。",
+        "skill1F": "配置技能 1 动作。",
+        "skill7F": "配置技能 7 动作。",
+        "skill6F": "配置技能 6 动作。",
+        "skill5F": "配置技能 5 动作。",
+        "skill4F": "配置技能 4 动作。",
+        "idleF": "配置待机动作。",
+        "walkF": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.g": {
+      "label": "8 技能控制器（G轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_g。动作 key 使用 G 后缀。",
+      "slots": {
+        "skill8G": "配置技能 8 动作。",
+        "skill3G": "配置技能 3 动作。",
+        "skill2G": "配置技能 2 动作。",
+        "skill1G": "配置技能 1 动作。",
+        "skill7G": "配置技能 7 动作。",
+        "skill6G": "配置技能 6 动作。",
+        "skill5G": "配置技能 5 动作。",
+        "skill4G": "配置技能 4 动作。",
+        "idleG": "配置待机动作。",
+        "walkG": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.h": {
+      "label": "8 技能控制器（H轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_h。动作 key 使用 H 后缀。",
+      "slots": {
+        "skill8H": "配置技能 8 动作。",
+        "skill3H": "配置技能 3 动作。",
+        "skill2H": "配置技能 2 动作。",
+        "skill1H": "配置技能 1 动作。",
+        "skill7H": "配置技能 7 动作。",
+        "skill6H": "配置技能 6 动作。",
+        "skill5H": "配置技能 5 动作。",
+        "skill4H": "配置技能 4 动作。",
+        "idleH": "配置待机动作。",
+        "walkH": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.i": {
+      "label": "8 技能控制器（I轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_i。动作 key 使用 I 后缀。",
+      "slots": {
+        "skill8I": "配置技能 8 动作。",
+        "skill3I": "配置技能 3 动作。",
+        "skill2I": "配置技能 2 动作。",
+        "skill1I": "配置技能 1 动作。",
+        "skill7I": "配置技能 7 动作。",
+        "skill6I": "配置技能 6 动作。",
+        "skill5I": "配置技能 5 动作。",
+        "skill4I": "配置技能 4 动作。",
+        "idleI": "配置待机动作。",
+        "walkI": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.j": {
+      "label": "8 技能控制器（J轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_j。动作 key 使用 J 后缀。",
+      "slots": {
+        "skill8J": "配置技能 8 动作。",
+        "skill3J": "配置技能 3 动作。",
+        "skill2J": "配置技能 2 动作。",
+        "skill1J": "配置技能 1 动作。",
+        "skill7J": "配置技能 7 动作。",
+        "skill6J": "配置技能 6 动作。",
+        "skill5J": "配置技能 5 动作。",
+        "skill4J": "配置技能 4 动作。",
+        "idleJ": "配置待机动作。",
+        "walkJ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.k": {
+      "label": "8 技能控制器（K轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_k。动作 key 使用 K 后缀。",
+      "slots": {
+        "skill8K": "配置技能 8 动作。",
+        "skill3K": "配置技能 3 动作。",
+        "skill2K": "配置技能 2 动作。",
+        "skill1K": "配置技能 1 动作。",
+        "skill7K": "配置技能 7 动作。",
+        "skill6K": "配置技能 6 动作。",
+        "skill5K": "配置技能 5 动作。",
+        "skill4K": "配置技能 4 动作。",
+        "idleK": "配置待机动作。",
+        "walkK": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.l": {
+      "label": "8 技能控制器（L轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_l。动作 key 使用 L 后缀。",
+      "slots": {
+        "skill8L": "配置技能 8 动作。",
+        "skill3L": "配置技能 3 动作。",
+        "skill2L": "配置技能 2 动作。",
+        "skill1L": "配置技能 1 动作。",
+        "skill7L": "配置技能 7 动作。",
+        "skill6L": "配置技能 6 动作。",
+        "skill5L": "配置技能 5 动作。",
+        "skill4L": "配置技能 4 动作。",
+        "idleL": "配置待机动作。",
+        "walkL": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.m": {
+      "label": "8 技能控制器（M轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_m。动作 key 使用 M 后缀。",
+      "slots": {
+        "skill8M": "配置技能 8 动作。",
+        "skill3M": "配置技能 3 动作。",
+        "skill2M": "配置技能 2 动作。",
+        "skill1M": "配置技能 1 动作。",
+        "skill7M": "配置技能 7 动作。",
+        "skill6M": "配置技能 6 动作。",
+        "skill5M": "配置技能 5 动作。",
+        "skill4M": "配置技能 4 动作。",
+        "idleM": "配置待机动作。",
+        "walkM": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.n": {
+      "label": "8 技能控制器（N轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_n。动作 key 使用 N 后缀。",
+      "slots": {
+        "skill8N": "配置技能 8 动作。",
+        "skill3N": "配置技能 3 动作。",
+        "skill2N": "配置技能 2 动作。",
+        "skill1N": "配置技能 1 动作。",
+        "skill7N": "配置技能 7 动作。",
+        "skill6N": "配置技能 6 动作。",
+        "skill5N": "配置技能 5 动作。",
+        "skill4N": "配置技能 4 动作。",
+        "idleN": "配置待机动作。",
+        "walkN": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.o": {
+      "label": "8 技能控制器（O轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_o。动作 key 使用 O 后缀。",
+      "slots": {
+        "skill8O": "配置技能 8 动作。",
+        "skill3O": "配置技能 3 动作。",
+        "skill2O": "配置技能 2 动作。",
+        "skill1O": "配置技能 1 动作。",
+        "skill7O": "配置技能 7 动作。",
+        "skill6O": "配置技能 6 动作。",
+        "skill5O": "配置技能 5 动作。",
+        "skill4O": "配置技能 4 动作。",
+        "idleO": "配置待机动作。",
+        "walkO": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.p": {
+      "label": "8 技能控制器（P轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_p。动作 key 使用 P 后缀。",
+      "slots": {
+        "skill8P": "配置技能 8 动作。",
+        "skill3P": "配置技能 3 动作。",
+        "skill2P": "配置技能 2 动作。",
+        "skill1P": "配置技能 1 动作。",
+        "skill7P": "配置技能 7 动作。",
+        "skill6P": "配置技能 6 动作。",
+        "skill5P": "配置技能 5 动作。",
+        "skill4P": "配置技能 4 动作。",
+        "idleP": "配置待机动作。",
+        "walkP": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.q": {
+      "label": "8 技能控制器（Q轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_q。动作 key 使用 Q 后缀。",
+      "slots": {
+        "skill8Q": "配置技能 8 动作。",
+        "skill3Q": "配置技能 3 动作。",
+        "skill2Q": "配置技能 2 动作。",
+        "skill1Q": "配置技能 1 动作。",
+        "skill7Q": "配置技能 7 动作。",
+        "skill6Q": "配置技能 6 动作。",
+        "skill5Q": "配置技能 5 动作。",
+        "skill4Q": "配置技能 4 动作。",
+        "idleQ": "配置待机动作。",
+        "walkQ": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.r": {
+      "label": "8 技能控制器（R轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_r。动作 key 使用 R 后缀。",
+      "slots": {
+        "skill8R": "配置技能 8 动作。",
+        "skill3R": "配置技能 3 动作。",
+        "skill2R": "配置技能 2 动作。",
+        "skill1R": "配置技能 1 动作。",
+        "skill7R": "配置技能 7 动作。",
+        "skill6R": "配置技能 6 动作。",
+        "skill5R": "配置技能 5 动作。",
+        "skill4R": "配置技能 4 动作。",
+        "idleR": "配置待机动作。",
+        "walkR": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.s": {
+      "label": "8 技能控制器（S轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_s。动作 key 使用 S 后缀。",
+      "slots": {
+        "skill8S": "配置技能 8 动作。",
+        "skill3S": "配置技能 3 动作。",
+        "skill2S": "配置技能 2 动作。",
+        "skill1S": "配置技能 1 动作。",
+        "skill7S": "配置技能 7 动作。",
+        "skill6S": "配置技能 6 动作。",
+        "skill5S": "配置技能 5 动作。",
+        "skill4S": "配置技能 4 动作。",
+        "idleS": "配置待机动作。",
+        "walkS": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.t": {
+      "label": "8 技能控制器（T轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_t。动作 key 使用 T 后缀。",
+      "slots": {
+        "skill8T": "配置技能 8 动作。",
+        "skill3T": "配置技能 3 动作。",
+        "skill2T": "配置技能 2 动作。",
+        "skill1T": "配置技能 1 动作。",
+        "skill7T": "配置技能 7 动作。",
+        "skill6T": "配置技能 6 动作。",
+        "skill5T": "配置技能 5 动作。",
+        "skill4T": "配置技能 4 动作。",
+        "idleT": "配置待机动作。",
+        "walkT": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.u": {
+      "label": "8 技能控制器（U轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_u。动作 key 使用 U 后缀。",
+      "slots": {
+        "skill8U": "配置技能 8 动作。",
+        "skill3U": "配置技能 3 动作。",
+        "skill2U": "配置技能 2 动作。",
+        "skill1U": "配置技能 1 动作。",
+        "skill7U": "配置技能 7 动作。",
+        "skill6U": "配置技能 6 动作。",
+        "skill5U": "配置技能 5 动作。",
+        "skill4U": "配置技能 4 动作。",
+        "idleU": "配置待机动作。",
+        "walkU": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.v": {
+      "label": "8 技能控制器（V轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_v。动作 key 使用 V 后缀。",
+      "slots": {
+        "skill8V": "配置技能 8 动作。",
+        "skill3V": "配置技能 3 动作。",
+        "skill2V": "配置技能 2 动作。",
+        "skill1V": "配置技能 1 动作。",
+        "skill7V": "配置技能 7 动作。",
+        "skill6V": "配置技能 6 动作。",
+        "skill5V": "配置技能 5 动作。",
+        "skill4V": "配置技能 4 动作。",
+        "idleV": "配置待机动作。",
+        "walkV": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.w": {
+      "label": "8 技能控制器（W轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_w。动作 key 使用 W 后缀。",
+      "slots": {
+        "skill8W": "配置技能 8 动作。",
+        "skill3W": "配置技能 3 动作。",
+        "skill2W": "配置技能 2 动作。",
+        "skill1W": "配置技能 1 动作。",
+        "skill7W": "配置技能 7 动作。",
+        "skill6W": "配置技能 6 动作。",
+        "skill5W": "配置技能 5 动作。",
+        "skill4W": "配置技能 4 动作。",
+        "idleW": "配置待机动作。",
+        "walkW": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.x": {
+      "label": "8 技能控制器（X轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_x。动作 key 使用 X 后缀。",
+      "slots": {
+        "skill8X": "配置技能 8 动作。",
+        "skill3X": "配置技能 3 动作。",
+        "skill2X": "配置技能 2 动作。",
+        "skill1X": "配置技能 1 动作。",
+        "skill7X": "配置技能 7 动作。",
+        "skill6X": "配置技能 6 动作。",
+        "skill5X": "配置技能 5 动作。",
+        "skill4X": "配置技能 4 动作。",
+        "idleX": "配置待机动作。",
+        "walkX": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.y": {
+      "label": "8 技能控制器（Y轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_y。动作 key 使用 Y 后缀。",
+      "slots": {
+        "skill8Y": "配置技能 8 动作。",
+        "skill3Y": "配置技能 3 动作。",
+        "skill2Y": "配置技能 2 动作。",
+        "skill1Y": "配置技能 1 动作。",
+        "skill7Y": "配置技能 7 动作。",
+        "skill6Y": "配置技能 6 动作。",
+        "skill5Y": "配置技能 5 动作。",
+        "skill4Y": "配置技能 4 动作。",
+        "idleY": "配置待机动作。",
+        "walkY": "配置移动动作。"
+      }
+    },
+    "controller.animation.entity_skill8.z": {
+      "label": "8 技能控制器（Z轨道）",
+      "description": "包含 idle、walk、skill1~skill8。 这一套读取 query.mod.entity_skill_z。动作 key 使用 Z 后缀。",
+      "slots": {
+        "skill8Z": "配置技能 8 动作。",
+        "skill3Z": "配置技能 3 动作。",
+        "skill2Z": "配置技能 2 动作。",
+        "skill1Z": "配置技能 1 动作。",
+        "skill7Z": "配置技能 7 动作。",
+        "skill6Z": "配置技能 6 动作。",
+        "skill5Z": "配置技能 5 动作。",
+        "skill4Z": "配置技能 4 动作。",
+        "idleZ": "配置待机动作。",
+        "walkZ": "配置移动动作。"
       }
     }
   },
@@ -442,11 +3826,111 @@
     },
     "controller.render.entity_default.a.third_person": {
       "label": "A轨道第三人称渲染控制器",
-      "description": "A轨道模型渲染控制器，绑定 Geometry.a / Texture.a，默认常驻显示。"
+      "description": "A轨道模型渲染控制器，绑定 Geometry.a / Texture.a，仅在 query.mod.entity_skill_a 大于 0 时显示。"
     },
     "controller.render.entity_default.b.third_person": {
       "label": "B轨道第三人称渲染控制器",
       "description": "B轨道模型渲染控制器，绑定 Geometry.b / Texture.b，仅在 query.mod.entity_skill_b 大于 0 时显示。"
+    },
+    "controller.render.entity_default.c.third_person": {
+      "label": "C轨道第三人称渲染控制器",
+      "description": "C轨道模型渲染控制器，绑定 Geometry.c / Texture.c，仅在 query.mod.entity_skill_c 大于 0 时显示。"
+    },
+    "controller.render.entity_default.d.third_person": {
+      "label": "D轨道第三人称渲染控制器",
+      "description": "D轨道模型渲染控制器，绑定 Geometry.d / Texture.d，仅在 query.mod.entity_skill_d 大于 0 时显示。"
+    },
+    "controller.render.entity_default.e.third_person": {
+      "label": "E轨道第三人称渲染控制器",
+      "description": "E轨道模型渲染控制器，绑定 Geometry.e / Texture.e，仅在 query.mod.entity_skill_e 大于 0 时显示。"
+    },
+    "controller.render.entity_default.f.third_person": {
+      "label": "F轨道第三人称渲染控制器",
+      "description": "F轨道模型渲染控制器，绑定 Geometry.f / Texture.f，仅在 query.mod.entity_skill_f 大于 0 时显示。"
+    },
+    "controller.render.entity_default.g.third_person": {
+      "label": "G轨道第三人称渲染控制器",
+      "description": "G轨道模型渲染控制器，绑定 Geometry.g / Texture.g，仅在 query.mod.entity_skill_g 大于 0 时显示。"
+    },
+    "controller.render.entity_default.h.third_person": {
+      "label": "H轨道第三人称渲染控制器",
+      "description": "H轨道模型渲染控制器，绑定 Geometry.h / Texture.h，仅在 query.mod.entity_skill_h 大于 0 时显示。"
+    },
+    "controller.render.entity_default.i.third_person": {
+      "label": "I轨道第三人称渲染控制器",
+      "description": "I轨道模型渲染控制器，绑定 Geometry.i / Texture.i，仅在 query.mod.entity_skill_i 大于 0 时显示。"
+    },
+    "controller.render.entity_default.j.third_person": {
+      "label": "J轨道第三人称渲染控制器",
+      "description": "J轨道模型渲染控制器，绑定 Geometry.j / Texture.j，仅在 query.mod.entity_skill_j 大于 0 时显示。"
+    },
+    "controller.render.entity_default.k.third_person": {
+      "label": "K轨道第三人称渲染控制器",
+      "description": "K轨道模型渲染控制器，绑定 Geometry.k / Texture.k，仅在 query.mod.entity_skill_k 大于 0 时显示。"
+    },
+    "controller.render.entity_default.l.third_person": {
+      "label": "L轨道第三人称渲染控制器",
+      "description": "L轨道模型渲染控制器，绑定 Geometry.l / Texture.l，仅在 query.mod.entity_skill_l 大于 0 时显示。"
+    },
+    "controller.render.entity_default.m.third_person": {
+      "label": "M轨道第三人称渲染控制器",
+      "description": "M轨道模型渲染控制器，绑定 Geometry.m / Texture.m，仅在 query.mod.entity_skill_m 大于 0 时显示。"
+    },
+    "controller.render.entity_default.n.third_person": {
+      "label": "N轨道第三人称渲染控制器",
+      "description": "N轨道模型渲染控制器，绑定 Geometry.n / Texture.n，仅在 query.mod.entity_skill_n 大于 0 时显示。"
+    },
+    "controller.render.entity_default.o.third_person": {
+      "label": "O轨道第三人称渲染控制器",
+      "description": "O轨道模型渲染控制器，绑定 Geometry.o / Texture.o，仅在 query.mod.entity_skill_o 大于 0 时显示。"
+    },
+    "controller.render.entity_default.p.third_person": {
+      "label": "P轨道第三人称渲染控制器",
+      "description": "P轨道模型渲染控制器，绑定 Geometry.p / Texture.p，仅在 query.mod.entity_skill_p 大于 0 时显示。"
+    },
+    "controller.render.entity_default.q.third_person": {
+      "label": "Q轨道第三人称渲染控制器",
+      "description": "Q轨道模型渲染控制器，绑定 Geometry.q / Texture.q，仅在 query.mod.entity_skill_q 大于 0 时显示。"
+    },
+    "controller.render.entity_default.r.third_person": {
+      "label": "R轨道第三人称渲染控制器",
+      "description": "R轨道模型渲染控制器，绑定 Geometry.r / Texture.r，仅在 query.mod.entity_skill_r 大于 0 时显示。"
+    },
+    "controller.render.entity_default.s.third_person": {
+      "label": "S轨道第三人称渲染控制器",
+      "description": "S轨道模型渲染控制器，绑定 Geometry.s / Texture.s，仅在 query.mod.entity_skill_s 大于 0 时显示。"
+    },
+    "controller.render.entity_default.t.third_person": {
+      "label": "T轨道第三人称渲染控制器",
+      "description": "T轨道模型渲染控制器，绑定 Geometry.t / Texture.t，仅在 query.mod.entity_skill_t 大于 0 时显示。"
+    },
+    "controller.render.entity_default.u.third_person": {
+      "label": "U轨道第三人称渲染控制器",
+      "description": "U轨道模型渲染控制器，绑定 Geometry.u / Texture.u，仅在 query.mod.entity_skill_u 大于 0 时显示。"
+    },
+    "controller.render.entity_default.v.third_person": {
+      "label": "V轨道第三人称渲染控制器",
+      "description": "V轨道模型渲染控制器，绑定 Geometry.v / Texture.v，仅在 query.mod.entity_skill_v 大于 0 时显示。"
+    },
+    "controller.render.entity_default.w.third_person": {
+      "label": "W轨道第三人称渲染控制器",
+      "description": "W轨道模型渲染控制器，绑定 Geometry.w / Texture.w，仅在 query.mod.entity_skill_w 大于 0 时显示。"
+    },
+    "controller.render.entity_default.x.third_person": {
+      "label": "X轨道第三人称渲染控制器",
+      "description": "X轨道模型渲染控制器，绑定 Geometry.x / Texture.x，仅在 query.mod.entity_skill_x 大于 0 时显示。"
+    },
+    "controller.render.entity_default.y.third_person": {
+      "label": "Y轨道第三人称渲染控制器",
+      "description": "Y轨道模型渲染控制器，绑定 Geometry.y / Texture.y，仅在 query.mod.entity_skill_y 大于 0 时显示。"
+    },
+    "controller.render.entity_default.z.third_person": {
+      "label": "Z轨道第三人称渲染控制器",
+      "description": "Z轨道模型渲染控制器，绑定 Geometry.z / Texture.z，仅在 query.mod.entity_skill_z 大于 0 时显示。"
+    },
+    "controller.render.entity_skill.third_person": {
+      "label": "技能第三人称渲染控制器",
+      "description": "技能专用模型渲染控制器，绑定 Geometry.skill / Texture.skill / Material.skill，默认常驻显示。"
     }
   }
 }

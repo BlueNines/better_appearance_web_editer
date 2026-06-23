@@ -10,16 +10,6 @@
       },
       "initial_state": "idle"
     },
-    "controller.animation.entity_idle_wings.default": {
-      "states": {
-        "idle_wings": {
-          "animations": [
-            "idle_wings"
-          ]
-        }
-      },
-      "initial_state": "idle_wings"
-    },
     "controller.animation.entity_idle.a": {
       "states": {
         "idleA": {
@@ -39,6 +29,256 @@
         }
       },
       "initial_state": "idleB"
+    },
+    "controller.animation.entity_idle.c": {
+      "states": {
+        "idleC": {
+          "animations": [
+            "idleC"
+          ]
+        }
+      },
+      "initial_state": "idleC"
+    },
+    "controller.animation.entity_idle.d": {
+      "states": {
+        "idleD": {
+          "animations": [
+            "idleD"
+          ]
+        }
+      },
+      "initial_state": "idleD"
+    },
+    "controller.animation.entity_idle.e": {
+      "states": {
+        "idleE": {
+          "animations": [
+            "idleE"
+          ]
+        }
+      },
+      "initial_state": "idleE"
+    },
+    "controller.animation.entity_idle.f": {
+      "states": {
+        "idleF": {
+          "animations": [
+            "idleF"
+          ]
+        }
+      },
+      "initial_state": "idleF"
+    },
+    "controller.animation.entity_idle.g": {
+      "states": {
+        "idleG": {
+          "animations": [
+            "idleG"
+          ]
+        }
+      },
+      "initial_state": "idleG"
+    },
+    "controller.animation.entity_idle.h": {
+      "states": {
+        "idleH": {
+          "animations": [
+            "idleH"
+          ]
+        }
+      },
+      "initial_state": "idleH"
+    },
+    "controller.animation.entity_idle.i": {
+      "states": {
+        "idleI": {
+          "animations": [
+            "idleI"
+          ]
+        }
+      },
+      "initial_state": "idleI"
+    },
+    "controller.animation.entity_idle.j": {
+      "states": {
+        "idleJ": {
+          "animations": [
+            "idleJ"
+          ]
+        }
+      },
+      "initial_state": "idleJ"
+    },
+    "controller.animation.entity_idle.k": {
+      "states": {
+        "idleK": {
+          "animations": [
+            "idleK"
+          ]
+        }
+      },
+      "initial_state": "idleK"
+    },
+    "controller.animation.entity_idle.l": {
+      "states": {
+        "idleL": {
+          "animations": [
+            "idleL"
+          ]
+        }
+      },
+      "initial_state": "idleL"
+    },
+    "controller.animation.entity_idle.m": {
+      "states": {
+        "idleM": {
+          "animations": [
+            "idleM"
+          ]
+        }
+      },
+      "initial_state": "idleM"
+    },
+    "controller.animation.entity_idle.n": {
+      "states": {
+        "idleN": {
+          "animations": [
+            "idleN"
+          ]
+        }
+      },
+      "initial_state": "idleN"
+    },
+    "controller.animation.entity_idle.o": {
+      "states": {
+        "idleO": {
+          "animations": [
+            "idleO"
+          ]
+        }
+      },
+      "initial_state": "idleO"
+    },
+    "controller.animation.entity_idle.p": {
+      "states": {
+        "idleP": {
+          "animations": [
+            "idleP"
+          ]
+        }
+      },
+      "initial_state": "idleP"
+    },
+    "controller.animation.entity_idle.q": {
+      "states": {
+        "idleQ": {
+          "animations": [
+            "idleQ"
+          ]
+        }
+      },
+      "initial_state": "idleQ"
+    },
+    "controller.animation.entity_idle.r": {
+      "states": {
+        "idleR": {
+          "animations": [
+            "idleR"
+          ]
+        }
+      },
+      "initial_state": "idleR"
+    },
+    "controller.animation.entity_idle.s": {
+      "states": {
+        "idleS": {
+          "animations": [
+            "idleS"
+          ]
+        }
+      },
+      "initial_state": "idleS"
+    },
+    "controller.animation.entity_idle.t": {
+      "states": {
+        "idleT": {
+          "animations": [
+            "idleT"
+          ]
+        }
+      },
+      "initial_state": "idleT"
+    },
+    "controller.animation.entity_idle.u": {
+      "states": {
+        "idleU": {
+          "animations": [
+            "idleU"
+          ]
+        }
+      },
+      "initial_state": "idleU"
+    },
+    "controller.animation.entity_idle.v": {
+      "states": {
+        "idleV": {
+          "animations": [
+            "idleV"
+          ]
+        }
+      },
+      "initial_state": "idleV"
+    },
+    "controller.animation.entity_idle.w": {
+      "states": {
+        "idleW": {
+          "animations": [
+            "idleW"
+          ]
+        }
+      },
+      "initial_state": "idleW"
+    },
+    "controller.animation.entity_idle.x": {
+      "states": {
+        "idleX": {
+          "animations": [
+            "idleX"
+          ]
+        }
+      },
+      "initial_state": "idleX"
+    },
+    "controller.animation.entity_idle.y": {
+      "states": {
+        "idleY": {
+          "animations": [
+            "idleY"
+          ]
+        }
+      },
+      "initial_state": "idleY"
+    },
+    "controller.animation.entity_idle.z": {
+      "states": {
+        "idleZ": {
+          "animations": [
+            "idleZ"
+          ]
+        }
+      },
+      "initial_state": "idleZ"
+    },
+    "controller.animation.entity_idle_wings.default": {
+      "states": {
+        "idle_wings": {
+          "animations": [
+            "idle_wings"
+          ]
+        }
+      },
+      "initial_state": "idle_wings"
     }
   },
   "format_version": "1.10.0"
