@@ -10,6 +10,14 @@
     const DEFAULT_RENDER_CONTROLLER = "controller.render.entity_default.third_person";
     const DEFAULT_CONTROLLER = "controller.animation.entity_idle.default";
     const DEFAULT_ANIMATION_BINDING_KEY = "default";
+    const CONNECTION_ASSEMBLY_VERSION = 1;
+    const CONNECTION_ASSEMBLY_MODE_LEGACY = "legacy";
+    const CONNECTION_ASSEMBLY_MODE_ASSEMBLY = "assembly";
+    const CONNECTION_BODY_RESOURCE_KEY = "default";
+    const CONNECTION_WINGS_RESOURCE_KEY = "default_wings";
+    const CONNECTION_WINGS_CONTROLLER = "controller.animation.entity_idle_wings.default";
+    const CONNECTION_WINGS_RENDER_CONTROLLER = "controller.render.entity_default_wings.third_person";
+    const CONNECTION_SKILL_TRACK_KEYS = "abcdefghijklmnopqrstuvwxyz".split("");
     const AUTO_ANIMATION_TARGET_GEOMETRY = "auto";
     const BONE_NAMESPACE_PREFIX = "ba";
     const SYSTEM_SCALE_CONTROLLER_KEY = "scale";
@@ -74,12 +82,139 @@
     function init() {
         setStatus("等待导入资源文件。");
         bindEvents();
+        installEditorSelfTestApi();
         render();
+        scheduleEditorSelfTest();
+    }
+
+    /**
+     * 暴露本地自测入口，方便在浏览器里验证真实导入链路，不参与导出数据。
+     */
+    function installEditorSelfTestApi() {
+        if (typeof window === "undefined") {
+            return;
+        }
+        window.__BetterAppearanceEditorTest = {
+            importFiles,
+            importDroppedFiles,
+            getEntityCount: () => state.entities.length,
+            getStatusText: () => elements.statusText.textContent,
+            getMessages: () => state.messages.map((message) => message.text),
+            clearEntities: () => {
+                state.entities = [];
+                state.selectedEntityId = null;
+                state.messages = [];
+                setStatus("等待导入资源文件。");
+                render();
+            },
+        };
+    }
+
+    /**
+     * 延迟调度自测，确保 location 与首轮渲染都已经稳定。
+     */
+    function scheduleEditorSelfTest() {
+        if (typeof window === "undefined" || !shouldRunEditorSelfTest()) {
+            return;
+        }
+        setStatus("自测开始：正在模拟普通多文件导入。");
+        window.setTimeout(() => {
+            void runEditorSelfTestFromHash();
+        }, 0);
+    }
+
+    /**
+     * 通过 URL hash 运行自测，便于浏览器工具验收真实导入链路。
+     */
+    async function runEditorSelfTestFromHash() {
+        if (typeof window === "undefined" || !shouldRunEditorSelfTest()) {
+            return;
+        }
+
+        setStatus("自测运行中：正在导入模拟资源。");
+        state.entities = [];
+        state.selectedEntityId = null;
+        state.messages = [];
+        const files = createEditorSelfTestFiles();
+        await importFiles(files, { skipLooseAssembly: true });
+        await importFiles(files, { skipLooseAssembly: true });
+        const mainEntity = findEntityByBaseName("anmoxiehu");
+        const extraTextureEntity = findEntityByBaseName("anmoxiehu_mob_anmoxiehu_xh");
+        const passed = mainEntity
+            && getGeometryResources(mainEntity).length === 1
+            && getTextureResources(mainEntity).length === 1
+            && getAnimationResources(mainEntity).length === 1
+            && extraTextureEntity
+            && getTextureResources(extraTextureEntity).length === 1;
+        elements.statusText.dataset.selfTestResult = passed ? "passed" : "failed";
+        setStatus(passed ? "自测通过：普通多文件导入和重复去重正常。" : "自测失败：普通多文件导入或重复去重异常。");
+        render();
+    }
+
+    /**
+     * 判断当前页面是否请求运行导入自测，支持 query 和 hash 两种形式。
+     */
+    function shouldRunEditorSelfTest() {
+        const href = String(window.location && window.location.href ? window.location.href : "");
+        return window.location.hash === "#selftest=drag-import"
+            || window.location.search.includes("selftest=drag-import")
+            || href.includes("selftest=drag-import");
+    }
+
+    /**
+     * 构造普通多文件拖拽等价输入，覆盖 geo/json/png 的导入路径。
+     */
+    function createEditorSelfTestFiles() {
+        const geometryJson = JSON.stringify({
+            format_version: "1.12.0",
+            "minecraft:geometry": [{
+                description: {
+                    identifier: "geometry.anmoxiehu",
+                    texture_width: 16,
+                    texture_height: 16,
+                },
+                bones: [{
+                    name: "root",
+                    pivot: [0, 0, 0],
+                }],
+            }],
+        });
+        const animationJson = JSON.stringify({
+            format_version: "1.8.0",
+            animations: {
+                "animation.anmoxiehu.idle": {
+                    loop: true,
+                    bones: {},
+                },
+                "animation.anmoxiehu.walk": {
+                    loop: true,
+                    bones: {},
+                },
+            },
+        });
+        return [
+            createEditorSelfTestFile("anmoxiehu.animation.json", animationJson),
+            createEditorSelfTestFile("anmoxiehu.geo.json", geometryJson),
+            createEditorSelfTestFile("anmoxiehu.png", "png-a"),
+            createEditorSelfTestFile("anmoxiehu_mob_anmoxiehu_xh.png", "png-b"),
+        ];
+    }
+
+    /**
+     * 构造最小 File-like 对象，避免自测依赖浏览器 File 构造器。
+     */
+    function createEditorSelfTestFile(name, content) {
+        return {
+            name,
+            webkitRelativePath: "",
+            text: async () => content,
+            arrayBuffer: async () => content,
+        };
     }
 
     function bindEvents() {
         elements.resourceInput.addEventListener("change", async (event) => {
-            await importFiles(event.target.files);
+            await importFiles(event.target.files, { preferSelectedEntityForDroppedFiles: true });
             event.target.value = "";
         });
 
@@ -105,28 +240,35 @@
         });
 
         elements.assignInput.addEventListener("change", async (event) => {
-            const [file] = Array.from(event.target.files || []);
+            const files = Array.from(event.target.files || []);
             const assignment = state.pendingAssignment;
             state.pendingAssignment = null;
             event.target.value = "";
-            if (!assignment || !file) {
+            elements.assignInput.multiple = false;
+            if (!assignment || !files.length) {
                 return;
             }
 
             const entity = getEntityById(assignment.entityId);
             if (!entity) {
-                addMessage("目标实体不存在，无法替换文件。", "error");
+                addMessage("目标实体不存在，无法导入文件。", "error");
                 render();
                 return;
             }
 
-            await assignFileToEntity(entity, file, assignment);
+            await assignFilesToEntity(entity, files, assignment);
             render();
         });
+
+        bindInspectorDropImportEvents();
 
         ["dragenter", "dragover"].forEach((eventName) => {
             elements.dropZone.addEventListener(eventName, (event) => {
                 event.preventDefault();
+                event.stopPropagation();
+                if (event.dataTransfer) {
+                    event.dataTransfer.dropEffect = "copy";
+                }
                 elements.dropZone.classList.add("is-dragging");
             });
         });
@@ -135,8 +277,9 @@
             elements.dropZone.addEventListener(eventName, (event) => {
                 event.preventDefault();
                 if (eventName === "drop") {
+                    event.stopPropagation();
                     elements.dropZone.classList.remove("is-dragging");
-                    void importFiles(event.dataTransfer.files, { preferSelectedEntityForDroppedFiles: true });
+                    void importDroppedFiles(event.dataTransfer, { preferSelectedEntityForDroppedFiles: true });
                     return;
                 }
                 const relatedTarget = event.relatedTarget;
@@ -147,6 +290,320 @@
         });
     }
 
+    /**
+     * 打开当前实体的资源文件选择器；新增资源允许多选，替换已有资源保持单选。
+     */
+    function openEntityResourceFilePicker(entity, type, resourceId) {
+        state.pendingAssignment = {
+            entityId: entity.id,
+            type,
+        };
+        if (resourceId) {
+            state.pendingAssignment.resourceId = resourceId;
+        }
+        elements.assignInput.accept = type === "texture" ? ".png" : ".json";
+        elements.assignInput.multiple = !resourceId;
+        elements.assignInput.click();
+    }
+
+    /**
+     * 绑定右侧详情面板的外部文件拖入，减少必须命中特定导入框的操作成本。
+     */
+    function bindInspectorDropImportEvents() {
+        ["dragenter", "dragover"].forEach((eventName) => {
+            elements.inspector.addEventListener(eventName, (event) => {
+                if (!isExternalFileDrag(event)) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                event.dataTransfer.dropEffect = "copy";
+                elements.inspector.classList.add("is-file-dragging");
+            });
+        });
+
+        ["dragleave", "drop"].forEach((eventName) => {
+            elements.inspector.addEventListener(eventName, (event) => {
+                if (!isExternalFileDrag(event)) {
+                    return;
+                }
+                event.preventDefault();
+                if (eventName === "drop") {
+                    event.stopPropagation();
+                    elements.inspector.classList.remove("is-file-dragging");
+                    void importDroppedFiles(event.dataTransfer, { preferSelectedEntityForDroppedFiles: true });
+                    return;
+                }
+                const relatedTarget = event.relatedTarget;
+                if (!relatedTarget || !elements.inspector.contains(relatedTarget)) {
+                    elements.inspector.classList.remove("is-file-dragging");
+                }
+            });
+        });
+    }
+
+    /**
+     * 判断拖拽内容是否来自系统文件，避免拦截连连看内部动作片段拖拽。
+     */
+    function isExternalFileDrag(event) {
+        const dataTransfer = event.dataTransfer;
+        return Boolean(dataTransfer && Array.from(dataTransfer.types || []).includes("Files"));
+    }
+
+    /**
+     * 统一处理拖拽文件导入，兼容普通文件、多文件和目录拖入。
+     */
+    async function importDroppedFiles(dataTransfer, options) {
+        const files = await readDroppedFiles(dataTransfer);
+        if (!files.length) {
+            addMessage(`没有读取到拖入文件。${describeDroppedDataTransfer(dataTransfer)}`, "warn");
+            render();
+            return;
+        }
+        setStatus(`已读取拖入文件 ${files.length} 个，正在导入。`);
+        await importFiles(files, {
+            ...(options || {}),
+            skipLooseAssembly: true,
+        });
+    }
+
+    /**
+     * 从 DataTransfer 中读取文件；优先走 items，避免 Windows 文件夹拖入被 files 占位项截断。
+     */
+    async function readDroppedFiles(dataTransfer) {
+        if (!dataTransfer) {
+            return [];
+        }
+
+        const files = Array.from(dataTransfer.files || []);
+        const items = Array.from(dataTransfer.items || []);
+        if (shouldUseDataTransferFiles(files, items)) {
+            return files;
+        }
+
+        if (items.length) {
+            const itemFiles = await readDroppedItemFiles(items);
+            if (itemFiles.length) {
+                return itemFiles;
+            }
+        }
+
+        return files;
+    }
+
+    /**
+     * 普通多文件拖拽优先使用 files；只有疑似目录占位时才转入 items 递归读取。
+     */
+    function shouldUseDataTransferFiles(files, items) {
+        if (!files.length) {
+            return false;
+        }
+        if (!items.length) {
+            return true;
+        }
+        if (files.length > 1) {
+            return true;
+        }
+        return files.some((file) => isSupportedImportFileName(file.name));
+    }
+
+    /**
+     * 判断拖入文件名是否是编辑器可识别的资源文件。
+     */
+    function isSupportedImportFileName(fileName) {
+        const lowerName = String(fileName || "").toLowerCase();
+        return lowerName.endsWith(".png")
+            || lowerName.endsWith(".geo.json")
+            || lowerName.endsWith(".animation.json")
+            || lowerName.endsWith(".json");
+    }
+
+    /**
+     * 从 DataTransferItem 列表读取文件；目录项会递归展开。
+     */
+    async function readDroppedItemFiles(items) {
+        const resolvedFiles = [];
+        for (const item of items) {
+            if (typeof item.getAsFileSystemHandle === "function") {
+                try {
+                    const handle = await item.getAsFileSystemHandle();
+                    const handleFiles = await readDroppedFileSystemHandleFiles(handle, handle && handle.name);
+                    if (handleFiles.length) {
+                        resolvedFiles.push(...handleFiles);
+                        continue;
+                    }
+                } catch (_error) {
+                    // 现代目录 API 失败时继续回退 webkitGetAsEntry / getAsFile。
+                }
+            }
+
+            const entry = typeof item.webkitGetAsEntry === "function" ? item.webkitGetAsEntry() : null;
+            if (entry) {
+                const entryFiles = await readDroppedEntryFiles(entry);
+                resolvedFiles.push(...entryFiles);
+                continue;
+            }
+
+            if (item.kind === "file" && typeof item.getAsFile === "function") {
+                const file = item.getAsFile();
+                if (file) {
+                    resolvedFiles.push(file);
+                }
+            }
+        }
+        return resolvedFiles;
+    }
+
+    /**
+     * 读取现代 File System Access API 的文件或目录句柄。
+     */
+    async function readDroppedFileSystemHandleFiles(handle, relativePath) {
+        if (!handle) {
+            return [];
+        }
+
+        if (handle.kind === "file") {
+            const file = await handle.getFile();
+            attachDroppedRelativePath(file, relativePath || file.name);
+            return [file];
+        }
+
+        if (handle.kind !== "directory") {
+            return [];
+        }
+
+        const files = [];
+        if (typeof handle.values === "function") {
+            for await (const childHandle of handle.values()) {
+                const childPath = joinDroppedRelativePath(relativePath, childHandle.name);
+                const childFiles = await readDroppedFileSystemHandleFiles(childHandle, childPath);
+                files.push(...childFiles);
+            }
+            return files;
+        }
+
+        if (typeof handle.entries === "function") {
+            for await (const pair of handle.entries()) {
+                const childName = pair[0];
+                const childHandle = pair[1];
+                const childPath = joinDroppedRelativePath(relativePath, childName);
+                const childFiles = await readDroppedFileSystemHandleFiles(childHandle, childPath);
+                files.push(...childFiles);
+            }
+        }
+        return files;
+    }
+
+    /**
+     * 读取拖入目录项或文件项，目录会递归展开。
+     */
+    async function readDroppedEntryFiles(entry) {
+        if (entry.isFile) {
+            const file = await readDroppedFileEntry(entry);
+            return file ? [file] : [];
+        }
+        if (entry.isDirectory) {
+            return await readDroppedDirectoryEntry(entry);
+        }
+        return [];
+    }
+
+    /**
+     * 将 FileSystemFileEntry 转成 File 对象。
+     */
+    function readDroppedFileEntry(entry) {
+        return new Promise((resolve) => {
+            entry.file((file) => {
+                attachDroppedRelativePath(file, entry.fullPath);
+                resolve(file);
+            }, () => resolve(null));
+        });
+    }
+
+    /**
+     * 递归读取 FileSystemDirectoryEntry，readEntries 需要循环直到返回空数组。
+     */
+    async function readDroppedDirectoryEntry(entry) {
+        const reader = entry.createReader();
+        const files = [];
+        while (true) {
+            const entries = await readDroppedDirectoryEntries(reader);
+            if (!entries.length) {
+                break;
+            }
+            for (const childEntry of entries) {
+                const childFiles = await readDroppedEntryFiles(childEntry);
+                files.push(...childFiles);
+            }
+        }
+        return files;
+    }
+
+    /**
+     * 读取目录的一批子项，浏览器可能分批返回。
+     */
+    function readDroppedDirectoryEntries(reader) {
+        return new Promise((resolve) => {
+            reader.readEntries((entries) => resolve(entries || []), () => resolve([]));
+        });
+    }
+
+    /**
+     * 给目录拖拽读出的 File 补相对路径，保留资源包目录结构。
+     */
+    function attachDroppedRelativePath(file, relativePath) {
+        if (!file) {
+            return;
+        }
+        const normalizedPath = normalizeDroppedRelativePath(relativePath || file.name);
+        if (!normalizedPath || file.webkitRelativePath) {
+            return;
+        }
+        try {
+            Object.defineProperty(file, "webkitRelativePath", {
+                value: normalizedPath,
+                configurable: true,
+            });
+        } catch (_error) {
+            // 部分浏览器的 File 对象不可扩展，失败时退回 file.name 导入。
+        }
+    }
+
+    /**
+     * 拼接拖拽目录中的相对路径。
+     */
+    function joinDroppedRelativePath(parentPath, childName) {
+        const parent = normalizeDroppedRelativePath(parentPath || "");
+        return parent ? `${parent}/${childName}` : childName;
+    }
+
+    /**
+     * 规范化拖拽目录路径，去掉 FileSystemEntry.fullPath 开头的斜杠。
+     */
+    function normalizeDroppedRelativePath(path) {
+        return String(path || "")
+            .replace(/\\/g, "/")
+            .replace(/^\/+/, "");
+    }
+
+    /**
+     * 生成拖拽失败诊断，直接展示浏览器实际给了哪些 DataTransfer 信息。
+     */
+    function describeDroppedDataTransfer(dataTransfer) {
+        if (!dataTransfer) {
+            return "浏览器没有提供 dataTransfer。";
+        }
+        const types = Array.from(dataTransfer.types || []);
+        const files = Array.from(dataTransfer.files || []);
+        const items = Array.from(dataTransfer.items || []);
+        const itemSummary = items.slice(0, 6).map((item, index) => {
+            const hasEntry = typeof item.webkitGetAsEntry === "function";
+            const hasHandle = typeof item.getAsFileSystemHandle === "function";
+            return `${index}:${item.kind || "unknown"}/${item.type || "no-type"}/entry=${hasEntry}/handle=${hasHandle}`;
+        }).join("; ");
+        return `拖拽诊断 types=${types.join("|") || "空"} files=${files.length} items=${items.length}${itemSummary ? ` items=[${itemSummary}]` : ""}。如果 files/items 都是 0，说明当前浏览器没有把资源管理器拖拽内容交给页面。`;
+    }
+
     async function importFiles(fileList, options) {
         const files = Array.from(fileList || []);
         if (!files.length) {
@@ -154,28 +611,69 @@
         }
 
         const normalizedOptions = options || {};
-        const preferredEntity = normalizedOptions.preferSelectedEntityForDroppedFiles
+        const preferredEntity = normalizedOptions.preferredEntity
+            || (normalizedOptions.preferSelectedEntityForDroppedFiles
             ? getSelectedEntity()
-            : null;
+            : null);
 
-        let imported = 0;
+        const detectedRecords = [];
         let skipped = 0;
         for (const file of files) {
-            const success = await autoAssignFile(file, { preferredEntity });
-            if (success) {
-                imported += 1;
+            const detected = await detectImportFileRecord(file);
+            if (detected) {
+                detectedRecords.push(detected);
             } else {
                 skipped += 1;
             }
         }
 
+        if (!preferredEntity && !normalizedOptions.skipLooseAssembly) {
+            const assembled = await tryImportLooseAssemblyRecords(detectedRecords);
+            if (assembled) {
+                if (skipped) {
+                    addMessage(`有 ${skipped} 个文件未识别或导入失败。`, "warn");
+                }
+                render();
+                return;
+            }
+        }
+
+        let imported = 0;
+        for (const detected of detectedRecords) {
+            const success = await autoAssignDetectedRecord(detected, { preferredEntity });
+            if (success) {
+                imported += 1;
+            }
+        }
+
         if (imported) {
             setStatus(`已整理 ${imported} 个文件。`);
+        } else if (detectedRecords.length) {
+            setStatus(`已识别 ${detectedRecords.length} 个文件，但没有成功分配到实体。`);
+        } else {
+            setStatus(`导入结束：没有可识别文件。`);
         }
         if (skipped) {
             addMessage(`有 ${skipped} 个文件未识别或导入失败。`, "warn");
         }
         render();
+    }
+
+    /**
+     * 预读取普通导入文件，失败时只记录消息，不中断其它文件导入。
+     */
+    async function detectImportFileRecord(file) {
+        try {
+            const detected = await detectFilePayload(file);
+            if (!detected) {
+                addMessage(`未识别文件类型：${file.name}`, "warn");
+                return null;
+            }
+            return detected;
+        } catch (error) {
+            addMessage(`导入 ${file.name} 失败：${error.message}`, "error");
+            return null;
+        }
     }
 
     /**
@@ -444,6 +942,302 @@
     }
 
     /**
+     * 尝试把一批散文件识别为“本体 + 技能轨道”套装，成功后直接生成单实体。
+     */
+    async function tryImportLooseAssemblyRecords(records) {
+        const assembly = buildLooseAssemblyImportPlan(records);
+        if (!assembly) {
+            return false;
+        }
+
+        const baseName = requestLooseAssemblyBaseName(assembly.bodyBaseName);
+        if (!baseName) {
+            addMessage("已取消散文件自动装配，保留普通逐文件导入流程。", "warn");
+            return false;
+        }
+
+        const entity = createLooseAssemblyEntity(baseName, assembly);
+        state.entities.unshift(entity);
+        selectEntity(entity.id);
+        setStatus(`已自动装配散文件实体：${entity.baseName}。`);
+        addMessage(`散文件自动装配完成：本体 1 个，技能轨道 ${assembly.skillBundles.length} 个。`, "info");
+        return true;
+    }
+
+    /**
+     * 生成散文件自动装配计划，只在命名特征足够明确时启用，避免误伤普通批量导入。
+     */
+    function buildLooseAssemblyImportPlan(records) {
+        const geometriesByBaseName = new Map();
+        const texturesByBaseName = new Map();
+        const animationsByBaseName = new Map();
+
+        records.forEach((record) => {
+            const baseName = deriveBaseNameFromFile(record.file.name, record.type);
+            if (record.type === "geometry") {
+                geometriesByBaseName.set(baseName, record);
+            } else if (record.type === "texture") {
+                texturesByBaseName.set(baseName, record);
+            } else if (record.type === "animation") {
+                animationsByBaseName.set(baseName, record);
+            }
+        });
+
+        const modelPairs = Array.from(geometriesByBaseName.entries())
+            .map(([baseName, geometry]) => ({
+                baseName,
+                geometry,
+                texture: texturesByBaseName.get(baseName) || null,
+                skillIndex: parseLooseSkillIndex(baseName),
+            }))
+            .filter((item) => item.texture);
+        const bodyPair = modelPairs.find((item) => !item.skillIndex);
+        const skillBundles = modelPairs
+            .filter((item) => item.skillIndex)
+            .map((item) => ({
+                ...item,
+                animation: animationsByBaseName.get(item.baseName) || null,
+            }))
+            .filter((item) => item.animation)
+            .sort((left, right) => left.skillIndex - right.skillIndex);
+        const bodyAnimation = findLooseBodyAnimationRecord(animationsByBaseName, skillBundles);
+
+        if (!bodyPair || !bodyAnimation || skillBundles.length < 2) {
+            return null;
+        }
+
+        return {
+            bodyBaseName: bodyPair.baseName,
+            bodyGeometry: bodyPair.geometry,
+            bodyTexture: bodyPair.texture,
+            bodyAnimation,
+            skillBundles,
+        };
+    }
+
+    /**
+     * 从中文或英文技能文件名中提取技能序号，例如“噬魂者技能3”或 skill3。
+     */
+    function parseLooseSkillIndex(baseName) {
+        const match = String(baseName || "").match(/(?:技能|skill)\s*([0-9]+)/i);
+        return match ? Number.parseInt(match[1], 10) : 0;
+    }
+
+    /**
+     * 找出本体动作集合：它通常不是技能模型同名动作，并且包含多段动作。
+     */
+    function findLooseBodyAnimationRecord(animationsByBaseName, skillBundles) {
+        const skillNames = new Set(skillBundles.map((item) => item.baseName));
+        return Array.from(animationsByBaseName.entries())
+            .map(([baseName, record]) => ({
+                baseName,
+                record,
+                animationCount: record.animationNames.length,
+            }))
+            .filter((item) => !skillNames.has(item.baseName))
+            .sort((left, right) => right.animationCount - left.animationCount)[0]?.record || null;
+    }
+
+    /**
+     * 散文件没有服务端配置名来源，所以让用户确认导出的实体基础名。
+     */
+    function requestLooseAssemblyBaseName(defaultBaseName) {
+        const fallbackName = normalizeImportedBaseName(defaultBaseName || "imported_entity");
+        const input = window.prompt("检测到多模型散文件套装，请输入导出的实体基础名。", fallbackName);
+        if (input === null) {
+            return "";
+        }
+        return ensureUniqueEntityBaseName(input || fallbackName);
+    }
+
+    /**
+     * 根据散文件装配计划创建单实体，并直接写好资源 key、渲染器和动画控制器。
+     */
+    function createLooseAssemblyEntity(baseName, assembly) {
+        const entity = createEntity(baseName);
+        const geometries = getGeometryResources(entity);
+        const textures = getTextureResources(entity);
+        const animations = getAnimationResources(entity);
+        const bodyGeometry = createGeometryResource({
+            sourceName: assembly.bodyGeometry.file.name,
+            json: assembly.bodyGeometry.json,
+            resourceKey: CONNECTION_BODY_RESOURCE_KEY,
+        });
+        const bodyTexture = createTextureResource({
+            sourceName: assembly.bodyTexture.file.name,
+            buffer: assembly.bodyTexture.buffer,
+            resourceKey: CONNECTION_BODY_RESOURCE_KEY,
+        });
+
+        geometries.push(bodyGeometry);
+        textures.push(bodyTexture);
+        const bodyAnimationResource = createAnimationResource({
+            sourceName: assembly.bodyAnimation.file.name,
+            json: assembly.bodyAnimation.json,
+            animationNames: [...assembly.bodyAnimation.animationNames],
+        });
+        animations.push(bodyAnimationResource);
+
+        const skillRoles = [];
+        assembly.skillBundles.forEach((bundle, index) => {
+            const trackKey = CONNECTION_SKILL_TRACK_KEYS[index];
+            const geometry = createGeometryResource({
+                sourceName: bundle.geometry.file.name,
+                json: bundle.geometry.json,
+                resourceKey: trackKey,
+            });
+            const texture = createTextureResource({
+                sourceName: bundle.texture.file.name,
+                buffer: bundle.texture.buffer,
+                resourceKey: trackKey,
+            });
+            geometries.push(geometry);
+            textures.push(texture);
+            const animationResource = createAnimationResource({
+                sourceName: bundle.animation.file.name,
+                json: bundle.animation.json,
+                animationNames: [...bundle.animation.animationNames],
+            });
+            animations.push(animationResource);
+            skillRoles.push({
+                trackKey,
+                skillIndex: bundle.skillIndex,
+                geometry,
+                texture,
+                animation: bundle.animation,
+                animationResource,
+            });
+        });
+
+        entity.renderControllers = buildLooseAssemblyRenderControllers(bodyGeometry, bodyTexture, skillRoles);
+        entity.animationControllerBindings = buildLooseAssemblyAnimationBindings(assembly.bodyAnimation, skillRoles);
+        entity.connectionAssembly = buildLooseConnectionAssemblyMirror(entity, bodyGeometry, bodyTexture, bodyAnimationResource, skillRoles);
+        return entity;
+    }
+
+    /**
+     * 散文件渲染器按本体 default 和技能 a-z 固定生成。
+     */
+    function buildLooseAssemblyRenderControllers(bodyGeometry, bodyTexture, skillRoles) {
+        return [
+            createRenderControllerBinding({
+                controller: DEFAULT_RENDER_CONTROLLER,
+                condition: "",
+                geometryMappings: {
+                    [CONNECTION_BODY_RESOURCE_KEY]: bodyGeometry.id,
+                },
+                textureMappings: {
+                    [CONNECTION_BODY_RESOURCE_KEY]: bodyTexture.id,
+                },
+            }),
+            ...skillRoles.map((role) => createRenderControllerBinding({
+                controller: resolveSkillRenderController(role.trackKey),
+                condition: "",
+                geometryMappings: {
+                    [role.trackKey]: role.geometry.id,
+                },
+                textureMappings: {
+                    [role.trackKey]: role.texture.id,
+                },
+            })),
+        ];
+    }
+
+    /**
+     * 散文件动画控制器保持旧导出风格：技能轨道先写，本体动作集合最后写。
+     */
+    function buildLooseAssemblyAnimationBindings(bodyAnimation, skillRoles) {
+        const bindings = skillRoles.map((role, index) => {
+            const sourceName = role.animation.animationNames[0] || "";
+            return createAnimationControllerBinding({
+                key: index === 0 ? DEFAULT_ANIMATION_BINDING_KEY : `test${index === 1 ? "" : index}`,
+                controller: resolveSkillTrackAnimationController(role.trackKey, [sourceName]),
+                targetGeometryKey: role.trackKey,
+                animationMappings: {
+                    [`skill1${role.trackKey.toUpperCase()}`]: sourceName,
+                },
+            });
+        });
+
+        bindings.push(createAnimationControllerBinding({
+            key: `test${skillRoles.length}`,
+            controller: "controller.animation.entity_skill8.default",
+            targetGeometryKey: CONNECTION_BODY_RESOURCE_KEY,
+            animationMappings: buildLooseBodyAnimationMappings(bodyAnimation.animationNames),
+        }));
+        return bindings;
+    }
+
+    /**
+     * 按常见中文拼音动作名推断本体 idle/walk/skill1-8 槽位。
+     */
+    function buildLooseBodyAnimationMappings(animationNames) {
+        const mappings = {};
+        animationNames.forEach((animationName) => {
+            const slotName = inferLooseBodySlotName(animationName);
+            if (slotName && !mappings[slotName]) {
+                mappings[slotName] = animationName;
+            }
+        });
+        return mappings;
+    }
+
+    /**
+     * 从本体动作名推断槽位，兼容待机、走路、普通攻击和技能 N 的拼音命名。
+     */
+    function inferLooseBodySlotName(animationName) {
+        const finalName = String(animationName || "").split(".").filter(Boolean).pop() || "";
+        const normalized = finalName.toLowerCase();
+        if (/(^|_)idle($|_)|dai_?ji/.test(normalized)) {
+            return "idle";
+        }
+        if (/(^|_)walk($|_)|zou_?lu/.test(normalized)) {
+            return "walk";
+        }
+        if (/pu_?tong_?gong_?ji/.test(normalized)) {
+            return "skill1";
+        }
+
+        const skillMatch = normalized.match(/ji_?neng_?([0-9]+)/) || normalized.match(/skill_?([0-9]+)/);
+        if (skillMatch) {
+            return `skill${Number.parseInt(skillMatch[1], 10) + 1}`;
+        }
+        return "";
+    }
+
+    /**
+     * 为自动装配出的实体生成连连看镜像状态，方便用户进入连连看后继续改。
+     */
+    function buildLooseConnectionAssemblyMirror(entity, bodyGeometry, bodyTexture, bodyAnimation, skillRoles) {
+        const assembly = createDefaultConnectionAssembly();
+        assembly.mode = CONNECTION_ASSEMBLY_MODE_LEGACY;
+        assembly.body = createConnectionAssemblyRole({
+            geometryResourceId: bodyGeometry.id,
+            textureResourceId: bodyTexture.id,
+            animationResourceId: bodyAnimation.id,
+            animationController: "controller.animation.entity_skill8.default",
+            animationMappings: buildLooseBodyAnimationMappings(bodyAnimation.animationNames),
+            animationNames: bodyAnimation.animationNames,
+            confirmed: true,
+        });
+        assembly.skills = skillRoles.map((role) => createConnectionAssemblySkillTrack({
+            trackKey: role.trackKey,
+            skillIndex: role.skillIndex,
+            geometryResourceId: role.geometry.id,
+            textureResourceId: role.texture.id,
+            animationResourceId: role.animationResource ? role.animationResource.id : "",
+            animationController: resolveSkillTrackAnimationController(role.trackKey, role.animation.animationNames),
+            animationMappings: {
+                [`skill1${role.trackKey.toUpperCase()}`]: role.animation.animationNames[0] || "",
+            },
+            animationNames: role.animation.animationNames,
+            confirmed: true,
+        }));
+        assembly.diagnostics = collectConnectionAssemblyDiagnostics(entity, assembly);
+        return assembly;
+    }
+
+    /**
      * 清洗客户端实体 description 中的 key -> string 字段。
      */
     function normalizeClientEntityStringMap(input) {
@@ -702,6 +1496,7 @@
                 sourceName: `${record.sourceName}#${record.identifier}`,
                 json: cloneGeometryJsonForImport(record),
             });
+            resource.hasExportRootWrapper = hasGeneratedExportRootWrapper(resource);
             geometryResources.push(resource);
             resourceByKey.set(normalizeResourceKey(key), resource);
         });
@@ -1053,13 +1848,55 @@
             if (!geometryItem || !Array.isArray(geometryItem.bones)) {
                 return;
             }
+            const skipExportRootWrapper = resource.hasExportRootWrapper
+                && isGeneratedExportRootWrapperGeometry(geometryItem);
             geometryItem.bones.forEach((bone) => {
                 if (bone && typeof bone.name === "string" && bone.name.trim()) {
+                    if (skipExportRootWrapper && bone.name.trim() === "root") {
+                        return;
+                    }
                     boneNames.add(bone.name.trim());
                 }
             });
         });
         return boneNames;
+    }
+
+    /**
+     * 判断模型资源是否已经带有编辑器导出的外层 root，避免资源包回导后再次套 root。
+     */
+    function hasGeneratedExportRootWrapper(resource) {
+        if (!resource || !resource.json || typeof resource.json !== "object") {
+            return false;
+        }
+
+        const geometries = Array.isArray(resource.json["minecraft:geometry"])
+            ? resource.json["minecraft:geometry"]
+            : [];
+        return geometries.length > 0 && geometries.every(isGeneratedExportRootWrapperGeometry);
+    }
+
+    /**
+     * 识别编辑器导出的空 root 包装层：它只负责整体缩放，不应该参与业务骨骼隔离。
+     */
+    function isGeneratedExportRootWrapperGeometry(geometryItem) {
+        if (!geometryItem || !Array.isArray(geometryItem.bones) || !geometryItem.bones.length) {
+            return false;
+        }
+
+        const rootBone = geometryItem.bones[0];
+        if (!rootBone || rootBone.name !== "root" || rootBone.parent) {
+            return false;
+        }
+        if (rootBone.cubes || rootBone.locators || rootBone.poly_mesh || rootBone.texture_meshes) {
+            return false;
+        }
+        if (Array.isArray(rootBone.pivot) && rootBone.pivot.some((value) => Number(value) !== 0)) {
+            return false;
+        }
+        return geometryItem.bones.some((bone, index) => {
+            return index > 0 && bone && bone.parent === "root";
+        });
     }
 
     /**
@@ -1152,7 +1989,7 @@
     /**
      * 导出 geometry 时强制补一个最外层包装 `root`，专门给整体缩放动画使用。
      */
-    function wrapGeometryBonesWithRoot(geometryItem) {
+    function wrapGeometryBonesWithRoot(geometryItem, resource) {
         if (!geometryItem || !Array.isArray(geometryItem.bones)) {
             return;
         }
@@ -1163,21 +2000,47 @@
             geometryItem.bones = bones;
             return;
         }
+        if (resource && resource.hasExportRootWrapper && isGeneratedExportRootWrapperGeometry({ ...geometryItem, bones })) {
+            geometryItem.bones = bones;
+            return;
+        }
+
+        const resourceRootName = buildResourceRootBoneName(resource);
+        const hasResourceRoot = bones.some((bone) => bone.name === resourceRootName);
+        const resourceRootBone = hasResourceRoot ? null : {
+            name: resourceRootName,
+            parent: "root",
+            pivot: [0, 0, 0],
+        };
 
         bones.forEach((bone) => {
             if (bone.name === "root") {
                 return;
             }
+            if (bone.name === resourceRootName) {
+                if (!bone.parent) {
+                    bone.parent = "root";
+                }
+                return;
+            }
             if (typeof bone.parent === "string" && bone.parent.trim()) {
                 return;
             }
-            bone.parent = "root";
+            bone.parent = resourceRootName;
         });
 
         geometryItem.bones = [{
             name: "root",
             pivot: [0, 0, 0],
-        }].concat(bones);
+        }].concat(resourceRootBone ? [resourceRootBone] : [], bones);
+    }
+
+    /**
+     * 为每个模型资源生成内部包装骨骼名，用于隔离技能模型的顶层组。
+     */
+    function buildResourceRootBoneName(resource) {
+        const resourceKey = resource && resource.resourceKey ? resource.resourceKey : CONNECTION_BODY_RESOURCE_KEY;
+        return `${BONE_NAMESPACE_PREFIX}_${normalizeBoneNamePart(resourceKey)}_root`;
     }
 
     async function autoAssignFile(file, options) {
@@ -1190,10 +2053,12 @@
 
             const preferredEntity = options && options.preferredEntity;
             if (preferredEntity && ["texture", "geometry", "animation"].includes(detected.type)) {
-                await applyRecordToEntity(preferredEntity, detected, null);
+                const applied = await applyRecordToEntity(preferredEntity, detected, null);
                 selectEntity(preferredEntity.id);
-                addMessage(`已将${typeLabel(detected.type)}优先赋予当前选中实体：${preferredEntity.baseName || "未命名实体"}。`, "info");
-                return true;
+                if (applied) {
+                    addMessage(`已将${typeLabel(detected.type)}优先赋予当前选中实体：${preferredEntity.baseName || "未命名实体"}。`, "info");
+                }
+                return applied;
             }
 
             const candidateBaseName = deriveBaseNameFromFile(file.name, detected.type);
@@ -1203,15 +2068,71 @@
                 state.entities.unshift(entity);
             }
 
-            await applyRecordToEntity(entity, detected, null);
+            const applied = await applyRecordToEntity(entity, detected, null);
             selectEntity(entity.id);
-            return true;
+            return applied;
         } catch (error) {
             addMessage(`导入 ${file.name} 失败：${error.message}`, "error");
             return false;
         }
     }
 
+    /**
+     * 将已经识别好的导入记录分配到实体，避免预读取后重复解析文件。
+     */
+    async function autoAssignDetectedRecord(detected, options) {
+        try {
+            if (!detected) {
+                return false;
+            }
+
+            const preferredEntity = options && options.preferredEntity;
+            if (preferredEntity && ["texture", "geometry", "animation"].includes(detected.type)) {
+                const applied = await applyRecordToEntity(preferredEntity, detected, null);
+                selectEntity(preferredEntity.id);
+                if (applied) {
+                    addMessage(`已将${typeLabel(detected.type)}优先赋予当前选中实体：${preferredEntity.baseName || "未命名实体"}。`, "info");
+                }
+                return applied;
+            }
+
+            const candidateBaseName = deriveBaseNameFromFile(detected.file.name, detected.type);
+            let entity = findEntityByBaseName(candidateBaseName);
+            if (!entity) {
+                entity = createEntity(candidateBaseName);
+                state.entities.unshift(entity);
+            }
+
+            const applied = await applyRecordToEntity(entity, detected, null);
+            selectEntity(entity.id);
+            return applied;
+        } catch (error) {
+            const fileName = detected && detected.file ? detected.file.name : "未知文件";
+            addMessage(`导入 ${fileName} 失败：${error.message}`, "error");
+            return false;
+        }
+    }
+
+    /**
+     * 按当前选择器语义分发文件：替换只处理首个文件，新增会逐个追加。
+     */
+    async function assignFilesToEntity(entity, files, assignment) {
+        if (assignment && assignment.resourceId) {
+            if (files.length > 1) {
+                addMessage("替换已有资源时只会使用第一个文件，其余文件已忽略。", "warn");
+            }
+            await assignFileToEntity(entity, files[0], assignment);
+            return;
+        }
+
+        for (const file of files) {
+            await assignFileToEntity(entity, file, assignment);
+        }
+    }
+
+    /**
+     * 将单个文件写入实体资源；带 resourceId 时替换，否则追加一个新资源。
+     */
     async function assignFileToEntity(entity, file, assignment) {
         try {
             const expectedType = assignment && assignment.type;
@@ -1221,9 +2142,10 @@
                 return;
             }
             await applyRecordToEntity(entity, detected, assignment);
-            setStatus(`已替换 ${entity.baseName || "未命名实体"} 的${typeLabel(expectedType)}。`);
+            const actionLabel = assignment && assignment.resourceId ? "替换" : "追加";
+            setStatus(`已${actionLabel} ${entity.baseName || "未命名实体"} 的${typeLabel(expectedType)}。`);
         } catch (error) {
-            addMessage(`替换 ${file.name} 失败：${error.message}`, "error");
+            addMessage(`导入 ${file.name} 失败：${error.message}`, "error");
         }
     }
 
@@ -1278,7 +2200,9 @@
             || (json && typeof json === "object" && json.animations && typeof json.animations === "object");
     }
 
-    async function applyRecordToEntity(entity, detected, assignment) {
+    async function applyRecordToEntity(entity, detected, assignment, options) {
+        const sourcePath = getImportFileSourcePath(detected.file);
+        const reuseDuplicateResource = options && options.reuseDuplicateResource === true;
         if (detected.type === "texture") {
             const resources = getTextureResources(entity);
             const existing = assignment && assignment.resourceId
@@ -1287,17 +2211,22 @@
 
             if (existing) {
                 existing.sourceName = detected.file.name;
+                existing.sourcePath = sourcePath;
                 existing.buffer = detected.buffer;
+            } else if (hasDuplicateImportResource(resources, sourcePath)) {
+                addMessage(`已跳过重复贴图：${sourcePath}`, "warn");
+                return reuseDuplicateResource ? findImportResourceBySourcePath(resources, sourcePath) || false : false;
             } else {
                 resources.push(createTextureResource({
                     sourceName: detected.file.name,
+                    sourcePath,
                     buffer: detected.buffer,
                     resourceKey: suggestResourceKey(resources, detected.file.name, "texture"),
                 }));
             }
 
             addMessage(`已载入贴图：${detected.file.name}`, "info");
-            return;
+            return existing || resources[resources.length - 1];
         }
 
         if (detected.type === "geometry") {
@@ -1308,17 +2237,22 @@
 
             if (existing) {
                 existing.sourceName = detected.file.name;
+                existing.sourcePath = sourcePath;
                 existing.json = detected.json;
+            } else if (hasDuplicateImportResource(resources, sourcePath)) {
+                addMessage(`已跳过重复模型：${sourcePath}`, "warn");
+                return reuseDuplicateResource ? findImportResourceBySourcePath(resources, sourcePath) || false : false;
             } else {
                 resources.push(createGeometryResource({
                     sourceName: detected.file.name,
+                    sourcePath,
                     json: detected.json,
                     resourceKey: suggestResourceKey(resources, detected.file.name, "geometry"),
                 }));
             }
 
             addMessage(`已载入模型：${detected.file.name}`, "info");
-            return;
+            return existing || resources[resources.length - 1];
         }
 
         if (detected.type === "animation") {
@@ -1329,11 +2263,16 @@
 
             if (existing) {
                 existing.sourceName = detected.file.name;
+                existing.sourcePath = sourcePath;
                 existing.json = detected.json;
                 existing.animationNames = [...detected.animationNames];
+            } else if (hasDuplicateImportResource(resources, sourcePath)) {
+                addMessage(`已跳过重复动作：${sourcePath}`, "warn");
+                return reuseDuplicateResource ? findImportResourceBySourcePath(resources, sourcePath) || false : false;
             } else {
                 resources.push(createAnimationResource({
                     sourceName: detected.file.name,
+                    sourcePath,
                     json: detected.json,
                     animationNames: detected.animationNames,
                 }));
@@ -1341,7 +2280,44 @@
 
             refreshAnimationBindings(entity);
             addMessage(`已载入动作：${detected.file.name}`, "info");
+            return existing || resources[resources.length - 1];
         }
+        return false;
+    }
+
+    /**
+     * 按导入来源路径找已存在资源，轨道拖入重复文件时复用旧资源而不是再创建一份。
+     */
+    function findImportResourceBySourcePath(resources, sourcePath) {
+        const normalizedSourcePath = normalizeDroppedRelativePath(sourcePath);
+        if (!normalizedSourcePath) {
+            return null;
+        }
+        return (resources || []).find((resource) => {
+            const existingPath = normalizeDroppedRelativePath(resource.sourcePath || resource.sourceName);
+            return existingPath === normalizedSourcePath;
+        }) || null;
+    }
+
+    /**
+     * 读取导入文件来源路径；目录导入保留相对路径，普通拖入退回文件名。
+     */
+    function getImportFileSourcePath(file) {
+        return normalizeDroppedRelativePath((file && (file.webkitRelativePath || file.name)) || "");
+    }
+
+    /**
+     * 检查同类资源是否已经导入过相同来源；旧资源没有 sourcePath 时按 sourceName 兼容。
+     */
+    function hasDuplicateImportResource(resources, sourcePath) {
+        const normalizedSourcePath = normalizeDroppedRelativePath(sourcePath);
+        if (!normalizedSourcePath) {
+            return false;
+        }
+        return (resources || []).some((resource) => {
+            const existingPath = normalizeDroppedRelativePath(resource.sourcePath || resource.sourceName);
+            return existingPath === normalizedSourcePath;
+        });
     }
 
     async function exportZip() {
@@ -1351,7 +2327,9 @@
             return;
         }
 
-        const errors = collectExportErrors();
+        prepareAllEntitiesForExport();
+        const exportDiagnostics = collectExportDiagnostics();
+        const errors = exportDiagnostics.errors;
         if (errors.length) {
             selectEntity(errors[0].entityId);
             setStatus(errors[0].message);
@@ -1359,6 +2337,7 @@
             render();
             return;
         }
+        exportDiagnostics.warnings.slice(0, 4).forEach((warning) => addMessage(warning.message, "warn"));
 
         const zip = new window.JSZip();
 
@@ -1530,6 +2509,10 @@
             const renderControllers = getRenderControllers(entity);
             const animationBindings = getAnimationControllerBindings(entity);
             const mergedAnimationData = getMergedAnimationEntries(entity);
+            const connectionDiagnostics = normalizeConnectionAssemblyDiagnostics(getConnectionAssembly(entity).diagnostics);
+            connectionDiagnostics.errors.forEach((error) => {
+                errors.push({ entityId: entity.id, message: `${name} ${error.message}` });
+            });
             if (!entity.baseName.trim()) {
                 errors.push({ entityId: entity.id, message: `${name} 缺少实体基础名。` });
             }
@@ -1614,6 +2597,28 @@
         return dedupeErrors(errors);
     }
 
+    /**
+     * 汇总导出诊断结果，后续新连连看校验面板直接消费 errors/warnings/infos。
+     */
+    function collectExportDiagnostics() {
+        const diagnostics = {
+            errors: collectExportErrors(),
+            warnings: [],
+            infos: [],
+        };
+        state.entities.forEach((entity) => {
+            const entityName = entity.baseName || "未命名实体";
+            const connectionDiagnostics = normalizeConnectionAssemblyDiagnostics(getConnectionAssembly(entity).diagnostics);
+            connectionDiagnostics.warnings.forEach((warning) => {
+                diagnostics.warnings.push({ entityId: entity.id, message: `${entityName} ${warning.message}` });
+            });
+            connectionDiagnostics.infos.forEach((info) => {
+                diagnostics.infos.push({ entityId: entity.id, message: `${entityName} ${info.message}` });
+            });
+        });
+        return diagnostics;
+    }
+
     function buildNormalizedPayload(entity) {
         const boneIsolationContext = buildGeometryBoneIsolationContext(entity);
         const geometryJson = normalizeGeometryJson(entity, boneIsolationContext);
@@ -1656,7 +2661,7 @@
                 item.description = item.description || {};
                 item.description.identifier = buildGeometryResourceIdentifier(entity, resource, index);
                 renameGeometryBones(item, getBoneRenameMapForResource(boneIsolationContext, resource.resourceKey));
-                wrapGeometryBonesWithRoot(item);
+                wrapGeometryBonesWithRoot(item, resource);
                 mergedGeometries.push(item);
             });
         });
@@ -2991,30 +3996,8 @@
      * 渲染连连看编辑器主界面，所有连线最终仍然写回原有映射字段。
      */
     function renderConnectionBoardHtml(entity, context) {
-        const geometryNodes = context.geometryResources.map((resource) => ({
-            nodeId: getGraphNodeId("geometry", resource.id),
-            title: resource.resourceKey,
-            subtitle: resource.sourceName || "未命名模型",
-            type: "geometry",
-            resourceId: resource.id,
-            animationName: "",
-        }));
-        const textureNodes = context.textureResources.map((resource) => ({
-            nodeId: getGraphNodeId("texture", resource.id),
-            title: resource.resourceKey,
-            subtitle: resource.sourceName || "未命名贴图",
-            type: "texture",
-            resourceId: resource.id,
-            animationName: "",
-        }));
-        const animationNodes = context.availableAnimations.map((animationName) => ({
-            nodeId: getGraphNodeId("animation", animationName),
-            title: animationName,
-            subtitle: findAnimationSourceNameByAnimationName(entity, animationName) || "合并动作文件",
-            type: "animation",
-            resourceId: "",
-            animationName,
-        }));
+        ensureConnectionAssemblyEditorReady(entity);
+        const connectionDiagnostics = prepareEntityForExport(entity);
 
         return `
             <div class="detail-actions">
@@ -3047,19 +4030,37 @@
                         </select>
                         <p class="field-hint">关闭后允许多个模型共享普通骨骼名；root 仍会避让整体缩放包装层。</p>
                     </div>
-                    <div class="field">
-                        <label>系统内置控制器</label>
-                        <div class="readonly-field">${escapeHtml(SYSTEM_SCALE_CONTROLLER_KEY)} -> ${escapeHtml(SYSTEM_SCALE_CONTROLLER_NAME)}</div>
-                        <p class="field-hint">缩放控制器固定存在，不开放连线编辑。</p>
-                    </div>
                 </div>
             </section>
 
-            <section class="section-card connection-section">
+            ${renderConnectionAssemblyOverviewHtml(entity, context, connectionDiagnostics)}
+
+            ${renderEntityProfileSectionHtml(context.entityProfile)}
+            ${renderTitleProfileSectionHtml(
+                context.titleProfile,
+                context.titleTextColorState,
+                context.titleBackgroundColorState,
+                context.titleDepthTestValue
+            )}
+            ${renderBoneIsolationWarningSectionHtml(entity)}
+            ${renderUnusedAnimationsSectionHtml(context.unusedAnimations)}
+        `;
+    }
+
+    /**
+     * 渲染旧控制器连线板的高级折叠区，主流程不再强迫用户先理解控制器。
+     */
+    function renderConnectionBoardAdvancedBoardHtml(entity, context, geometryNodes, textureNodes, animationNodes) {
+        return `
+            <details class="section-card connection-section advanced-connection-details">
+                <summary>
+                    <span>高级：旧控制器连线板</span>
+                    <small>用于手动排查 render_controller / animation_controller，普通装配不需要展开。</small>
+                </summary>
                 <div class="detail-actions">
                     <div>
-                        <h3>资源连线板</h3>
-                        <p class="field-hint">渲染器卡片里同时装配模型和贴图；动作控制器单独装配。可以拖拽资源到槽位，或先点击资源再点击槽位。</p>
+                        <h3>旧控制器连线板</h3>
+                        <p class="field-hint">这里保留底层控制器直连能力；主流程请优先使用上方“本体 / 翅膀 / 技能轨道”。</p>
                     </div>
                     <div class="file-actions">
                         <button class="button ghost" type="button" data-action="add-texture-resource">新增贴图资源</button>
@@ -3082,20 +4083,874 @@
                         targetHtml: renderGraphAnimationTargetLane(entity, context.animationControllerBindings, context.availableAnimations),
                     })}
                 </div>
-            </section>
-
-            ${renderEntityProfileSectionHtml(context.entityProfile)}
-            ${renderTitleProfileSectionHtml(
-                context.titleProfile,
-                context.titleTextColorState,
-                context.titleBackgroundColorState,
-                context.titleDepthTestValue
-            )}
-            ${renderResourceDetailSectionsHtml(entity, context.textureResources, context.geometryResources, context.animationResources)}
-            ${renderBoneIsolationWarningSectionHtml(entity)}
-            ${renderControllerKeyReferenceSectionHtml(context.renderBindings, context.animationSlotNames)}
-            ${renderUnusedAnimationsSectionHtml(context.unusedAnimations)}
+            </details>
         `;
+    }
+
+    /**
+     * 控制器 key 参考属于高级信息，默认折叠，避免连连看继续强调控制器。
+     */
+    function renderConnectionBoardControllerReferenceDetailsHtml(renderBindings, animationSlotNames) {
+        return `
+            <details class="section-card advanced-connection-details">
+                <summary>
+                    <span>高级：控制器 Key 参考</span>
+                    <small>导出排错时使用。</small>
+                </summary>
+                ${renderControllerKeyReferenceSectionHtml(renderBindings, animationSlotNames)}
+            </details>
+        `;
+    }
+
+    /**
+     * 渲染连连看下一代装配状态概览，先作为只读诊断面板接入。
+     */
+    function renderConnectionAssemblyOverviewHtml(entity, context, diagnostics) {
+        const assembly = getConnectionAssembly(entity);
+        const modeLabel = assembly.mode === CONNECTION_ASSEMBLY_MODE_ASSEMBLY ? "业务装配模式" : "旧表单兼容模式";
+        const modeHint = assembly.mode === CONNECTION_ASSEMBLY_MODE_ASSEMBLY
+            ? "当前只需要选择本体、翅膀和技能轨道；导出前会自动整理最终配置。"
+            : "当前保留旧表单映射，不会自动覆盖底层控制器。";
+        return `
+            <section class="section-card connection-assembly-card">
+                <div class="detail-actions">
+                    <div>
+                        <h3>业务装配</h3>
+                        <p class="field-hint">${escapeHtml(modeHint)}</p>
+                    </div>
+                    <div class="assembly-mode-actions">
+                        <span class="chip ${assembly.mode === CONNECTION_ASSEMBLY_MODE_ASSEMBLY ? "" : "muted"}">${escapeHtml(modeLabel)}</span>
+                        ${assembly.mode === CONNECTION_ASSEMBLY_MODE_ASSEMBLY
+                            ? '<button class="button ghost mini" type="button" data-connection-assembly-mode="legacy">高级：暂用旧表单</button>'
+                            : '<button class="button secondary mini" type="button" data-connection-assembly-mode="assembly">进入业务装配</button>'}
+                    </div>
+                </div>
+                ${renderConnectionAssemblyDiagnosticsHtml(diagnostics)}
+                ${assembly.mode === CONNECTION_ASSEMBLY_MODE_ASSEMBLY
+                    ? renderConnectionAssemblyEditorHtml(entity, context, assembly)
+                    : '<p class="field-hint">如果你只是排查旧配置，可以留在旧表单兼容；正常连线请选择“进入业务装配”。</p>'}
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染自动装配模式下的角色和轨道编辑入口。
+     */
+    function renderConnectionAssemblyEditorHtml(entity, context, assembly) {
+        return `
+            <div class="assembly-editor">
+                ${renderConnectionAssemblyImportBar()}
+                ${renderConnectionAssemblyVisualBoard(entity, context, assembly)}
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染当前实体的轻量导入入口，避免用户只能依赖散文件自动装配。
+     */
+    function renderConnectionAssemblyImportBar() {
+        return `
+            <section class="assembly-import-bar" data-assembly-import-drop>
+                <div>
+                    <strong>追加到当前实体</strong>
+                    <p class="field-hint">可单独导入，也可一次拖入多个 png / geo.json / animation.json。</p>
+                </div>
+                <div class="file-actions">
+                    <button class="button ghost mini" type="button" data-action="add-geometry-resource">追加模型</button>
+                    <button class="button ghost mini" type="button" data-action="add-texture-resource">追加贴图</button>
+                    <button class="button ghost mini" type="button" data-action="add-animation-resource">追加动作</button>
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染业务装配主表，直接在轨道行内完成模型、贴图、动作和导出 key 的调整。
+     */
+    function renderConnectionAssemblyVisualBoard(entity, context, assembly) {
+        return `
+            <section id="connectionAssemblyBoard" class="connection-board assembly-track-board" data-assembly-import-drop>
+                <svg class="connection-board-lines" aria-hidden="true"></svg>
+                <div class="assembly-track-toolbar">
+                    <div>
+                        <h4>轨道装配</h4>
+                        <p class="field-hint">本体固定 default；翅膀可选；技能按 a-z 轨道导出。</p>
+                    </div>
+                    <button class="button ghost mini" type="button" data-action="add-connection-skill">新增技能轨道</button>
+                </div>
+                <div class="assembly-track-scroll">
+                    <div class="assembly-track-table">
+                    <div class="assembly-track-head">
+                        <span>轨道</span>
+                        <span>模型</span>
+                        <span>贴图</span>
+                        <span>动作文件</span>
+                        <span>动作 key 连线</span>
+                    </div>
+                    ${renderConnectionAssemblyTrackRow(entity, context, "body", "本体", CONNECTION_BODY_RESOURCE_KEY, assembly.body, {
+                        required: true,
+                        roleKey: "body",
+                    })}
+                    ${renderConnectionAssemblyTrackRow(entity, context, "wings", "翅膀", CONNECTION_WINGS_RESOURCE_KEY, assembly.wings, {
+                        required: false,
+                        roleKey: "wings",
+                    })}
+                    ${assembly.skills.map((skill) => renderConnectionAssemblyTrackRow(entity, context, `skill-${skill.id}`, `技能 ${skill.skillIndex}`, skill.trackKey, skill, {
+                        required: true,
+                        skill,
+                    })).join("")}
+                    </div>
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染一行可编辑轨道，保留连线节点但压缩掉重复卡片。
+     */
+    function renderConnectionAssemblyTrackRow(entity, context, rowKey, title, outputKey, role, options) {
+        const normalizedOptions = options || {};
+        const enabled = normalizedOptions.required || role.enabled;
+        const assetNodeId = getAssemblyAssetNodeId(rowKey);
+        const roleNodeId = getAssemblyRoleNodeId(rowKey);
+        const fieldTarget = normalizedOptions.skill
+            ? `data-assembly-skill-field="${escapeAttribute(normalizedOptions.skill.id)}"`
+            : `data-assembly-role-field="${escapeAttribute(normalizedOptions.roleKey)}"`;
+        return `
+            <div class="assembly-track-row-compact ${enabled ? "" : "is-disabled"}">
+                <div class="assembly-track-name" data-graph-node-id="${escapeAttribute(assetNodeId)}">
+                    <strong>${escapeHtml(title)}</strong>
+                    ${normalizedOptions.required
+                        ? '<span class="chip muted">必选</span>'
+                        : `<label class="inline-toggle"><input type="checkbox" data-assembly-role-enabled="${escapeAttribute(normalizedOptions.roleKey)}" ${role.enabled ? "checked" : ""}>启用</label>`}
+                    ${normalizedOptions.skill ? `
+                        <button class="button danger mini" type="button" data-action="remove-connection-skill" data-assembly-skill-id="${escapeAttribute(normalizedOptions.skill.id)}">移除</button>
+                    ` : ""}
+                </div>
+                <div data-graph-node-id="${escapeAttribute(roleNodeId)}" data-graph-current-node-id="${escapeAttribute(assetNodeId)}" data-graph-slot-type="geometry">
+                    ${renderConnectionAssemblyTrackResourceSlot(entity, "geometry", `${rowKey}-geometry`, role.geometryResourceId, `${fieldTarget} data-assembly-field="geometryResourceId"`, !enabled, rowKey)}
+                </div>
+                <div>
+                    ${renderConnectionAssemblyTrackResourceSlot(entity, "texture", `${rowKey}-texture`, role.textureResourceId, `${fieldTarget} data-assembly-field="textureResourceId"`, !enabled, rowKey)}
+                </div>
+                <div>
+                    ${renderConnectionAssemblyTrackResourceSlot(entity, "animation", `${rowKey}-animation`, role.animationResourceId, `${fieldTarget} data-assembly-field="animationResourceId"`, !enabled, rowKey)}
+                    ${renderConnectionAssemblyActionPool(rowKey, role, enabled)}
+                </div>
+                <div class="assembly-track-output" data-graph-current-node-id="${escapeAttribute(roleNodeId)}" data-graph-slot-type="texture">
+                    ${normalizedOptions.skill ? `
+                        <select class="compact-select assembly-track-key-select" data-assembly-skill-field="${escapeAttribute(normalizedOptions.skill.id)}" data-assembly-field="trackKey">
+                            ${renderSkillTrackKeyOptions(role.trackKey)}
+                        </select>
+                    ` : `<span class="assembly-output-key">${escapeHtml(outputKey)}</span>`}
+                    ${renderConnectionAssemblyTrackControllerSelect(role, normalizedOptions, enabled)}
+                    <span class="assembly-output-mini">渲染器固定：${escapeHtml(getConnectionAssemblyRenderSummary(outputKey, role))}</span>
+                    ${renderConnectionAssemblySlotEditor(outputKey, role, context.availableAnimations, normalizedOptions, enabled, rowKey)}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染轨道内资源槽，支持下拉选择和直接拖入模型、贴图、动作文件。
+     */
+    function renderConnectionAssemblyTrackResourceSlot(entity, type, inputId, selectedResourceId, dataAttributes, disabled, rowKey) {
+        const resources = getConnectionAssemblyResourcesByType(entity, type);
+        const emptyLabel = type === "geometry" ? "拖入或选择模型" : type === "texture" ? "拖入或选择贴图" : "拖入或选择动作文件";
+        const acceptLabel = type === "geometry" ? ".geo.json" : type === "texture" ? ".png" : ".animation.json";
+        const selectedResource = resources.find((resource) => resource.id === selectedResourceId) || null;
+        return `
+            <div
+                class="assembly-resource-drop-slot ${disabled ? "is-disabled" : ""}"
+                data-assembly-track-drop="${escapeAttribute(rowKey)}"
+                data-assembly-drop-type="${escapeAttribute(type)}"
+            >
+                <select id="assembly-${escapeAttribute(inputId)}" class="compact-select" ${dataAttributes} ${disabled ? "disabled" : ""}>
+                    <option value="">${escapeHtml(emptyLabel)}</option>
+                    ${resources.map((resource) => `
+                        <option value="${escapeAttribute(resource.id)}" ${resource.id === selectedResourceId ? "selected" : ""}>
+                            ${escapeHtml(resource.sourceName || resource.resourceKey || "未命名")}
+                        </option>
+                    `).join("")}
+                </select>
+                <small>${selectedResource ? escapeHtml(selectedResource.sourceName || selectedResource.resourceKey || selectedResource.id) : `可拖入 ${acceptLabel}`}</small>
+            </div>
+        `;
+    }
+
+    /**
+     * 按资源类型取当前实体内的资源列表，轨道资源槽统一走这里。
+     */
+    function getConnectionAssemblyResourcesByType(entity, type) {
+        if (type === "geometry") {
+            return getGeometryResources(entity);
+        }
+        if (type === "texture") {
+            return getTextureResources(entity);
+        }
+        if (type === "animation") {
+            return getAnimationResources(entity);
+        }
+        return [];
+    }
+
+    /**
+     * 渲染轨道中的动作片段池，真正编辑关系在右侧 key 槽位中完成。
+     */
+    function renderConnectionAssemblyActionPool(rowKey, role, enabled) {
+        const usedAnimations = getConnectionAssemblyUsedAnimations(role);
+        if (!usedAnimations.length) {
+            return `<p class="field-hint ${enabled ? "" : "is-disabled"}">该轨道还没有绑定动作文件。</p>`;
+        }
+        return `
+            <div class="assembly-action-pool ${enabled ? "" : "is-disabled"}">
+                ${usedAnimations.map((animationName) => `
+                    <span
+                        class="assembly-action-chip"
+                        draggable="true"
+                        data-graph-node-id="${escapeAttribute(getAssemblyActionNodeId(rowKey, animationName))}"
+                        data-assembly-action-name="${escapeAttribute(animationName)}"
+                        title="${escapeAttribute(animationName)}"
+                    >${escapeHtml(getAnimationShortName(animationName))}</span>
+                `).join("")}
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染轨道动作控制器选择；本体可选 default 系列，技能只能选当前 a-z 轨道，翅膀固定。
+     */
+    function renderConnectionAssemblyTrackControllerSelect(role, options, enabled) {
+        const normalizedOptions = options || {};
+        if (normalizedOptions.roleKey === "wings") {
+            return `<span class="assembly-controller-readonly">动作控制器：翅膀固定</span>`;
+        }
+        const controllerOptions = getConnectionAssemblyControllerOptions(role, normalizedOptions);
+        const targetAttributes = normalizedOptions.skill
+            ? `data-assembly-skill-field="${escapeAttribute(normalizedOptions.skill.id)}"`
+            : `data-assembly-role-field="${escapeAttribute(normalizedOptions.roleKey)}"`;
+        const selectedController = getConnectionAssemblySelectedController(role, normalizedOptions);
+        return `
+            <select class="compact-select assembly-controller-select" ${targetAttributes} data-assembly-field="animationController" ${enabled ? "" : "disabled"}>
+                ${controllerOptions.map((controllerName) => {
+                    const preset = getAnimationControllerPreset(controllerName);
+                    return `<option value="${escapeAttribute(controllerName)}" ${controllerName === selectedController ? "selected" : ""}>${escapeHtml(formatControllerOptionLabel(preset, controllerName))}</option>`;
+                }).join("")}
+            </select>
+        `;
+    }
+
+    /**
+     * 计算当前轨道允许选择的动作控制器，避免跨轨道误选。
+     */
+    function getConnectionAssemblyControllerOptions(role, options) {
+        const normalizedOptions = options || {};
+        if (normalizedOptions.skill) {
+            return getSkillTrackControllerOptions(role.trackKey, role.animationNames, role.animationController);
+        }
+        return getBodyTrackControllerOptions(role.animationController);
+    }
+
+    /**
+     * 本体轨道只展示 default 轨道控制器，不混入 a-z 技能控制器。
+     */
+    function getBodyTrackControllerOptions(selectedController) {
+        const options = CONTROLLER_PRESETS
+            .map((preset) => preset.name)
+            .filter((controllerName) => controllerName.endsWith(".default"))
+            .filter((controllerName) => controllerName !== CONNECTION_WINGS_CONTROLLER && controllerName !== SYSTEM_SCALE_CONTROLLER_NAME);
+        return ensureControllerOption(options, selectedController || DEFAULT_CONTROLLER);
+    }
+
+    /**
+     * 技能轨道只展示当前 trackKey 后缀的控制器，并优先放推荐控制器。
+     */
+    function getSkillTrackControllerOptions(trackKey, animationNames, selectedController) {
+        const normalizedTrackKey = normalizeSkillTrackKey(trackKey);
+        const recommended = resolveSkillTrackAnimationController(normalizedTrackKey, animationNames);
+        const options = CONTROLLER_PRESETS
+            .map((preset) => preset.name)
+            .filter((controllerName) => controllerName.endsWith(`.${normalizedTrackKey}`));
+        return ensureControllerOption(options, selectedController || recommended, recommended);
+    }
+
+    /**
+     * 确保当前选中或推荐控制器即使未收录，也能显示在下拉中供诊断提示。
+     */
+    function ensureControllerOption(options, selectedController, preferredController) {
+        const result = [...new Set((options || []).filter(Boolean))];
+        [preferredController, selectedController].filter(Boolean).reverse().forEach((controllerName) => {
+            if (!result.includes(controllerName)) {
+                result.unshift(controllerName);
+            }
+        });
+        return result;
+    }
+
+    /**
+     * 获取轨道当前生效的动作控制器名。
+     */
+    function getConnectionAssemblySelectedController(role, options) {
+        const normalizedOptions = options || {};
+        if (normalizedOptions.roleKey === "wings") {
+            return CONNECTION_WINGS_CONTROLLER;
+        }
+        if (normalizedOptions.skill) {
+            return role.animationController || resolveSkillTrackAnimationController(role.trackKey, role.animationNames);
+        }
+        return role.animationController || DEFAULT_CONTROLLER;
+    }
+
+    /**
+     * 给用户展示轨道固定渲染器，不再让连连看选择渲染控制器。
+     */
+    function getConnectionAssemblyRenderSummary(outputKey, role) {
+        if (outputKey === CONNECTION_BODY_RESOURCE_KEY) {
+            return "本体 default";
+        }
+        if (outputKey === CONNECTION_WINGS_RESOURCE_KEY) {
+            return "翅膀 default_wings";
+        }
+        return `${normalizeSkillTrackKey(role.trackKey)} 轨道`;
+    }
+
+    /**
+     * 渲染 key 槽位编辑器，每个 key 只能选择一个动作片段。
+     */
+    function renderConnectionAssemblySlotEditor(outputKey, role, availableAnimations, options, enabled, rowKey) {
+        const normalizedOptions = options || {};
+        const slotEntries = getConnectionAssemblySlotEntries(outputKey, role);
+        if (!slotEntries.length) {
+            return '<span class="field-hint">无动作 key</span>';
+        }
+        const targetAttribute = normalizedOptions.skill
+            ? `data-assembly-skill-animation-slot="${escapeAttribute(normalizedOptions.skill.id)}"`
+            : `data-assembly-role-animation-slot="${escapeAttribute(normalizedOptions.roleKey)}"`;
+        const dropTargetAttribute = normalizedOptions.skill
+            ? `data-assembly-drop-skill="${escapeAttribute(normalizedOptions.skill.id)}"`
+            : `data-assembly-drop-role="${escapeAttribute(normalizedOptions.roleKey)}"`;
+        return `
+            <div class="assembly-slot-map">
+                ${slotEntries.map((entry) => `
+                    <label
+                        class="assembly-slot-map-item"
+                        data-graph-current-node-id="${escapeAttribute(entry.animationName ? getAssemblyActionNodeId(rowKey, entry.animationName) : "")}"
+                        data-graph-slot-type="animation"
+                        ${dropTargetAttribute}
+                        data-assembly-slot-key="${escapeAttribute(entry.key)}"
+                        data-assembly-output-key="${escapeAttribute(outputKey)}"
+                    >
+                        <code>${escapeHtml(entry.key)}</code>
+                        <select class="compact-select" ${targetAttribute} data-assembly-slot-key="${escapeAttribute(entry.key)}" data-assembly-output-key="${escapeAttribute(outputKey)}" ${enabled ? "" : "disabled"}>
+                            <option value="">未连接</option>
+                            ${getConnectionAssemblyUsedAnimations(role).map((animationName) => `
+                                <option value="${escapeAttribute(animationName)}" ${entry.animationName === animationName ? "selected" : ""}>
+                                    ${escapeHtml(getAnimationShortName(animationName))}
+                                </option>
+                            `).join("")}
+                        </select>
+                    </label>
+                `).join("")}
+            </div>
+        `;
+    }
+
+    /**
+     * 汇总当前轨道已使用的动作片段，动作池只展示已参与装配的片段。
+     */
+    function getConnectionAssemblyUsedAnimations(role) {
+        const usedAnimations = [];
+        Object.values(normalizeAnimationMappings(role.animationMappings)).forEach((animationName) => mergeUniqueValues(usedAnimations, [animationName]));
+        (role.animationNames || []).forEach((animationName) => mergeUniqueValues(usedAnimations, [animationName]));
+        return usedAnimations.filter(Boolean);
+    }
+
+    /**
+     * 获取某个轨道最终可编辑的 key 槽位，既包括控制器槽位，也包括旧配置中的自定义槽位。
+     */
+    function getConnectionAssemblySlotEntries(outputKey, role) {
+        const mappingEntries = getConnectionAssemblyOutputAnimationEntries(outputKey, role);
+        const mappingByKey = Object.fromEntries(mappingEntries.map((entry) => [entry.key, entry.animationName]));
+        const slotNames = getConnectionAssemblySlotNames(outputKey, role);
+        return slotNames.sort(compareSlotNames).map((slotName) => ({
+            key: slotName,
+            animationName: mappingByKey[slotName] || "",
+        }));
+    }
+
+    /**
+     * 根据业务轨道推导需要展示的动作 key。
+     */
+    function getConnectionAssemblySlotNames(outputKey, role) {
+        if (outputKey === CONNECTION_BODY_RESOURCE_KEY) {
+            return getControllerSlots(role.animationController || DEFAULT_CONTROLLER);
+        }
+        if (outputKey === CONNECTION_WINGS_RESOURCE_KEY) {
+            return ["idle_wings"];
+        }
+        const controller = role.animationController || resolveSkillTrackAnimationController(role.trackKey, role.animationNames);
+        const slotNames = getControllerSlots(controller);
+        if (slotNames.length) {
+            return slotNames;
+        }
+        return [`skill1${String(role.trackKey || "a").toUpperCase()}`];
+    }
+
+    /**
+     * 生成动作片段在业务装配图里的节点 id。
+     */
+    function getAssemblyActionNodeId(rowKey, animationName) {
+        return `assembly-action-${rowKey}-${animationName}`;
+    }
+
+    /**
+     * 生成简洁装配图资源组合节点 id。
+     */
+    function getAssemblyAssetNodeId(rowKey) {
+        return `assembly-asset-${rowKey}`;
+    }
+
+    /**
+     * 渲染装配图左侧资源节点。
+     */
+    function renderConnectionAssemblyResourceNodes(entity, context) {
+        const geometryNodes = context.geometryResources.map((resource) => renderAssemblyGraphNode(
+            getAssemblyResourceNodeId("geometry", resource.id),
+            "模型",
+            resource.resourceKey,
+            resource.sourceName || "未命名模型",
+            "geometry"
+        )).join("");
+        const textureNodes = context.textureResources.map((resource) => renderAssemblyGraphNode(
+            getAssemblyResourceNodeId("texture", resource.id),
+            "贴图",
+            resource.resourceKey,
+            resource.sourceName || "未命名贴图",
+            "texture"
+        )).join("");
+        const animationNodes = (context.availableAnimations || []).map((animationName) => renderAssemblyGraphNode(
+            getAssemblyAnimationNodeId(animationName),
+            "动作",
+            getAnimationShortName(animationName),
+            findAnimationSourceNameByAnimationName(entity, animationName) || "动作资源",
+            "animation"
+        )).join("");
+
+        return `
+            <div class="assembly-resource-group graph-type-geometry">
+                <h4>模型资源</h4>
+                ${geometryNodes || '<p class="empty-state">还没有模型。</p>'}
+            </div>
+            <div class="assembly-resource-group graph-type-texture">
+                <h4>贴图资源</h4>
+                ${textureNodes || '<p class="empty-state">还没有贴图。</p>'}
+            </div>
+            <div class="assembly-resource-group graph-type-animation">
+                <h4>动作片段</h4>
+                ${animationNodes || '<p class="empty-state">还没有动作。</p>'}
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染装配图中的单个资源节点。
+     */
+    function renderAssemblyGraphNode(nodeId, typeLabelText, title, subtitle, type) {
+        return `
+            <article
+                class="assembly-graph-node graph-type-${escapeAttribute(type)}"
+                data-graph-node-id="${escapeAttribute(nodeId)}"
+            >
+                <span class="graph-node-kind">${escapeHtml(typeLabelText)}</span>
+                <strong>${escapeHtml(title)}</strong>
+                <small>${escapeHtml(subtitle)}</small>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染本体或翅膀在装配图中间列的角色节点。
+     */
+    function renderConnectionAssemblyRoleNode(roleKey, title, role, outputKey, enabled) {
+        const roleNodeId = getAssemblyRoleNodeId(roleKey);
+        return `
+            <article
+                class="assembly-role-node ${enabled ? "" : "is-disabled"}"
+                data-graph-node-id="${escapeAttribute(roleNodeId)}"
+            >
+                <div class="assembly-role-node-head">
+                    <strong>${escapeHtml(title)}</strong>
+                    <span class="chip">${escapeHtml(outputKey)}</span>
+                </div>
+                ${enabled ? `
+                    ${renderAssemblyConnectionSlot("模型", getAssemblyResourceNodeId("geometry", role.geometryResourceId), "geometry")}
+                    ${renderAssemblyConnectionSlot("贴图", getAssemblyResourceNodeId("texture", role.textureResourceId), "texture")}
+                    ${renderAssemblyAnimationSlots(role.animationNames)}
+                ` : '<p class="field-hint">未启用。</p>'}
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染技能轨道在装配图中间列的节点。
+     */
+    function renderConnectionAssemblySkillNode(skill) {
+        const roleNodeId = getAssemblyRoleNodeId(`skill-${skill.id}`);
+        return `
+            <article class="assembly-role-node" data-graph-node-id="${escapeAttribute(roleNodeId)}">
+                <div class="assembly-role-node-head">
+                    <strong>技能 ${escapeHtml(String(skill.skillIndex))}</strong>
+                    <span class="chip">${escapeHtml(skill.trackKey)}</span>
+                </div>
+                ${renderAssemblyConnectionSlot("模型", getAssemblyResourceNodeId("geometry", skill.geometryResourceId), "geometry")}
+                ${renderAssemblyConnectionSlot("贴图", getAssemblyResourceNodeId("texture", skill.textureResourceId), "texture")}
+                ${renderAssemblyAnimationSlots(skill.animationNames)}
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染一个可被 SVG 连接到资源节点的小槽位。
+     */
+    function renderAssemblyConnectionSlot(label, nodeId, type) {
+        return `
+            <div
+                class="assembly-connection-slot graph-type-${escapeAttribute(type)}"
+                data-graph-slot-type="${escapeAttribute(type)}"
+                data-graph-current-node-id="${escapeAttribute(nodeId || "")}"
+            >
+                <span>${escapeHtml(label)}</span>
+            </div>
+        `;
+    }
+
+    /**
+     * 动作片段在中间列只展示连接，不负责 key 分配；key 分配在右列一对一展示。
+     */
+    function renderAssemblyAnimationSlots(animationNames) {
+        const names = (animationNames || []).filter(Boolean);
+        if (!names.length) {
+            return renderAssemblyConnectionSlot("动作", "", "animation");
+        }
+        return names.map((animationName) => renderAssemblyConnectionSlot(
+            getAnimationShortName(animationName),
+            getAssemblyAnimationNodeId(animationName),
+            "animation"
+        )).join("");
+    }
+
+    /**
+     * 渲染装配图右侧导出 key，动作 key 与动作片段一对一显示。
+     */
+    function renderConnectionAssemblyOutputKeys(nodeKey, title, outputKey, role) {
+        const roleNodeId = getAssemblyRoleNodeId(nodeKey);
+        const animationEntries = getConnectionAssemblyOutputAnimationEntries(outputKey, role);
+        return `
+            <article class="assembly-output-node">
+                <div class="assembly-role-node-head">
+                    <strong>${escapeHtml(title)}</strong>
+                    <span class="chip">${escapeHtml(outputKey)}</span>
+                </div>
+                <div class="assembly-output-key graph-type-geometry" data-graph-slot-type="geometry" data-graph-current-node-id="${escapeAttribute(roleNodeId)}">geometry.${escapeHtml(outputKey)}</div>
+                <div class="assembly-output-key graph-type-texture" data-graph-slot-type="texture" data-graph-current-node-id="${escapeAttribute(roleNodeId)}">texture.${escapeHtml(outputKey)}</div>
+                ${animationEntries.length
+                    ? animationEntries.map((entry) => `
+                        <div
+                            class="assembly-output-key graph-type-animation"
+                            data-graph-slot-type="animation"
+                            data-graph-current-node-id="${escapeAttribute(getAssemblyAnimationNodeId(entry.animationName))}"
+                        >${escapeHtml(entry.key)}</div>
+                    `).join("")
+                    : '<div class="assembly-output-key is-muted">未绑定动作 key</div>'}
+            </article>
+        `;
+    }
+
+    /**
+     * 计算某个角色最终会导出的动作 key，保证一个动作片段只展示一个 key。
+     */
+    function getConnectionAssemblyOutputAnimationEntries(outputKey, role) {
+        if (!role || !Array.isArray(role.animationNames)) {
+            return [];
+        }
+        if (outputKey === CONNECTION_BODY_RESOURCE_KEY) {
+            const bodyMappings = buildBodyAnimationMappings(role.animationController || DEFAULT_CONTROLLER, role);
+            return Object.entries(bodyMappings).map(([key, animationName]) => ({ key, animationName }));
+        }
+        if (outputKey === CONNECTION_WINGS_RESOURCE_KEY) {
+            const wingsMappings = buildWingsAnimationMappings(role.animationNames);
+            return Object.entries(wingsMappings).map(([key, animationName]) => ({ key, animationName }));
+        }
+        const skillMappings = buildSkillTrackAnimationMappings(role);
+        return Object.entries(skillMappings).map(([key, animationName]) => ({ key, animationName }));
+    }
+
+    /**
+     * 生成装配图资源节点 id。
+     */
+    function getAssemblyResourceNodeId(type, resourceId) {
+        return resourceId ? `assembly-resource-${type}-${resourceId}` : "";
+    }
+
+    /**
+     * 生成装配图动作节点 id。
+     */
+    function getAssemblyAnimationNodeId(animationName) {
+        return animationName ? `assembly-animation-${animationName}` : "";
+    }
+
+    /**
+     * 生成装配图中间角色节点 id。
+     */
+    function getAssemblyRoleNodeId(roleKey) {
+        return `assembly-role-${roleKey}`;
+    }
+
+    /**
+     * 取动作短名，避免节点显示过长。
+     */
+    function getAnimationShortName(animationName) {
+        return String(animationName || "").split(".").filter(Boolean).pop() || animationName || "未命名动作";
+    }
+
+    /**
+     * 渲染本体或翅膀角色编辑器。
+     */
+    function renderConnectionAssemblyRoleEditorHtml(entity, context, roleKey, title, role, options) {
+        const normalizedOptions = options || {};
+        const roleEnabled = roleKey !== "wings" || role.enabled;
+        return `
+            <section class="assembly-editor-block" data-assembly-role="${escapeAttribute(roleKey)}">
+                <div class="assembly-editor-head">
+                    <h4>${escapeHtml(title)}</h4>
+                    ${normalizedOptions.enabledEditable ? `
+                        <label class="inline-toggle">
+                            <input type="checkbox" data-assembly-role-enabled="${escapeAttribute(roleKey)}" ${role.enabled ? "checked" : ""}>
+                            启用
+                        </label>
+                    ` : '<span class="chip muted">必须配置</span>'}
+                </div>
+                <div class="form-grid">
+                    ${renderConnectionAssemblyResourceSelect(entity, "geometry", `${roleKey}-geometry`, role.geometryResourceId, `data-assembly-role-field="${escapeAttribute(roleKey)}" data-assembly-field="geometryResourceId"`, !roleEnabled)}
+                    ${renderConnectionAssemblyResourceSelect(entity, "texture", `${roleKey}-texture`, role.textureResourceId, `data-assembly-role-field="${escapeAttribute(roleKey)}" data-assembly-field="textureResourceId"`, !roleEnabled)}
+                    ${normalizedOptions.controllerEditable ? `
+                        <details class="field field-wide assembly-advanced-field">
+                            <summary>高级：本体动作控制器</summary>
+                            <label for="assembly-${escapeAttribute(roleKey)}-controller">底层动画控制器</label>
+                            <select id="assembly-${escapeAttribute(roleKey)}-controller" data-assembly-role-field="${escapeAttribute(roleKey)}" data-assembly-field="animationController" ${!roleEnabled ? "disabled" : ""}>
+                                ${renderAnimationControllerOptions(role.animationController || DEFAULT_CONTROLLER)}
+                            </select>
+                            <p class="field-hint">普通情况下不用改；只有本体动作数量和默认方案不匹配时再调整。</p>
+                        </details>
+                    ` : `
+                        <div class="field">
+                            <label>动作方案</label>
+                            <div class="readonly-field">${escapeHtml(roleKey === "wings" ? "翅膀待机" : "自动")}</div>
+                        </div>
+                    `}
+                    ${roleKey === "body" || roleKey === "wings" ? renderConnectionAssemblyAnimationMultiSelect(context.availableAnimations, `${roleKey}-animations`, role.animationNames, `data-assembly-role-animations="${escapeAttribute(roleKey)}"`, !roleEnabled) : ""}
+                </div>
+            </section>
+        `;
+    }
+
+    /**
+     * 渲染单个技能轨道编辑器。
+     */
+    function renderConnectionAssemblySkillEditorHtml(entity, context, skill) {
+        return `
+            <article class="assembly-skill-card" data-assembly-skill-id="${escapeAttribute(skill.id)}">
+                <div class="assembly-editor-head">
+                    <h4>技能 ${escapeHtml(String(skill.skillIndex))}</h4>
+                    <div class="file-actions">
+                        <label class="inline-toggle">
+                            <input type="checkbox" data-assembly-skill-locked="${escapeAttribute(skill.id)}" ${skill.locked ? "checked" : ""}>
+                            锁定轨道
+                        </label>
+                        <button class="button danger mini" type="button" data-action="remove-connection-skill" data-assembly-skill-id="${escapeAttribute(skill.id)}">移除</button>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="assembly-skill-index-${escapeAttribute(skill.id)}">技能编号</label>
+                        <input id="assembly-skill-index-${escapeAttribute(skill.id)}" type="number" min="1" step="1" value="${escapeAttribute(skill.skillIndex)}" data-assembly-skill-field="${escapeAttribute(skill.id)}" data-assembly-field="skillIndex">
+                    </div>
+                    <div class="field">
+                        <label for="assembly-skill-track-${escapeAttribute(skill.id)}">轨道 key</label>
+                        <select id="assembly-skill-track-${escapeAttribute(skill.id)}" data-assembly-skill-field="${escapeAttribute(skill.id)}" data-assembly-field="trackKey" ${skill.locked ? "disabled" : ""}>
+                            ${renderSkillTrackKeyOptions(skill.trackKey)}
+                        </select>
+                    </div>
+                    ${renderConnectionAssemblyResourceSelect(entity, "geometry", `skill-${skill.id}-geometry`, skill.geometryResourceId, `data-assembly-skill-field="${escapeAttribute(skill.id)}" data-assembly-field="geometryResourceId"`, false)}
+                    ${renderConnectionAssemblyResourceSelect(entity, "texture", `skill-${skill.id}-texture`, skill.textureResourceId, `data-assembly-skill-field="${escapeAttribute(skill.id)}" data-assembly-field="textureResourceId"`, false)}
+                    ${renderConnectionAssemblyAnimationMultiSelect(context.availableAnimations, `skill-${skill.id}-animations`, skill.animationNames, `data-assembly-skill-animations="${escapeAttribute(skill.id)}"`, false)}
+                </div>
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染模型或贴图资源下拉框。
+     */
+    function renderConnectionAssemblyResourceSelect(entity, type, inputId, selectedResourceId, dataAttributes, disabled) {
+        const resources = type === "geometry" ? getGeometryResources(entity) : getTextureResources(entity);
+        const label = type === "geometry" ? "模型资源" : "贴图资源";
+        return `
+            <div class="field">
+                <label for="assembly-${escapeAttribute(inputId)}">${escapeHtml(label)}</label>
+                <select id="assembly-${escapeAttribute(inputId)}" ${dataAttributes} ${disabled ? "disabled" : ""}>
+                    <option value="">未绑定</option>
+                    ${resources.map((resource) => `<option value="${escapeAttribute(resource.id)}" ${resource.id === selectedResourceId ? "selected" : ""}>${escapeHtml(resource.resourceKey)} · ${escapeHtml(resource.sourceName || "未命名资源")}</option>`).join("")}
+                </select>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染多选动作列表，后续编译时会根据轨道自动生成槽位名。
+     */
+    function renderConnectionAssemblyAnimationMultiSelect(availableAnimations, inputId, selectedAnimations, dataAttributes, disabled) {
+        const selected = new Set(selectedAnimations || []);
+        return `
+            <div class="field field-wide">
+                <label for="assembly-${escapeAttribute(inputId)}">动作资源</label>
+                <select id="assembly-${escapeAttribute(inputId)}" multiple size="5" ${dataAttributes} ${disabled ? "disabled" : ""}>
+                    ${availableAnimations.map((animationName) => `<option value="${escapeAttribute(animationName)}" ${selected.has(animationName) ? "selected" : ""}>${escapeHtml(animationName)}</option>`).join("")}
+                </select>
+                <p class="field-hint">按住 Ctrl 可多选；技能轨道会自动生成 skill1A 这类槽位。</p>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染动画控制器下拉选项。
+     */
+    function renderAnimationControllerOptions(selectedController) {
+        const hasCurrentPreset = CONTROLLER_PRESETS.some((preset) => preset.name === selectedController);
+        return `
+            ${selectedController && !hasCurrentPreset ? `<option value="${escapeAttribute(selectedController)}" selected>${escapeHtml(selectedController)}（未收录）</option>` : ""}
+            ${CONTROLLER_PRESETS.map((preset) => `<option value="${escapeAttribute(preset.name)}" ${preset.name === selectedController ? "selected" : ""}>${escapeHtml(formatControllerOptionLabel(preset, preset.name))}</option>`).join("")}
+        `;
+    }
+
+    /**
+     * 渲染 a-z 轨道选项。
+     */
+    function renderSkillTrackKeyOptions(selectedTrackKey) {
+        return CONNECTION_SKILL_TRACK_KEYS
+            .map((trackKey) => `<option value="${escapeAttribute(trackKey)}" ${trackKey === selectedTrackKey ? "selected" : ""}>${escapeHtml(trackKey)}</option>`)
+            .join("");
+    }
+
+    /**
+     * 渲染装配诊断，错误、警告和信息分级展示。
+     */
+    function renderConnectionAssemblyDiagnosticsHtml(diagnostics) {
+        const normalized = normalizeConnectionAssemblyDiagnostics(diagnostics);
+        const items = [
+            ...normalized.errors.map((item) => ({ ...item, level: "error" })),
+            ...normalized.warnings.map((item) => ({ ...item, level: "warning" })),
+            ...normalized.infos.map((item) => ({ ...item, level: "info" })),
+        ];
+        if (!items.length) {
+            return '<p class="field-hint">当前装配状态没有阻断问题。</p>';
+        }
+        return `
+            <div class="assembly-diagnostic-list">
+                ${items.slice(0, 8).map((item) => `
+                    <div class="assembly-diagnostic-item ${escapeAttribute(item.level)}">
+                        <strong>${escapeHtml(formatDiagnosticLevelLabel(item.level))}</strong>
+                        <span>${escapeHtml(item.message)}</span>
+                    </div>
+                `).join("")}
+                ${items.length > 8 ? `<div class="assembly-diagnostic-item warning"><strong>更多</strong><span>还有 ${escapeHtml(String(items.length - 8))} 条诊断未展示。</span></div>` : ""}
+            </div>
+        `;
+    }
+
+    /**
+     * 把诊断等级转成中文标签。
+     */
+    function formatDiagnosticLevelLabel(level) {
+        if (level === "error") {
+            return "错误";
+        }
+        if (level === "warning") {
+            return "警告";
+        }
+        return "信息";
+    }
+
+    /**
+     * 渲染本体或翅膀这类单角色摘要。
+     */
+    function renderConnectionAssemblyRoleSummaryHtml(entity, title, role, resourceKey) {
+        const enabled = title !== "翅膀" || role.enabled;
+        return `
+            <article class="assembly-summary-card ${enabled ? "" : "is-disabled"}">
+                <div class="assembly-summary-head">
+                    <strong>${escapeHtml(title)}</strong>
+                    <span class="chip muted">${escapeHtml(resourceKey)}</span>
+                </div>
+                ${enabled ? `
+                    <p>模型：${escapeHtml(getGeometryResourceLabelById(entity, role.geometryResourceId))}</p>
+                    <p>贴图：${escapeHtml(getTextureResourceLabelById(entity, role.textureResourceId))}</p>
+                    <p>控制器：${escapeHtml(role.animationController || (title === "翅膀" ? CONNECTION_WINGS_CONTROLLER : "未指定"))}</p>
+                ` : '<p class="field-hint">未启用。</p>'}
+            </article>
+        `;
+    }
+
+    /**
+     * 渲染技能轨道摘要；目前只读展示，后续角色/轨道 UI 会复用这些状态。
+     */
+    function renderConnectionAssemblySkillsSummaryHtml(entity, skills) {
+        if (!skills.length) {
+            return `
+                <article class="assembly-summary-card is-disabled">
+                    <div class="assembly-summary-head">
+                        <strong>技能轨道</strong>
+                        <span class="chip muted">0</span>
+                    </div>
+                    <p class="field-hint">当前没有识别到技能轨道。</p>
+                </article>
+            `;
+        }
+        return `
+            <article class="assembly-summary-card assembly-summary-wide">
+                <div class="assembly-summary-head">
+                    <strong>技能轨道</strong>
+                    <span class="chip muted">${escapeHtml(String(skills.length))}</span>
+                </div>
+                <div class="assembly-track-list">
+                    ${skills.map((skill) => `
+                        <div class="assembly-track-row">
+                            <span class="chip">${escapeHtml(skill.trackKey)}</span>
+                            <span>技能 ${escapeHtml(String(skill.skillIndex))}</span>
+                            <span>${escapeHtml(getGeometryResourceLabelById(entity, skill.geometryResourceId))}</span>
+                            <span>${escapeHtml(getTextureResourceLabelById(entity, skill.textureResourceId))}</span>
+                            <span>${escapeHtml(skill.animationController || resolveSkillTrackAnimationController(skill.trackKey, skill.animationNames))}</span>
+                        </div>
+                    `).join("")}
+                </div>
+            </article>
+        `;
+    }
+
+    /**
+     * 根据模型资源 id 显示便于排查的名称。
+     */
+    function getGeometryResourceLabelById(entity, resourceId) {
+        const resource = getGeometryResources(entity).find((item) => item.id === resourceId);
+        return resource ? `${resource.resourceKey} · ${resource.sourceName || "未命名模型"}` : "未绑定";
+    }
+
+    /**
+     * 根据贴图资源 id 显示便于排查的名称。
+     */
+    function getTextureResourceLabelById(entity, resourceId) {
+        const resource = getTextureResources(entity).find((item) => item.id === resourceId);
+        return resource ? `${resource.resourceKey} · ${resource.sourceName || "未命名贴图"}` : "未绑定";
     }
 
     /**
@@ -3598,9 +5453,7 @@
         elements.inspector.querySelectorAll("[data-file-assign]").forEach((button) => {
             button.addEventListener("click", () => {
                 const type = button.dataset.fileAssign;
-                state.pendingAssignment = { entityId: entity.id, type };
-                elements.assignInput.accept = type === "texture" ? ".png" : ".json";
-                elements.assignInput.click();
+                openEntityResourceFilePicker(entity, type, null);
             });
         });
 
@@ -3618,34 +5471,55 @@
             });
         });
 
-        elements.inspector.querySelector("[data-action='add-texture-resource']").addEventListener("click", () => {
-            state.pendingAssignment = { entityId: entity.id, type: "texture" };
-            elements.assignInput.accept = ".png";
-            elements.assignInput.click();
+        elements.inspector.querySelectorAll("[data-action='add-texture-resource']").forEach((button) => {
+            button.addEventListener("click", () => openEntityResourceFilePicker(entity, "texture", null));
         });
 
-        elements.inspector.querySelector("[data-action='add-geometry-resource']").addEventListener("click", () => {
-            state.pendingAssignment = { entityId: entity.id, type: "geometry" };
-            elements.assignInput.accept = ".json";
-            elements.assignInput.click();
+        elements.inspector.querySelectorAll("[data-action='add-geometry-resource']").forEach((button) => {
+            button.addEventListener("click", () => openEntityResourceFilePicker(entity, "geometry", null));
         });
 
-        elements.inspector.querySelector("[data-action='add-animation-resource']").addEventListener("click", () => {
-            state.pendingAssignment = { entityId: entity.id, type: "animation" };
-            elements.assignInput.accept = ".json";
-            elements.assignInput.click();
+        elements.inspector.querySelectorAll("[data-action='add-animation-resource']").forEach((button) => {
+            button.addEventListener("click", () => openEntityResourceFilePicker(entity, "animation", null));
         });
 
         elements.inspector.querySelectorAll("[data-resource-assign]").forEach((button) => {
             button.addEventListener("click", () => {
                 const type = button.dataset.resourceAssign;
-                state.pendingAssignment = {
-                    entityId: entity.id,
-                    type,
-                    resourceId: button.dataset.resourceId,
-                };
-                elements.assignInput.accept = type === "texture" ? ".png" : ".json";
-                elements.assignInput.click();
+                openEntityResourceFilePicker(entity, type, button.dataset.resourceId);
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-import-drop]").forEach((dropArea) => {
+            ["dragenter", "dragover"].forEach((eventName) => {
+                dropArea.addEventListener(eventName, (event) => {
+                    if (!isExternalFileDrag(event)) {
+                        return;
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.dataTransfer.dropEffect = "copy";
+                    dropArea.classList.add("is-dragging");
+                });
+            });
+
+            ["dragleave", "drop"].forEach((eventName) => {
+                dropArea.addEventListener(eventName, (event) => {
+                    if (!isExternalFileDrag(event)) {
+                        return;
+                    }
+                    event.preventDefault();
+                    if (eventName === "drop") {
+                        event.stopPropagation();
+                        dropArea.classList.remove("is-dragging");
+                        void importDroppedFiles(event.dataTransfer, { preferredEntity: entity });
+                        return;
+                    }
+                    const relatedTarget = event.relatedTarget;
+                    if (!relatedTarget || !dropArea.contains(relatedTarget)) {
+                        dropArea.classList.remove("is-dragging");
+                    }
+                });
             });
         });
 
@@ -3665,13 +5539,7 @@
 
         elements.inspector.querySelectorAll("[data-animation-resource-assign]").forEach((button) => {
             button.addEventListener("click", () => {
-                state.pendingAssignment = {
-                    entityId: entity.id,
-                    type: "animation",
-                    resourceId: button.dataset.animationResourceAssign,
-                };
-                elements.assignInput.accept = ".json";
-                elements.assignInput.click();
+                openEntityResourceFilePicker(entity, "animation", button.dataset.animationResourceAssign);
             });
         });
 
@@ -3850,6 +5718,7 @@
             const entityProfile = getEntityProfile(entity);
             const oldTextureIdToNewId = {};
             const oldGeometryIdToNewId = {};
+            const oldAnimationIdToNewId = {};
             clone.identifier = entity.identifier;
             clone.identifierMode = entity.identifierMode;
             clone.resourceSubdir = entity.resourceSubdir;
@@ -3896,14 +5765,20 @@
                         resourceKey: resource.resourceKey,
                         sourceName: resource.sourceName,
                         json: deepClone(resource.json),
+                        hasExportRootWrapper: resource.hasExportRootWrapper,
                     };
                 }),
-                animations: getAnimationResources(entity).map((resource) => ({
-                    id: createId(),
-                    sourceName: resource.sourceName,
-                    json: deepClone(resource.json),
-                    animationNames: [...resource.animationNames],
-                })),
+                animations: getAnimationResources(entity).map((resource) => {
+                    const nextId = createId();
+                    oldAnimationIdToNewId[resource.id] = nextId;
+                    return {
+                        id: nextId,
+                        sourceName: resource.sourceName,
+                        sourcePath: resource.sourcePath,
+                        json: deepClone(resource.json),
+                        animationNames: [...resource.animationNames],
+                    };
+                }),
                 texture: null,
                 geometry: null,
                 animation: null,
@@ -3915,6 +5790,7 @@
                 geometryMappings: Object.fromEntries(Object.entries(binding.geometryMappings || {}).map(([key, value]) => [key, oldGeometryIdToNewId[value] || ""])),
                 textureMappings: Object.fromEntries(Object.entries(binding.textureMappings || {}).map(([key, value]) => [key, oldTextureIdToNewId[value] || ""])),
             }));
+            clone.connectionAssembly = cloneConnectionAssemblyForDuplicate(entity, oldGeometryIdToNewId, oldTextureIdToNewId, oldAnimationIdToNewId);
             state.entities.unshift(clone);
             selectEntity(clone.id);
             addMessage(`已复制实体：${entity.baseName || "未命名实体"}`, "info");
@@ -3937,6 +5813,7 @@
     function bindConnectionBoardEvents(entity) {
         const mergedAnimationFile = getMergedAnimationFile(entity);
         bindConnectionBoardBaseInfoEvents(entity);
+        bindConnectionAssemblyEvents(entity);
         bindConnectionBoardProfileAndTitleEvents(entity);
         bindEntityActionEvents(entity);
         bindConnectionBoardResourceEvents(entity);
@@ -3992,6 +5869,391 @@
                 renderWithConnectionBoardScroll();
             });
         }
+    }
+
+    /**
+     * 绑定连连看装配状态面板，所有操作只写 connectionAssembly。
+     */
+    function bindConnectionAssemblyEvents(entity) {
+        const assembly = getConnectionAssembly(entity);
+
+        elements.inspector.querySelectorAll("[data-connection-assembly-mode]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const nextMode = button.dataset.connectionAssemblyMode === CONNECTION_ASSEMBLY_MODE_ASSEMBLY
+                    ? CONNECTION_ASSEMBLY_MODE_ASSEMBLY
+                    : CONNECTION_ASSEMBLY_MODE_LEGACY;
+                if (nextMode === CONNECTION_ASSEMBLY_MODE_ASSEMBLY && assembly.mode !== CONNECTION_ASSEMBLY_MODE_ASSEMBLY) {
+                    syncConnectionAssemblyFromLegacyEntity(entity, assembly);
+                }
+                assembly.mode = nextMode;
+                if (nextMode === CONNECTION_ASSEMBLY_MODE_LEGACY) {
+                    entity.detailMode = "legacy";
+                }
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-role-enabled]").forEach((input) => {
+            input.addEventListener("change", (event) => {
+                const role = getConnectionAssemblyRoleByKey(assembly, event.target.dataset.assemblyRoleEnabled);
+                if (!role) {
+                    return;
+                }
+                role.enabled = event.target.checked;
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-role-field]").forEach((field) => {
+            field.addEventListener("change", (event) => {
+                const role = getConnectionAssemblyRoleByKey(assembly, event.target.dataset.assemblyRoleField);
+                if (!role) {
+                    return;
+                }
+                setConnectionAssemblyFieldValue(role, event.target.dataset.assemblyField, event.target.value, entity);
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-role-animations]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const role = getConnectionAssemblyRoleByKey(assembly, event.target.dataset.assemblyRoleAnimations);
+                if (!role) {
+                    return;
+                }
+                role.animationNames = readMultiSelectValues(event.target);
+                role.animationMappings = {};
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-role-animation-slot]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const role = getConnectionAssemblyRoleByKey(assembly, event.target.dataset.assemblyRoleAnimationSlot);
+                if (!role) {
+                    return;
+                }
+                setConnectionAssemblyAnimationSlot(role, event.target.dataset.assemblyOutputKey, event.target.dataset.assemblySlotKey, event.target.value);
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-action='add-connection-skill']").forEach((button) => {
+            button.addEventListener("click", () => {
+                assembly.skills.push(createNextConnectionAssemblySkillTrack(assembly));
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-action='remove-connection-skill']").forEach((button) => {
+            button.addEventListener("click", () => {
+                assembly.skills = assembly.skills.filter((skill) => skill.id !== button.dataset.assemblySkillId);
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-skill-locked]").forEach((input) => {
+            input.addEventListener("change", (event) => {
+                const skill = findConnectionAssemblySkill(assembly, event.target.dataset.assemblySkillLocked);
+                if (!skill) {
+                    return;
+                }
+                skill.locked = event.target.checked;
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-skill-field]").forEach((field) => {
+            field.addEventListener("change", (event) => {
+                const skill = findConnectionAssemblySkill(assembly, event.target.dataset.assemblySkillField);
+                if (!skill) {
+                    return;
+                }
+                setConnectionAssemblyFieldValue(skill, event.target.dataset.assemblyField, event.target.value, entity);
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-skill-animations]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const skill = findConnectionAssemblySkill(assembly, event.target.dataset.assemblySkillAnimations);
+                if (!skill) {
+                    return;
+                }
+                skill.animationNames = readMultiSelectValues(event.target);
+                skill.animationMappings = {};
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-skill-animation-slot]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const skill = findConnectionAssemblySkill(assembly, event.target.dataset.assemblySkillAnimationSlot);
+                if (!skill) {
+                    return;
+                }
+                setConnectionAssemblyAnimationSlot(skill, event.target.dataset.assemblyOutputKey, event.target.dataset.assemblySlotKey, event.target.value);
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-track-drop]").forEach((slot) => {
+            ["dragenter", "dragover"].forEach((eventName) => {
+                slot.addEventListener(eventName, (event) => {
+                    if (!isExternalFileDrag(event) || slot.classList.contains("is-disabled")) {
+                        return;
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.dataTransfer.dropEffect = "copy";
+                    slot.classList.add("is-drop-ready");
+                });
+            });
+            ["dragleave", "drop"].forEach((eventName) => {
+                slot.addEventListener(eventName, (event) => {
+                    if (!isExternalFileDrag(event) || slot.classList.contains("is-disabled")) {
+                        return;
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (eventName === "drop") {
+                        slot.classList.remove("is-drop-ready");
+                        void applyDroppedFilesToConnectionAssemblyTrack(entity, assembly, slot, event.dataTransfer);
+                        return;
+                    }
+                    const relatedTarget = event.relatedTarget;
+                    if (!relatedTarget || !slot.contains(relatedTarget)) {
+                        slot.classList.remove("is-drop-ready");
+                    }
+                });
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-action-name]").forEach((chip) => {
+            chip.addEventListener("dragstart", (event) => {
+                event.dataTransfer.setData("text/plain", chip.dataset.assemblyActionName || "");
+                event.dataTransfer.effectAllowed = "copy";
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-assembly-drop-role], [data-assembly-drop-skill]").forEach((slot) => {
+            slot.addEventListener("dragover", (event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "copy";
+                slot.classList.add("is-drop-ready");
+            });
+            slot.addEventListener("dragleave", () => {
+                slot.classList.remove("is-drop-ready");
+            });
+            slot.addEventListener("drop", (event) => {
+                event.preventDefault();
+                slot.classList.remove("is-drop-ready");
+                const animationName = event.dataTransfer.getData("text/plain");
+                const target = slot.dataset.assemblyDropSkill
+                    ? findConnectionAssemblySkill(assembly, slot.dataset.assemblyDropSkill)
+                    : getConnectionAssemblyRoleByKey(assembly, slot.dataset.assemblyDropRole);
+                if (!target || !animationName) {
+                    return;
+                }
+                setConnectionAssemblyAnimationSlot(target, slot.dataset.assemblyOutputKey, slot.dataset.assemblySlotKey, animationName);
+                renderWithConnectionBoardScroll();
+            });
+        });
+    }
+
+    /**
+     * 把外部文件直接导入并绑定到指定轨道资源槽。
+     */
+    async function applyDroppedFilesToConnectionAssemblyTrack(entity, assembly, slot, dataTransfer) {
+        const files = await readDroppedFiles(dataTransfer);
+        if (!files.length) {
+            addMessage(`没有读取到拖入文件。${describeDroppedDataTransfer(dataTransfer)}`, "warn");
+            renderWithConnectionBoardScroll();
+            return;
+        }
+        const role = getConnectionAssemblyTrackTarget(assembly, slot.dataset.assemblyTrackDrop);
+        const expectedType = slot.dataset.assemblyDropType;
+        if (!role || !expectedType) {
+            return;
+        }
+        for (const file of files) {
+            const detected = await detectImportFileRecord(file);
+            if (!detected || detected.type !== expectedType) {
+                continue;
+            }
+            const resource = await applyRecordToEntity(entity, detected, null, { reuseDuplicateResource: true });
+            if (resource && resource.id) {
+                bindConnectionAssemblyResourceToRole(role, entity, detected.type, resource.id);
+                setStatus(`已绑定${typeLabel(detected.type)}到轨道。`);
+                renderWithConnectionBoardScroll();
+                return;
+            }
+        }
+        addMessage(`拖入内容里没有可绑定到该槽位的${typeLabel(expectedType)}。`, "warn");
+        renderWithConnectionBoardScroll();
+    }
+
+    /**
+     * 根据轨道行 key 找到实际写入的本体、翅膀或技能轨道对象。
+     */
+    function getConnectionAssemblyTrackTarget(assembly, rowKey) {
+        if (rowKey === "body") {
+            return assembly.body;
+        }
+        if (rowKey === "wings") {
+            return assembly.wings;
+        }
+        if (String(rowKey || "").startsWith("skill-")) {
+            return findConnectionAssemblySkill(assembly, String(rowKey).slice("skill-".length));
+        }
+        return null;
+    }
+
+    /**
+     * 将资源 id 写入轨道；动作资源会同步展开动作列表供连线使用。
+     */
+    function bindConnectionAssemblyResourceToRole(role, entity, type, resourceId) {
+        if (type === "geometry") {
+            role.geometryResourceId = resourceId;
+            return;
+        }
+        if (type === "texture") {
+            role.textureResourceId = resourceId;
+            return;
+        }
+        if (type === "animation") {
+            applyConnectionAssemblyAnimationResource(role, entity, resourceId);
+        }
+    }
+
+    /**
+     * 写入单个动作 key 的映射，并保证同一个动作片段不会被多个 key 复用。
+     */
+    function setConnectionAssemblyAnimationSlot(role, outputKey, slotName, animationName) {
+        if (!role || !slotName) {
+            return;
+        }
+        const currentMappings = normalizeAnimationMappings(role.animationMappings);
+        const nextMappings = Object.keys(currentMappings).length
+            ? currentMappings
+            : Object.fromEntries(getConnectionAssemblyOutputAnimationEntries(outputKey, role).map((entry) => [entry.key, entry.animationName]));
+        if (animationName) {
+            Object.keys(nextMappings).forEach((key) => {
+                if (key !== slotName && nextMappings[key] === animationName) {
+                    delete nextMappings[key];
+                }
+            });
+            nextMappings[slotName] = animationName;
+        } else {
+            delete nextMappings[slotName];
+        }
+        role.animationMappings = nextMappings;
+        if (animationName && !(role.animationNames || []).includes(animationName)) {
+            role.animationNames = [...(role.animationNames || []), animationName];
+        }
+    }
+
+    /**
+     * 根据 key 获取本体或翅膀角色。
+     */
+    function getConnectionAssemblyRoleByKey(assembly, roleKey) {
+        if (roleKey === "body") {
+            return assembly.body;
+        }
+        if (roleKey === "wings") {
+            return assembly.wings;
+        }
+        return null;
+    }
+
+    /**
+     * 根据 id 查找技能轨道。
+     */
+    function findConnectionAssemblySkill(assembly, skillId) {
+        return (assembly.skills || []).find((skill) => skill.id === skillId) || null;
+    }
+
+    /**
+     * 创建下一个可用技能轨道，优先使用未占用的 a-z。
+     */
+    function createNextConnectionAssemblySkillTrack(assembly) {
+        const usedTrackKeys = new Set((assembly.skills || []).map((skill) => skill.trackKey));
+        const nextTrackKey = CONNECTION_SKILL_TRACK_KEYS.find((trackKey) => !usedTrackKeys.has(trackKey)) || "a";
+        const nextSkillIndex = (assembly.skills || []).reduce((maxValue, skill) => Math.max(maxValue, skill.skillIndex || 0), 0) + 1;
+        return createConnectionAssemblySkillTrack({
+            trackKey: nextTrackKey,
+            skillIndex: nextSkillIndex,
+            confirmed: true,
+        });
+    }
+
+    /**
+     * 给角色或技能轨道写入表单值，保持字段清洗集中。
+     */
+    function setConnectionAssemblyFieldValue(target, fieldName, value, entity) {
+        if (!target || !fieldName) {
+            return;
+        }
+        if (fieldName === "skillIndex") {
+            const parsed = Number.parseInt(value, 10);
+            target.skillIndex = Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+            return;
+        }
+        if (fieldName === "trackKey") {
+            target.trackKey = normalizeSkillTrackKey(value);
+            target.animationMappings = {};
+            if (!target.animationControllerManual) {
+                target.animationController = resolveSkillTrackAnimationController(target.trackKey, target.animationNames);
+            }
+            return;
+        }
+        if (fieldName === "animationResourceId") {
+            applyConnectionAssemblyAnimationResource(target, entity, value);
+            return;
+        }
+        if (fieldName === "animationController") {
+            target.animationController = typeof value === "string" ? value : "";
+            target.animationControllerManual = true;
+            pruneConnectionAssemblyAnimationMappings(target, getControllerSlots(target.animationController || DEFAULT_CONTROLLER));
+            return;
+        }
+        if (["geometryResourceId", "textureResourceId"].includes(fieldName)) {
+            target[fieldName] = typeof value === "string" ? value : "";
+        }
+    }
+
+    /**
+     * 把整份 animation.json 绑定到轨道，并用该文件内动作刷新左侧动作池。
+     */
+    function applyConnectionAssemblyAnimationResource(target, entity, resourceId) {
+        const wasManualController = target.animationControllerManual === true;
+        target.animationResourceId = typeof resourceId === "string" ? resourceId : "";
+        const resource = entity ? findAnimationResource(entity, target.animationResourceId) : null;
+        target.animationNames = resource ? [...resource.animationNames] : [];
+        if (!wasManualController && target.trackKey) {
+            target.animationController = resolveSkillTrackAnimationController(target.trackKey, target.animationNames);
+        } else if (!wasManualController && !target.trackKey) {
+            target.animationController = recommendController(target.animationNames) || DEFAULT_CONTROLLER;
+        }
+        pruneConnectionAssemblyAnimationMappings(target, getControllerSlots(target.animationController || DEFAULT_CONTROLLER));
+    }
+
+    /**
+     * 清理不属于当前控制器槽位的旧映射，避免动作名推断出的伪 key 混进导出。
+     */
+    function pruneConnectionAssemblyAnimationMappings(role, slotNames) {
+        const allowedSlots = new Set(slotNames || []);
+        const mappings = normalizeAnimationMappings(role.animationMappings);
+        role.animationMappings = Object.fromEntries(Object.entries(mappings).filter(([slotName]) => allowedSlots.has(slotName)));
+    }
+
+    /**
+     * 读取多选框的全部选中值。
+     */
+    function readMultiSelectValues(select) {
+        return Array.from(select.selectedOptions || [])
+            .map((option) => option.value)
+            .filter(Boolean);
     }
 
     /**
@@ -4070,6 +6332,7 @@
         const entityProfile = getEntityProfile(entity);
         const oldTextureIdToNewId = {};
         const oldGeometryIdToNewId = {};
+        const oldAnimationIdToNewId = {};
         clone.identifier = entity.identifier;
         clone.identifierMode = entity.identifierMode;
         clone.resourceSubdir = entity.resourceSubdir;
@@ -4117,14 +6380,20 @@
                     resourceKey: resource.resourceKey,
                     sourceName: resource.sourceName,
                     json: deepClone(resource.json),
+                    hasExportRootWrapper: resource.hasExportRootWrapper,
                 };
             }),
-            animations: getAnimationResources(entity).map((resource) => ({
-                id: createId(),
-                sourceName: resource.sourceName,
-                json: deepClone(resource.json),
-                animationNames: [...resource.animationNames],
-            })),
+            animations: getAnimationResources(entity).map((resource) => {
+                const nextId = createId();
+                oldAnimationIdToNewId[resource.id] = nextId;
+                return {
+                    id: nextId,
+                    sourceName: resource.sourceName,
+                    sourcePath: resource.sourcePath,
+                    json: deepClone(resource.json),
+                    animationNames: [...resource.animationNames],
+                };
+            }),
             texture: null,
             geometry: null,
             animation: null,
@@ -4136,6 +6405,7 @@
             geometryMappings: Object.fromEntries(Object.entries(binding.geometryMappings || {}).map(([key, value]) => [key, oldGeometryIdToNewId[value] || ""])),
             textureMappings: Object.fromEntries(Object.entries(binding.textureMappings || {}).map(([key, value]) => [key, oldTextureIdToNewId[value] || ""])),
         }));
+        clone.connectionAssembly = cloneConnectionAssemblyForDuplicate(entity, oldGeometryIdToNewId, oldTextureIdToNewId, oldAnimationIdToNewId);
         state.entities.unshift(clone);
         selectEntity(clone.id);
         addMessage(`已复制实体：${entity.baseName || "未命名实体"}`, "info");
@@ -4160,38 +6430,26 @@
     function bindConnectionBoardResourceEvents(entity) {
         elements.inspector.querySelectorAll("[data-action='add-texture-resource']").forEach((textureButton) => {
             textureButton.addEventListener("click", () => {
-                state.pendingAssignment = { entityId: entity.id, type: "texture" };
-                elements.assignInput.accept = ".png";
-                elements.assignInput.click();
+                openEntityResourceFilePicker(entity, "texture", null);
             });
         });
 
         elements.inspector.querySelectorAll("[data-action='add-geometry-resource']").forEach((geometryButton) => {
             geometryButton.addEventListener("click", () => {
-                state.pendingAssignment = { entityId: entity.id, type: "geometry" };
-                elements.assignInput.accept = ".json";
-                elements.assignInput.click();
+                openEntityResourceFilePicker(entity, "geometry", null);
             });
         });
 
         elements.inspector.querySelectorAll("[data-action='add-animation-resource']").forEach((animationButton) => {
             animationButton.addEventListener("click", () => {
-                state.pendingAssignment = { entityId: entity.id, type: "animation" };
-                elements.assignInput.accept = ".json";
-                elements.assignInput.click();
+                openEntityResourceFilePicker(entity, "animation", null);
             });
         });
 
         elements.inspector.querySelectorAll("[data-resource-assign]").forEach((button) => {
             button.addEventListener("click", () => {
                 const type = button.dataset.resourceAssign;
-                state.pendingAssignment = {
-                    entityId: entity.id,
-                    type,
-                    resourceId: button.dataset.resourceId,
-                };
-                elements.assignInput.accept = type === "texture" ? ".png" : ".json";
-                elements.assignInput.click();
+                openEntityResourceFilePicker(entity, type, button.dataset.resourceId);
             });
         });
 
@@ -4211,13 +6469,7 @@
 
         elements.inspector.querySelectorAll("[data-animation-resource-assign]").forEach((button) => {
             button.addEventListener("click", () => {
-                state.pendingAssignment = {
-                    entityId: entity.id,
-                    type: "animation",
-                    resourceId: button.dataset.animationResourceAssign,
-                };
-                elements.assignInput.accept = ".json";
-                elements.assignInput.click();
+                openEntityResourceFilePicker(entity, "animation", button.dataset.animationResourceAssign);
             });
         });
 
@@ -4436,7 +6688,7 @@
      */
     function bindConnectionBoardLineRedrawEvents() {
         const redraw = () => window.requestAnimationFrame(drawConnectionBoardLines);
-        elements.inspector.querySelectorAll(".graph-lane-side").forEach((element) => {
+        elements.inspector.querySelectorAll(".graph-lane-side, .assembly-track-scroll").forEach((element) => {
             element.addEventListener("scroll", redraw, { passive: true });
         });
 
@@ -4460,7 +6712,7 @@
      * 记录详情面板和每条连线通道左右侧的滚动位置。
      */
     function captureConnectionBoardScrollState() {
-        const board = document.getElementById("connectionBoard");
+        const board = document.getElementById("connectionBoard") || document.getElementById("connectionAssemblyBoard");
         if (!board) {
             return null;
         }
@@ -4469,7 +6721,7 @@
         return {
             panelTop: panel ? panel.scrollTop : 0,
             panelLeft: panel ? panel.scrollLeft : 0,
-            laneSides: Array.from(board.querySelectorAll(".graph-lane-side")).map((element) => ({
+            laneSides: Array.from(board.querySelectorAll(".graph-lane-side, .assembly-track-scroll")).map((element) => ({
                 key: getConnectionBoardScrollKey(element),
                 top: element.scrollTop,
                 left: element.scrollLeft,
@@ -4493,7 +6745,7 @@
             }
 
             const sideScrollMap = new Map(scrollState.laneSides.map((item) => [item.key, item]));
-            elements.inspector.querySelectorAll(".graph-lane-side").forEach((element) => {
+            elements.inspector.querySelectorAll(".graph-lane-side, .assembly-track-scroll").forEach((element) => {
                 const item = sideScrollMap.get(getConnectionBoardScrollKey(element));
                 if (!item) {
                     return;
@@ -4757,12 +7009,17 @@
      * 根据当前 DOM 位置绘制资源节点到槽位的可视连线。
      */
     function drawConnectionBoardLines() {
-        const board = document.getElementById("connectionBoard");
-        const svg = document.getElementById("connectionBoardLines");
+        elements.inspector.querySelectorAll(".connection-board").forEach((board) => drawSingleConnectionBoardLines(board));
+    }
+
+    /**
+     * 绘制单个连线板，业务装配板和旧控制器板共用。
+     */
+    function drawSingleConnectionBoardLines(board) {
+        const svg = board.querySelector(".connection-board-lines");
         if (!board || !svg) {
             return;
         }
-
         const boardRect = board.getBoundingClientRect();
         const nodeMap = new Map();
         board.querySelectorAll("[data-graph-node-id]").forEach((node) => {
@@ -4784,7 +7041,7 @@
                 return;
             }
             const lane = slot.closest(".graph-lane");
-            if (!lane || source.closest(".graph-lane") !== lane) {
+            if (lane && source.closest(".graph-lane") !== lane) {
                 return;
             }
             const sourcePoint = getGraphConnectionPoint(source, boardRect, "source");
@@ -4799,7 +7056,9 @@
             const curve = Math.max(42, Math.abs(x2 - x1) * 0.42);
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("class", `connection-line graph-type-${slot.dataset.graphSlotType || ""}`);
-            path.setAttribute("clip-path", `url(#${getGraphLaneClipId(lane, boardRect, defs, laneClipIds)})`);
+            if (lane) {
+                path.setAttribute("clip-path", `url(#${getGraphLaneClipId(lane, boardRect, defs, laneClipIds)})`);
+            }
             path.setAttribute("d", `M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`);
             svg.appendChild(path);
         });
@@ -4810,11 +7069,14 @@
      */
     function getGraphConnectionPoint(element, boardRect, side) {
         const scrollSide = element.closest(".graph-lane-side");
+        const elementRect = element.getBoundingClientRect();
         if (!scrollSide) {
-            return null;
+            return {
+                x: side === "source" ? elementRect.right - boardRect.left : elementRect.left - boardRect.left,
+                y: elementRect.top + elementRect.height / 2 - boardRect.top,
+            };
         }
 
-        const elementRect = element.getBoundingClientRect();
         const scrollRect = scrollSide.getBoundingClientRect();
         const centerY = elementRect.top + elementRect.height / 2;
         const isVisibleY = centerY >= scrollRect.top
@@ -5161,6 +7423,7 @@
             identifierMode: "auto",
             resourceSubdir: DEFAULT_SUBDIR,
             boneIsolationEnabled: true,
+            connectionAssembly: createDefaultConnectionAssembly(),
             renderControllers: [
                 createRenderControllerBinding(),
             ],
@@ -5177,6 +7440,693 @@
             },
             entityProfile: createDefaultEntityProfile(),
         };
+    }
+
+    /**
+     * 创建连连看下一代业务装配状态；默认 legacy 模式只镜像旧结构，不主动覆盖旧表单。
+     */
+    function createDefaultConnectionAssembly() {
+        return {
+            version: CONNECTION_ASSEMBLY_VERSION,
+            mode: CONNECTION_ASSEMBLY_MODE_LEGACY,
+            body: createConnectionAssemblyRole(),
+            wings: {
+                ...createConnectionAssemblyRole(),
+                enabled: false,
+            },
+            skills: [],
+            diagnostics: {
+                errors: [],
+                warnings: [],
+                infos: [],
+            },
+        };
+    }
+
+    /**
+     * 创建一个模型角色节点，后续本体、翅膀和技能轨道都复用这组字段。
+     */
+    function createConnectionAssemblyRole(options) {
+        const normalized = options || {};
+        return {
+            id: normalized.id || createId(),
+            geometryResourceId: typeof normalized.geometryResourceId === "string" ? normalized.geometryResourceId : "",
+            textureResourceId: typeof normalized.textureResourceId === "string" ? normalized.textureResourceId : "",
+            animationResourceId: typeof normalized.animationResourceId === "string" ? normalized.animationResourceId : "",
+            animationController: typeof normalized.animationController === "string" ? normalized.animationController : "",
+            animationControllerManual: normalized.animationControllerManual === true,
+            animationMappings: normalizeAnimationMappings(normalized.animationMappings),
+            animationNames: Array.isArray(normalized.animationNames) ? normalized.animationNames.filter((name) => typeof name === "string") : [],
+            confirmed: normalized.confirmed === true,
+            locked: normalized.locked === true,
+        };
+    }
+
+    /**
+     * 创建一个技能轨道节点，trackKey 是导出用 a-z，id 用于未来 UI 稳定引用。
+     */
+    function createConnectionAssemblySkillTrack(options) {
+        const normalized = options || {};
+        return {
+            ...createConnectionAssemblyRole(normalized),
+            trackKey: normalizeSkillTrackKey(normalized.trackKey || "a"),
+            skillIndex: Number.isInteger(normalized.skillIndex) && normalized.skillIndex > 0 ? normalized.skillIndex : 1,
+        };
+    }
+
+    /**
+     * 读取并修正实体的连连看业务装配状态，旧数据会自动补齐默认结构。
+     */
+    function getConnectionAssembly(entity) {
+        if (!entity || typeof entity !== "object") {
+            return createDefaultConnectionAssembly();
+        }
+
+        const rawAssembly = entity.connectionAssembly && typeof entity.connectionAssembly === "object"
+            ? entity.connectionAssembly
+            : {};
+        const assembly = {
+            version: CONNECTION_ASSEMBLY_VERSION,
+            mode: rawAssembly.mode === CONNECTION_ASSEMBLY_MODE_ASSEMBLY
+                ? CONNECTION_ASSEMBLY_MODE_ASSEMBLY
+                : CONNECTION_ASSEMBLY_MODE_LEGACY,
+            body: createConnectionAssemblyRole(rawAssembly.body),
+            wings: {
+                ...createConnectionAssemblyRole(rawAssembly.wings),
+                enabled: rawAssembly.wings && rawAssembly.wings.enabled === true,
+            },
+            skills: Array.isArray(rawAssembly.skills)
+                ? rawAssembly.skills.map((skill, index) => createConnectionAssemblySkillTrack({
+                    ...skill,
+                    trackKey: skill && skill.trackKey ? skill.trackKey : CONNECTION_SKILL_TRACK_KEYS[index] || `skill_${index + 1}`,
+                    skillIndex: skill && Number.isInteger(skill.skillIndex) ? skill.skillIndex : index + 1,
+                }))
+                : [],
+            diagnostics: normalizeConnectionAssemblyDiagnostics(rawAssembly.diagnostics),
+        };
+        entity.connectionAssembly = assembly;
+        return entity.connectionAssembly;
+    }
+
+    /**
+     * 清洗连连看诊断结果，保证 UI 和导出入口拿到的结构一致。
+     */
+    function normalizeConnectionAssemblyDiagnostics(diagnostics) {
+        const normalized = diagnostics && typeof diagnostics === "object" ? diagnostics : {};
+        return {
+            errors: normalizeDiagnosticList(normalized.errors),
+            warnings: normalizeDiagnosticList(normalized.warnings),
+            infos: normalizeDiagnosticList(normalized.infos),
+        };
+    }
+
+    /**
+     * 清洗单个诊断列表，只保留字符串消息或带 message 的对象。
+     */
+    function normalizeDiagnosticList(items) {
+        if (!Array.isArray(items)) {
+            return [];
+        }
+        return items
+            .map((item) => {
+                if (typeof item === "string") {
+                    return { message: item };
+                }
+                if (item && typeof item.message === "string") {
+                    return {
+                        ...item,
+                        message: item.message,
+                    };
+                }
+                return null;
+            })
+            .filter(Boolean);
+    }
+
+    /**
+     * 连连看页面以业务装配为默认入口，并在资源足够时自动预填本体和技能轨道。
+     */
+    function ensureConnectionAssemblyEditorReady(entity) {
+        const assembly = getConnectionAssembly(entity);
+        if (assembly.mode !== CONNECTION_ASSEMBLY_MODE_ASSEMBLY) {
+            syncConnectionAssemblyFromLegacyEntity(entity, assembly);
+            assembly.mode = CONNECTION_ASSEMBLY_MODE_ASSEMBLY;
+        }
+        autoFillConnectionAssemblyFromResources(entity, assembly);
+    }
+
+    /**
+     * 从当前资源列表补齐空白装配状态；已有用户选择不会被覆盖。
+     */
+    function autoFillConnectionAssemblyFromResources(entity, assembly) {
+        const geometryResources = getGeometryResources(entity);
+        const textureResources = getTextureResources(entity);
+        const animationResources = getAnimationResources(entity);
+        const animationNames = getMergedAnimationFile(entity)?.animationNames || [];
+        if (!assembly.body.geometryResourceId && geometryResources[0]) {
+            assembly.body.geometryResourceId = geometryResources[0].id;
+        }
+        if (!assembly.body.textureResourceId && textureResources[0]) {
+            assembly.body.textureResourceId = textureResources[0].id;
+        }
+        if (!assembly.body.animationController) {
+            assembly.body.animationController = recommendController(animationNames) || DEFAULT_CONTROLLER;
+        }
+        if (!assembly.body.animationResourceId && animationResources[0]) {
+            assembly.body.animationResourceId = animationResources[0].id;
+        }
+        if (!assembly.body.animationNames.length) {
+            assembly.body.animationNames = inferBodyAssemblyAnimationNames(animationResources[0] ? animationResources[0].animationNames : animationNames);
+        }
+
+        const hasSkillSelection = (assembly.skills || []).some((skill) => skill.geometryResourceId || skill.textureResourceId || skill.animationNames.length);
+        if (hasSkillSelection || geometryResources.length <= 1 || textureResources.length <= 1) {
+            return;
+        }
+
+        const maxSkillCount = Math.min(geometryResources.length - 1, textureResources.length - 1, CONNECTION_SKILL_TRACK_KEYS.length);
+        assembly.skills = Array.from({ length: maxSkillCount }, (_unused, index) => {
+            const trackKey = CONNECTION_SKILL_TRACK_KEYS[index];
+            return createConnectionAssemblySkillTrack({
+                trackKey,
+                skillIndex: index + 1,
+                geometryResourceId: geometryResources[index + 1].id,
+                textureResourceId: textureResources[index + 1].id,
+                animationResourceId: animationResources[index + 1] ? animationResources[index + 1].id : "",
+                animationNames: animationResources[index + 1]
+                    ? [...animationResources[index + 1].animationNames]
+                    : inferSkillAssemblyAnimationNames(animationNames, index + 1, trackKey),
+                confirmed: true,
+            });
+        });
+    }
+
+    /**
+     * 自动挑选本体动作，优先保留 idle/walk/skill 这类不带轨道后缀的动作。
+     */
+    function inferBodyAssemblyAnimationNames(animationNames) {
+        return (animationNames || []).filter((animationName) => {
+            const finalName = String(animationName || "").split(".").filter(Boolean).pop() || "";
+            return /^(idle|walk|skill\d+)$/i.test(finalName)
+                || /dai_?ji|zou_?lu|pu_?tong_?gong_?ji|ji_?neng/i.test(finalName);
+        });
+    }
+
+    /**
+     * 自动挑选技能轨道动作，优先匹配 skillN 或带轨道后缀的 skill1A。
+     */
+    function inferSkillAssemblyAnimationNames(animationNames, skillIndex, trackKey) {
+        const suffix = String(trackKey || "").toUpperCase();
+        const exact = (animationNames || []).filter((animationName) => {
+            const finalName = String(animationName || "").split(".").filter(Boolean).pop() || "";
+            return finalName === `skill${skillIndex}`
+                || finalName.toUpperCase() === `SKILL1${suffix}`;
+        });
+        return exact.length ? exact : [];
+    }
+
+    /**
+     * 导出或校验前统一准备实体：assembly 模式编译到底层结构，legacy 模式只刷新镜像状态。
+     */
+    function prepareEntityForExport(entity) {
+        const assembly = getConnectionAssembly(entity);
+        if (assembly.mode === CONNECTION_ASSEMBLY_MODE_ASSEMBLY) {
+            compileConnectionAssemblyToEntity(entity, assembly);
+        } else {
+            syncConnectionAssemblyFromLegacyEntity(entity, assembly);
+        }
+        assembly.diagnostics = collectConnectionAssemblyDiagnostics(entity, assembly);
+        return assembly.diagnostics;
+    }
+
+    /**
+     * 对所有实体执行导出准备，确保导出前状态和底层结构已经同步。
+     */
+    function prepareAllEntitiesForExport() {
+        state.entities.forEach((entity) => prepareEntityForExport(entity));
+    }
+
+    /**
+     * legacy 模式只把当前旧表单结构镜像到 connectionAssembly，不覆盖用户已有控制器配置。
+     */
+    function syncConnectionAssemblyFromLegacyEntity(entity, assembly) {
+        const geometryResources = getGeometryResources(entity);
+        const textureResources = getTextureResources(entity);
+        const renderBindings = getRenderControllers(entity);
+        const animationBindings = getAnimationControllerBindings(entity);
+        const bodyRender = findRenderBindingByResourceKey(entity, renderBindings, CONNECTION_BODY_RESOURCE_KEY);
+        const wingsRender = findRenderBindingByResourceKey(entity, renderBindings, CONNECTION_WINGS_RESOURCE_KEY);
+        const bodyAnimation = animationBindings.find((binding) => normalizeAnimationTargetGeometryKey(binding.targetGeometryKey) === AUTO_ANIMATION_TARGET_GEOMETRY
+            || normalizeAnimationTargetGeometryKey(binding.targetGeometryKey) === CONNECTION_BODY_RESOURCE_KEY)
+            || animationBindings[0]
+            || null;
+
+        assembly.body.geometryResourceId = findMappedResourceId(bodyRender, "geometry", CONNECTION_BODY_RESOURCE_KEY) || (geometryResources[0] ? geometryResources[0].id : "");
+        assembly.body.textureResourceId = findMappedResourceId(bodyRender, "texture", CONNECTION_BODY_RESOURCE_KEY) || (textureResources[0] ? textureResources[0].id : "");
+        assembly.body.animationController = bodyAnimation ? bodyAnimation.controller : DEFAULT_CONTROLLER;
+        assembly.body.animationMappings = bodyAnimation ? normalizeAnimationMappings(bodyAnimation.animationMappings) : {};
+        assembly.body.animationResourceId = findAnimationResourceIdByNames(entity, Object.values(assembly.body.animationMappings));
+        assembly.body.animationNames = Object.values(assembly.body.animationMappings).filter(Boolean);
+        assembly.wings.enabled = Boolean(wingsRender);
+        assembly.wings.geometryResourceId = findMappedResourceId(wingsRender, "geometry", CONNECTION_WINGS_RESOURCE_KEY);
+        assembly.wings.textureResourceId = findMappedResourceId(wingsRender, "texture", CONNECTION_WINGS_RESOURCE_KEY);
+        assembly.wings.animationController = CONNECTION_WINGS_CONTROLLER;
+        assembly.skills = buildLegacySkillTracksFromBindings(entity, renderBindings, animationBindings);
+    }
+
+    /**
+     * 从旧结构里识别 a-z 技能轨道，作为未来连连看 UI 的初始业务状态。
+     */
+    function buildLegacySkillTracksFromBindings(entity, renderBindings, animationBindings) {
+        return CONNECTION_SKILL_TRACK_KEYS
+            .map((trackKey, index) => {
+                const renderBinding = findRenderBindingByResourceKey(entity, renderBindings, trackKey);
+                const animationBinding = animationBindings.find((binding) => normalizeAnimationTargetGeometryKey(binding.targetGeometryKey) === trackKey);
+                if (!renderBinding && !animationBinding) {
+                    return null;
+                }
+                return createConnectionAssemblySkillTrack({
+                    trackKey,
+                    skillIndex: index + 1,
+                    geometryResourceId: findMappedResourceId(renderBinding, "geometry", trackKey),
+                    textureResourceId: findMappedResourceId(renderBinding, "texture", trackKey),
+                    animationResourceId: findAnimationResourceIdByNames(entity, animationBinding ? Object.values(animationBinding.animationMappings || {}) : []),
+                    animationController: animationBinding ? animationBinding.controller : resolveSkillTrackAnimationController(trackKey, []),
+                    animationMappings: animationBinding ? normalizeAnimationMappings(animationBinding.animationMappings) : {},
+                    animationNames: animationBinding ? Object.values(animationBinding.animationMappings || {}).filter(Boolean) : [],
+                    confirmed: true,
+                });
+            })
+            .filter(Boolean);
+    }
+
+    /**
+     * 根据动作名反查来源 animation.json，旧表单同步到轨道模式时用于填充动作文件。
+     */
+    function findAnimationResourceIdByNames(entity, animationNames) {
+        const names = (animationNames || []).filter(Boolean);
+        if (!names.length) {
+            return "";
+        }
+        const resources = getAnimationResources(entity);
+        const matched = resources.find((resource) => names.every((name) => (resource.animationNames || []).includes(name)));
+        return matched ? matched.id : "";
+    }
+
+    /**
+     * 在旧渲染器绑定里按资源 key 找对应卡片。
+     */
+    function findRenderBindingByResourceKey(entity, renderBindings, resourceKey) {
+        const geometryResources = getGeometryResources(entity);
+        return (renderBindings || []).find((binding) => {
+            const presetKeys = getRenderBindingKeys(binding, "geometry");
+            return presetKeys.some((key) => {
+                const resourceId = binding.geometryMappings[key];
+                const resource = geometryResources.find((item) => item.id === resourceId);
+                return resource && resource.resourceKey === resourceKey;
+            });
+        }) || null;
+    }
+
+    /**
+     * 从渲染器绑定中取出某个 geometry/texture key 对应的资源 id。
+     */
+    function findMappedResourceId(renderBinding, type, resourceKey) {
+        if (!renderBinding) {
+            return "";
+        }
+        const mappings = type === "geometry" ? renderBinding.geometryMappings : renderBinding.textureMappings;
+        return mappings && typeof mappings[resourceKey] === "string" ? mappings[resourceKey] : "";
+    }
+
+    /**
+     * 将 assembly 模式的业务装配状态编译回现有底层结构，导出协议仍保持不变。
+     */
+    function compileConnectionAssemblyToEntity(entity, assembly) {
+        const diagnostics = collectConnectionAssemblyDiagnostics(entity, assembly);
+        assembly.diagnostics = diagnostics;
+        if (diagnostics.errors.length) {
+            return;
+        }
+        applyConnectionAssemblyResourceKeys(entity, assembly, diagnostics);
+        if (diagnostics.errors.length) {
+            return;
+        }
+        entity.renderControllers = buildRenderControllersFromConnectionAssembly(entity, assembly);
+        entity.animationControllerBindings = buildAnimationBindingsFromConnectionAssembly(assembly);
+    }
+
+    /**
+     * 根据角色为资源分配稳定 key：本体 default，翅膀 default_wings，技能 a-z。
+     */
+    function applyConnectionAssemblyResourceKeys(entity, assembly, diagnostics) {
+        const geometryResources = getGeometryResources(entity);
+        const textureResources = getTextureResources(entity);
+        applyResourceKeyById(geometryResources, assembly.body.geometryResourceId, CONNECTION_BODY_RESOURCE_KEY, diagnostics, "本体模型");
+        applyResourceKeyById(textureResources, assembly.body.textureResourceId, CONNECTION_BODY_RESOURCE_KEY, diagnostics, "本体贴图");
+        if (assembly.wings.enabled) {
+            applyResourceKeyById(geometryResources, assembly.wings.geometryResourceId, CONNECTION_WINGS_RESOURCE_KEY, diagnostics, "翅膀模型");
+            applyResourceKeyById(textureResources, assembly.wings.textureResourceId, CONNECTION_WINGS_RESOURCE_KEY, diagnostics, "翅膀贴图");
+        }
+        assembly.skills.forEach((skill) => {
+            applyResourceKeyById(geometryResources, skill.geometryResourceId, skill.trackKey, diagnostics, `技能 ${skill.skillIndex} 模型`);
+            applyResourceKeyById(textureResources, skill.textureResourceId, skill.trackKey, diagnostics, `技能 ${skill.skillIndex} 贴图`);
+        });
+    }
+
+    /**
+     * 把指定资源改成目标 key；若资源不存在则交给校验层报错。
+     */
+    function applyResourceKeyById(resources, resourceId, resourceKey, diagnostics, label) {
+        if (!resourceId) {
+            return;
+        }
+        const resource = resources.find((item) => item.id === resourceId);
+        if (!resource) {
+            diagnostics.errors.push({ message: `${label} 引用的资源不存在。` });
+            return;
+        }
+        resource.resourceKey = normalizeResourceKey(resourceKey);
+    }
+
+    /**
+     * 从业务装配状态生成渲染控制器列表，控制器条件继续由 use_controllers 内部表达。
+     */
+    function buildRenderControllersFromConnectionAssembly(entity, assembly) {
+        const bindings = [];
+        bindings.push(createConnectionRenderBinding(DEFAULT_RENDER_CONTROLLER, CONNECTION_BODY_RESOURCE_KEY, assembly.body));
+        if (assembly.wings.enabled) {
+            bindings.push(createConnectionRenderBinding(CONNECTION_WINGS_RENDER_CONTROLLER, CONNECTION_WINGS_RESOURCE_KEY, assembly.wings));
+        }
+        assembly.skills.forEach((skill) => {
+            bindings.push(createConnectionRenderBinding(resolveSkillRenderController(skill.trackKey), skill.trackKey, skill));
+        });
+        return bindings.filter(Boolean);
+    }
+
+    /**
+     * 创建一个装配生成的渲染控制器绑定，geometry 和 texture key 保持一致。
+     */
+    function createConnectionRenderBinding(controller, resourceKey, role) {
+        if (!role || !role.geometryResourceId || !role.textureResourceId) {
+            return null;
+        }
+        return createRenderControllerBinding({
+            controller,
+            condition: "",
+            geometryMappings: {
+                [resourceKey]: role.geometryResourceId,
+            },
+            textureMappings: {
+                [resourceKey]: role.textureResourceId,
+            },
+        });
+    }
+
+    /**
+     * 从业务装配状态生成动画控制器绑定，本体可手动选，技能和翅膀按规则生成。
+     */
+    function buildAnimationBindingsFromConnectionAssembly(assembly) {
+        const bindings = [];
+        const bodyController = assembly.body.animationController || DEFAULT_CONTROLLER;
+        bindings.push(createAnimationControllerBinding({
+            key: DEFAULT_ANIMATION_BINDING_KEY,
+            controller: bodyController,
+            targetGeometryKey: CONNECTION_BODY_RESOURCE_KEY,
+            animationMappings: buildBodyAnimationMappings(bodyController, assembly.body),
+        }));
+        if (assembly.wings.enabled && assembly.wings.animationNames.length) {
+            bindings.push(createAnimationControllerBinding({
+                key: "wings",
+                controller: CONNECTION_WINGS_CONTROLLER,
+                targetGeometryKey: CONNECTION_WINGS_RESOURCE_KEY,
+                animationMappings: buildWingsAnimationMappings(assembly.wings.animationNames),
+            }));
+        }
+        assembly.skills.forEach((skill) => {
+            if (!skill.animationNames.length && !Object.keys(skill.animationMappings || {}).length) {
+                return;
+            }
+            const skillController = skill.animationController || resolveSkillTrackAnimationController(skill.trackKey, skill.animationNames);
+            bindings.push(createAnimationControllerBinding({
+                key: skill.trackKey,
+                controller: skillController,
+                targetGeometryKey: skill.trackKey,
+                animationMappings: buildSkillTrackAnimationMappings(skill),
+            }));
+        });
+        return bindings;
+    }
+
+    /**
+     * 本体动作优先使用手写映射；没有映射时按控制器槽位从多选动作中自动分配。
+     */
+    function buildBodyAnimationMappings(controller, bodyRole) {
+        const existingMappings = normalizeAnimationMappings(bodyRole.animationMappings);
+        if (Object.keys(existingMappings).length) {
+            return existingMappings;
+        }
+        return buildAnimationMappings(
+            { animationNames: Array.isArray(bodyRole.animationNames) ? bodyRole.animationNames : [] },
+            getControllerSlots(controller || DEFAULT_CONTROLLER),
+            {}
+        );
+    }
+
+    /**
+     * 翅膀控制器固定使用 idle_wings 槽位，默认取第一条动作。
+     */
+    function buildWingsAnimationMappings(animationNames) {
+        const firstAnimation = animationNames.find(Boolean) || "";
+        return firstAnimation ? { idle_wings: firstAnimation } : {};
+    }
+
+    /**
+     * 根据技能轨道和动作列表生成 skill1A/skill2A 这类槽位映射。
+     */
+    function buildSkillTrackAnimationMappings(skill) {
+        const existingMappings = normalizeAnimationMappings(skill.animationMappings);
+        if (Object.keys(existingMappings).length) {
+            return sanitizeSkillAnimationMappingsBySlots(existingMappings, getConnectionAssemblySlotNames(skill.trackKey, skill), skill.trackKey);
+        }
+        const suffix = skill.trackKey.toUpperCase();
+        const mappings = {};
+        const allowedSlots = getConnectionAssemblySlotNames(skill.trackKey, skill);
+        const usedSlots = new Set();
+        skill.animationNames.filter(Boolean).forEach((animationName, index) => {
+            const inferredSlot = inferTrackSlotName(animationName, skill.trackKey);
+            const slotName = allowedSlots.includes(inferredSlot)
+                ? inferredSlot
+                : findFallbackSkillSlot(allowedSlots, usedSlots, suffix);
+            if (!slotName) {
+                return;
+            }
+            usedSlots.add(slotName);
+            mappings[slotName] = animationName;
+        });
+        return mappings;
+    }
+
+    /**
+     * 清洗技能映射时尽量保留动作值，把非法 key 迁移到当前控制器的技能槽位上。
+     */
+    function sanitizeSkillAnimationMappingsBySlots(mappings, slotNames, trackKey) {
+        const suffix = String(trackKey || "").toUpperCase();
+        const allowedSlots = new Set(slotNames || []);
+        const result = {};
+        const usedSlots = new Set();
+        Object.entries(mappings || {}).forEach(([slotName, animationName]) => {
+            if (!animationName) {
+                return;
+            }
+            if (allowedSlots.has(slotName) && !usedSlots.has(slotName)) {
+                result[slotName] = animationName;
+                usedSlots.add(slotName);
+                return;
+            }
+            const fallbackSlot = findFallbackSkillSlot(slotNames, usedSlots, suffix);
+            if (fallbackSlot) {
+                result[fallbackSlot] = animationName;
+                usedSlots.add(fallbackSlot);
+            }
+        });
+        return result;
+    }
+
+    /**
+     * 为无法直接按名字匹配的技能动作选择一个当前控制器内可用的技能槽位。
+     */
+    function findFallbackSkillSlot(slotNames, usedSlots, suffix) {
+        return (slotNames || []).find((slotName) => {
+            if (usedSlots.has(slotName)) {
+                return false;
+            }
+            return new RegExp(`^skill\\d+${suffix}$`, "i").test(slotName);
+        }) || "";
+    }
+
+    /**
+     * 从动作名推断带轨道后缀的槽位名，例如 attack.skill1A -> skill1A。
+     */
+    function inferTrackSlotName(animationName, trackKey) {
+        const suffix = String(trackKey || "").toUpperCase();
+        const finalName = String(animationName || "").split(".").filter(Boolean).pop() || "";
+        const suffixMatch = finalName.match(/^(idle|walk|skill\d+)([A-Za-z])$/);
+        if (suffixMatch && suffixMatch[2].toUpperCase() === suffix) {
+            return `${suffixMatch[1]}${suffix}`;
+        }
+        const baseMatch = finalName.match(/^(idle|walk|skill\d+)$/);
+        return baseMatch ? `${baseMatch[1]}${suffix}` : "";
+    }
+
+    /**
+     * 按轨道 key 生成对应渲染控制器名。
+     */
+    function resolveSkillRenderController(trackKey) {
+        return `controller.render.entity_default.${normalizeSkillTrackKey(trackKey)}.third_person`;
+    }
+
+    /**
+     * 按轨道和动作数量选择技能动画控制器，找不到时仍返回期望名并由诊断报错。
+     */
+    function resolveSkillTrackAnimationController(trackKey, animationNames) {
+        const normalizedTrackKey = normalizeSkillTrackKey(trackKey);
+        const skillCount = Math.max(1, countSkillAnimations(animationNames));
+        const controllerName = skillCount === 1
+            ? `controller.animation.entity_idle_skill1.${normalizedTrackKey}`
+            : `controller.animation.entity_skill${skillCount}.${normalizedTrackKey}`;
+        return controllerName;
+    }
+
+    /**
+     * 统计技能动作数量，idle/walk 不参与技能段数。
+     */
+    function countSkillAnimations(animationNames) {
+        const skillSlots = new Set();
+        (animationNames || []).forEach((animationName, index) => {
+            const finalName = String(animationName || "").split(".").filter(Boolean).pop() || "";
+            const match = finalName.match(/skill(\d+)/i);
+            if (match) {
+                skillSlots.add(Number(match[1]));
+            } else if (finalName && !/^idle|walk/i.test(finalName)) {
+                skillSlots.add(index + 1);
+            }
+        });
+        return skillSlots.size || (animationNames || []).filter(Boolean).length;
+    }
+
+    /**
+     * 清洗技能轨道 key，只允许 a-z；非法值回落到 a，后续校验会提示重复。
+     */
+    function normalizeSkillTrackKey(trackKey) {
+        const normalized = String(trackKey || "").trim().toLowerCase();
+        return CONNECTION_SKILL_TRACK_KEYS.includes(normalized) ? normalized : "a";
+    }
+
+    /**
+     * 集中校验连连看业务装配状态，UI 和导出都使用同一套结果。
+     */
+    function collectConnectionAssemblyDiagnostics(entity, assembly) {
+        const diagnostics = { errors: [], warnings: [], infos: [] };
+        if (assembly.mode !== CONNECTION_ASSEMBLY_MODE_ASSEMBLY) {
+            diagnostics.infos.push({ message: "当前实体处于旧表单兼容模式，连连看装配状态只做镜像，不覆盖控制器。" });
+            return diagnostics;
+        }
+
+        validateConnectionAssemblyRole(entity, diagnostics, assembly.body, "本体", true);
+        if (!assembly.body.animationController) {
+            diagnostics.errors.push({ message: "本体缺少动画控制器。" });
+        } else if (!getAnimationControllerPreset(assembly.body.animationController)) {
+            diagnostics.errors.push({ message: `本体动画控制器未收录：${assembly.body.animationController}` });
+        }
+
+        if (assembly.wings.enabled) {
+            validateConnectionAssemblyRole(entity, diagnostics, assembly.wings, "翅膀", false);
+            validateControllerExists(diagnostics, CONNECTION_WINGS_CONTROLLER, "翅膀动画控制器");
+            validateRenderControllerExists(diagnostics, CONNECTION_WINGS_RENDER_CONTROLLER, "翅膀渲染控制器");
+        }
+
+        const usedTrackKeys = new Set();
+        assembly.skills.forEach((skill) => {
+            if (usedTrackKeys.has(skill.trackKey)) {
+                diagnostics.errors.push({ message: `技能轨道 ${skill.trackKey} 重复。` });
+            }
+            usedTrackKeys.add(skill.trackKey);
+            validateConnectionAssemblyRole(entity, diagnostics, skill, `技能 ${skill.skillIndex}`, false);
+            validateControllerExists(diagnostics, skill.animationController || resolveSkillTrackAnimationController(skill.trackKey, skill.animationNames), `技能 ${skill.skillIndex} 动画控制器`);
+            validateRenderControllerExists(diagnostics, resolveSkillRenderController(skill.trackKey), `技能 ${skill.skillIndex} 渲染控制器`);
+            if (!skill.animationNames.length && !Object.keys(skill.animationMappings || {}).length) {
+                diagnostics.warnings.push({ message: `技能 ${skill.skillIndex} 没有绑定动作。` });
+            }
+        });
+        return diagnostics;
+    }
+
+    /**
+     * 校验某个角色是否拥有模型和贴图资源。
+     */
+    function validateConnectionAssemblyRole(entity, diagnostics, role, label, required) {
+        const geometryResources = getGeometryResources(entity);
+        const textureResources = getTextureResources(entity);
+        if (!role.geometryResourceId) {
+            const target = required ? diagnostics.errors : diagnostics.warnings;
+            target.push({ message: `${label}缺少模型。` });
+        } else if (!geometryResources.some((resource) => resource.id === role.geometryResourceId)) {
+            diagnostics.errors.push({ message: `${label}模型不存在。` });
+        }
+        if (!role.textureResourceId) {
+            const target = required ? diagnostics.errors : diagnostics.warnings;
+            target.push({ message: `${label}缺少贴图。` });
+        } else if (!textureResources.some((resource) => resource.id === role.textureResourceId)) {
+            diagnostics.errors.push({ message: `${label}贴图不存在。` });
+        }
+    }
+
+    /**
+     * 校验动画控制器是否存在于 manifest。
+     */
+    function validateControllerExists(diagnostics, controllerName, label) {
+        if (!getAnimationControllerPreset(controllerName)) {
+            diagnostics.errors.push({ message: `${label}未收录：${controllerName}` });
+        }
+    }
+
+    /**
+     * 校验渲染控制器是否存在于 manifest。
+     */
+    function validateRenderControllerExists(diagnostics, controllerName, label) {
+        if (!getRenderControllerPreset(controllerName)) {
+            diagnostics.errors.push({ message: `${label}未收录：${controllerName}` });
+        }
+    }
+
+    /**
+     * 复制实体时重映射 connectionAssembly 内部资源 id，避免新实体引用旧实体资源。
+     */
+    function cloneConnectionAssemblyForDuplicate(entity, oldGeometryIdToNewId, oldTextureIdToNewId, oldAnimationIdToNewId) {
+        const clonedAssembly = deepClone(getConnectionAssembly(entity));
+        remapConnectionAssemblyRoleResourceIds(clonedAssembly.body, oldGeometryIdToNewId, oldTextureIdToNewId, oldAnimationIdToNewId);
+        remapConnectionAssemblyRoleResourceIds(clonedAssembly.wings, oldGeometryIdToNewId, oldTextureIdToNewId, oldAnimationIdToNewId);
+        (clonedAssembly.skills || []).forEach((skill) => remapConnectionAssemblyRoleResourceIds(skill, oldGeometryIdToNewId, oldTextureIdToNewId, oldAnimationIdToNewId));
+        return clonedAssembly;
+    }
+
+    /**
+     * 按资源复制映射更新单个角色的模型、贴图和动作文件引用。
+     */
+    function remapConnectionAssemblyRoleResourceIds(role, oldGeometryIdToNewId, oldTextureIdToNewId, oldAnimationIdToNewId) {
+        if (!role || typeof role !== "object") {
+            return;
+        }
+        if (role.geometryResourceId) {
+            role.geometryResourceId = oldGeometryIdToNewId[role.geometryResourceId] || "";
+        }
+        if (role.textureResourceId) {
+            role.textureResourceId = oldTextureIdToNewId[role.textureResourceId] || "";
+        }
+        if (role.animationResourceId) {
+            role.animationResourceId = oldAnimationIdToNewId[role.animationResourceId] || "";
+        }
     }
 
     /**
@@ -5215,6 +8165,7 @@
             id: normalized.id || createId(),
             resourceKey: normalizeResourceKey(normalized.resourceKey || "default"),
             sourceName: typeof normalized.sourceName === "string" ? normalized.sourceName : "",
+            sourcePath: typeof normalized.sourcePath === "string" ? normalized.sourcePath : "",
             buffer: normalized.buffer || null,
         };
     }
@@ -5228,7 +8179,9 @@
             id: normalized.id || createId(),
             resourceKey: normalizeResourceKey(normalized.resourceKey || "default"),
             sourceName: typeof normalized.sourceName === "string" ? normalized.sourceName : "",
+            sourcePath: typeof normalized.sourcePath === "string" ? normalized.sourcePath : "",
             json: normalized.json || null,
+            hasExportRootWrapper: normalized.hasExportRootWrapper === true,
         };
     }
 
@@ -5240,6 +8193,7 @@
         return {
             id: normalized.id || createId(),
             sourceName: typeof normalized.sourceName === "string" ? normalized.sourceName : "",
+            sourcePath: typeof normalized.sourcePath === "string" ? normalized.sourcePath : "",
             json: normalized.json || null,
             animationNames: Array.isArray(normalized.animationNames) ? [...normalized.animationNames] : [],
         };
