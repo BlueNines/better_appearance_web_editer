@@ -10,6 +10,8 @@
     const DEFAULT_RENDER_CONTROLLER = "controller.render.entity_default.third_person";
     const DEFAULT_CONTROLLER = "controller.animation.entity_idle.default";
     const DEFAULT_ANIMATION_BINDING_KEY = "default";
+    const AUTO_ANIMATION_TARGET_GEOMETRY = "auto";
+    const BONE_NAMESPACE_PREFIX = "ba";
     const SYSTEM_SCALE_CONTROLLER_KEY = "scale";
     const SYSTEM_SCALE_CONTROLLER_NAME = "controller.animation.auto.scale";
     const DEFAULT_ENTITY_PROFILE = {
@@ -983,74 +985,154 @@
     }
 
     /**
-     * 收集导出前所有模型骨骼名，并为业务占用的 `root` 预留一个统一的新名字。
+     * 为导出构建骨骼隔离上下文：跨模型重名骨骼会被改名，业务 root 也会避让包装 root。
      */
-    function buildGeometryRootRenameContext(geometryResources, mergedAnimationFile) {
+    function buildGeometryBoneIsolationContext(entity) {
+        const geometryResources = getGeometryResources(entity);
+        const shouldIsolateSharedBones = isBoneIsolationEnabled(entity);
+        const boneOwners = new Map();
         const usedBoneNames = new Set();
-        let hasBusinessRootBone = false;
 
-        (geometryResources || []).forEach((resource) => {
-            if (!resource || !resource.json || typeof resource.json !== "object") {
-                return;
-            }
-
-            const geometries = Array.isArray(resource.json["minecraft:geometry"])
-                ? resource.json["minecraft:geometry"]
-                : [];
-            geometries.forEach((geometryItem) => {
-                if (!geometryItem || !Array.isArray(geometryItem.bones)) {
-                    return;
+        geometryResources.forEach((resource) => {
+            const resourceKey = resource.resourceKey;
+            const boneNames = collectGeometryResourceBoneNames(resource);
+            boneNames.forEach((boneName) => {
+                usedBoneNames.add(boneName);
+                if (!boneOwners.has(boneName)) {
+                    boneOwners.set(boneName, []);
                 }
-
-                geometryItem.bones.forEach((bone) => {
-                    if (!bone || typeof bone.name !== "string" || !bone.name.trim()) {
-                        return;
-                    }
-                    usedBoneNames.add(bone.name);
-                    if (bone.name === "root") {
-                        hasBusinessRootBone = true;
-                    }
-                });
+                boneOwners.get(boneName).push(resourceKey);
             });
         });
 
-        if (mergedAnimationFile && mergedAnimationFile.json && mergedAnimationFile.json.animations) {
-            Object.values(mergedAnimationFile.json.animations).forEach((animationBody) => {
-                if (!animationBody || !animationBody.bones || typeof animationBody.bones !== "object") {
-                    return;
-                }
-                Object.keys(animationBody.bones).forEach((boneName) => {
-                    if (!boneName) {
-                        return;
-                    }
-                    usedBoneNames.add(boneName);
-                });
+        const renameMapsByResourceKey = new Map();
+        const conflictRecords = [];
+        boneOwners.forEach((owners, boneName) => {
+            const uniqueOwners = [...new Set(owners)];
+            if (boneName !== "root" && uniqueOwners.length <= 1) {
+                return;
+            }
+            if (boneName !== "root" && !shouldIsolateSharedBones) {
+                return;
+            }
+
+            const preservedOwner = boneName === "root" ? "" : choosePreservedBoneOwner(uniqueOwners);
+            const renamedOwners = uniqueOwners.filter((resourceKey) => resourceKey !== preservedOwner);
+            if (boneName !== "root" && renamedOwners.length) {
+                conflictRecords.push({ boneName, owners: uniqueOwners });
+            }
+
+            renamedOwners.forEach((resourceKey) => {
+                const renameMap = getOrCreateBoneRenameMap(renameMapsByResourceKey, resourceKey);
+                const nextName = buildUniqueNamespacedBoneName(resourceKey, boneName, usedBoneNames);
+                renameMap.set(boneName, nextName);
+                usedBoneNames.add(nextName);
             });
-        }
+        });
 
         return {
-            replacementName: hasBusinessRootBone ? buildUniqueWrappedRootBoneName(usedBoneNames) : "",
+            renameMapsByResourceKey,
+            conflictRecords,
+            warnings: buildBoneIsolationWarnings(conflictRecords, renameMapsByResourceKey),
         };
     }
 
     /**
-     * 业务骨骼已经占用 `root` 时，生成一个全局不冲突的替代名。
+     * 收集单个模型资源里出现过的所有骨骼名。
      */
-    function buildUniqueWrappedRootBoneName(usedBoneNames) {
-        let nextName = "root_inner";
+    function collectGeometryResourceBoneNames(resource) {
+        const boneNames = new Set();
+        if (!resource || !resource.json || typeof resource.json !== "object") {
+            return boneNames;
+        }
+
+        const geometries = Array.isArray(resource.json["minecraft:geometry"])
+            ? resource.json["minecraft:geometry"]
+            : [];
+        geometries.forEach((geometryItem) => {
+            if (!geometryItem || !Array.isArray(geometryItem.bones)) {
+                return;
+            }
+            geometryItem.bones.forEach((bone) => {
+                if (bone && typeof bone.name === "string" && bone.name.trim()) {
+                    boneNames.add(bone.name.trim());
+                }
+            });
+        });
+        return boneNames;
+    }
+
+    /**
+     * 同名骨骼冲突时优先保留 default 模型，其它模型改名以减少对本体动作的影响。
+     */
+    function choosePreservedBoneOwner(resourceKeys) {
+        if (resourceKeys.includes("default")) {
+            return "default";
+        }
+        return [...resourceKeys].sort(compareSlotNames)[0] || "";
+    }
+
+    /**
+     * 取出某个模型资源的骨骼改名表，不存在时创建。
+     */
+    function getOrCreateBoneRenameMap(renameMapsByResourceKey, resourceKey) {
+        if (!renameMapsByResourceKey.has(resourceKey)) {
+            renameMapsByResourceKey.set(resourceKey, new Map());
+        }
+        return renameMapsByResourceKey.get(resourceKey);
+    }
+
+    /**
+     * 生成不会和现有骨骼名冲突的命名空间骨骼名。
+     */
+    function buildUniqueNamespacedBoneName(resourceKey, boneName, usedBoneNames) {
+        const safeResourceKey = normalizeBoneNamePart(resourceKey);
+        const safeBoneName = normalizeBoneNamePart(boneName);
+        const baseName = `${BONE_NAMESPACE_PREFIX}_${safeResourceKey}_${safeBoneName}`;
+        let nextName = baseName;
         let suffix = 2;
         while (usedBoneNames.has(nextName) || nextName === "root") {
-            nextName = `root_inner_${suffix}`;
+            nextName = `${baseName}_${suffix}`;
             suffix += 1;
         }
         return nextName;
     }
 
     /**
-     * 把模型里原本业务含义的 `root` 骨骼改名，避免和导出时新增的最外层包装根冲突。
+     * 把资源 key 或骨骼名压成适合拼接的新骨骼名片段。
      */
-    function renameGeometryRootBones(geometryItem, replacementName) {
-        if (!replacementName || !geometryItem || !Array.isArray(geometryItem.bones)) {
+    function normalizeBoneNamePart(value) {
+        const normalized = String(value || "")
+            .trim()
+            .replace(/[^A-Za-z0-9_]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+        return normalized || "bone";
+    }
+
+    /**
+     * 生成骨骼隔离提示，帮助用户知道哪些模型会在导出时自动改名。
+     */
+    function buildBoneIsolationWarnings(conflictRecords, renameMapsByResourceKey) {
+        const warnings = [];
+        conflictRecords.forEach((record) => {
+            const changedOwners = record.owners
+                .filter((resourceKey) => {
+                    const renameMap = renameMapsByResourceKey.get(resourceKey);
+                    return renameMap && renameMap.has(record.boneName);
+                })
+                .map((resourceKey) => `${resourceKey}:${renameMapsByResourceKey.get(resourceKey).get(record.boneName)}`);
+            if (changedOwners.length) {
+                warnings.push(`骨骼 ${record.boneName} 同时存在于 ${record.owners.join("、")}，导出时会隔离为 ${changedOwners.join("、")}。`);
+            }
+        });
+        return warnings;
+    }
+
+    /**
+     * 按改名表同步改写模型骨骼名和 parent 指向。
+     */
+    function renameGeometryBones(geometryItem, renameMap) {
+        if (!renameMap || !renameMap.size || !geometryItem || !Array.isArray(geometryItem.bones)) {
             return;
         }
 
@@ -1058,11 +1140,11 @@
             if (!bone || typeof bone !== "object") {
                 return;
             }
-            if (bone.name === "root") {
-                bone.name = replacementName;
+            if (typeof bone.name === "string" && renameMap.has(bone.name)) {
+                bone.name = renameMap.get(bone.name);
             }
-            if (bone.parent === "root") {
-                bone.parent = replacementName;
+            if (typeof bone.parent === "string" && renameMap.has(bone.parent)) {
+                bone.parent = renameMap.get(bone.parent);
             }
         });
     }
@@ -1533,12 +1615,9 @@
     }
 
     function buildNormalizedPayload(entity) {
-        const geometryRootRenameContext = buildGeometryRootRenameContext(
-            getGeometryResources(entity),
-            getMergedAnimationFile(entity)
-        );
-        const geometryJson = normalizeGeometryJson(entity, geometryRootRenameContext);
-        const animationJson = normalizeAnimationJson(entity, geometryRootRenameContext);
+        const boneIsolationContext = buildGeometryBoneIsolationContext(entity);
+        const geometryJson = normalizeGeometryJson(entity, boneIsolationContext);
+        const animationJson = normalizeAnimationJson(entity, boneIsolationContext);
         const animateList = createAnimateList(entity);
         const renderBindings = collectRenderBindings(entity);
         const entityJson = createEntityJson(entity);
@@ -1555,7 +1634,7 @@
         };
     }
 
-    function normalizeGeometryJson(entity, geometryRootRenameContext) {
+    function normalizeGeometryJson(entity, boneIsolationContext) {
         const geometryResources = getGeometryResources(entity);
         const mergedGeometries = [];
         let formatVersion = "1.12.0";
@@ -1576,7 +1655,7 @@
             geometries.forEach((item, index) => {
                 item.description = item.description || {};
                 item.description.identifier = buildGeometryResourceIdentifier(entity, resource, index);
-                renameGeometryRootBones(item, geometryRootRenameContext && geometryRootRenameContext.replacementName);
+                renameGeometryBones(item, getBoneRenameMapForResource(boneIsolationContext, resource.resourceKey));
                 wrapGeometryBonesWithRoot(item);
                 mergedGeometries.push(item);
             });
@@ -1588,7 +1667,7 @@
         };
     }
 
-    function normalizeAnimationJson(entity, geometryRootRenameContext) {
+    function normalizeAnimationJson(entity, boneIsolationContext) {
         const mergedAnimationFile = getMergedAnimationFile(entity);
         const baseJson = deepClone(mergedAnimationFile.json);
         const renamedAnimations = {};
@@ -1599,9 +1678,9 @@
                 return;
             }
             renamedAnimations[entry.name] = deepClone(sourceAnimations[entry.sourceName]);
-            renameAnimationRootBones(
+            renameAnimationBones(
                 renamedAnimations[entry.name],
-                geometryRootRenameContext && geometryRootRenameContext.replacementName
+                getBoneRenameMapForResource(boneIsolationContext, entry.targetGeometryKey)
             );
         });
 
@@ -1614,20 +1693,39 @@
     }
 
     /**
-     * 把动画里原本控制业务 `root` 骨骼的轨道名同步改掉，和 geometry 保持一致。
+     * 获取某个模型资源对应的骨骼改名表，没有改名需求时返回空表。
      */
-    function renameAnimationRootBones(animationBody, replacementName) {
-        if (!replacementName || !animationBody || typeof animationBody !== "object") {
+    function getBoneRenameMapForResource(boneIsolationContext, resourceKey) {
+        if (!boneIsolationContext || !boneIsolationContext.renameMapsByResourceKey) {
+            return new Map();
+        }
+        return boneIsolationContext.renameMapsByResourceKey.get(resourceKey) || new Map();
+    }
+
+    /**
+     * 按目标模型资源的改名表同步改写动画 bones 轨道名。
+     */
+    function renameAnimationBones(animationBody, renameMap) {
+        if (!renameMap || !renameMap.size || !animationBody || typeof animationBody !== "object") {
             return;
         }
 
         const bones = animationBody.bones;
-        if (!bones || typeof bones !== "object" || Array.isArray(bones) || !Object.prototype.hasOwnProperty.call(bones, "root")) {
+        if (!bones || typeof bones !== "object" || Array.isArray(bones)) {
             return;
         }
 
-        bones[replacementName] = bones.root;
-        delete bones.root;
+        Object.keys(bones).forEach((boneName) => {
+            if (!renameMap.has(boneName)) {
+                return;
+            }
+            const nextName = renameMap.get(boneName);
+            if (!nextName || nextName === boneName) {
+                return;
+            }
+            bones[nextName] = bones[boneName];
+            delete bones[boneName];
+        });
     }
 
     /**
@@ -1834,6 +1932,7 @@
             key: entry.key,
             name: entry.name,
             sourceName: entry.sourceName,
+            targetGeometryKey: entry.targetGeometryKey,
         }));
     }
 
@@ -2319,6 +2418,15 @@
                         <input id="resourceSubdirInput" type="text" value="${escapeAttribute(entity.resourceSubdir)}" placeholder="${DEFAULT_SUBDIR}">
                         <p class="field-hint">对应贴图、模型、动作输出目录，例如 <code>monster</code>。</p>
                     </div>
+
+                    <div class="field">
+                        <label for="boneIsolationEnabledSelect">普通同名骨骼隔离</label>
+                        <select id="boneIsolationEnabledSelect">
+                            <option value="true" ${isBoneIsolationEnabled(entity) ? "selected" : ""}>开启</option>
+                            <option value="false" ${!isBoneIsolationEnabled(entity) ? "selected" : ""}>关闭</option>
+                        </select>
+                        <p class="field-hint">开启后导出时自动隔离跨模型同名骨骼；关闭只保留 root 包装避让。</p>
+                    </div>
                 </div>
             </section>
 
@@ -2563,6 +2671,8 @@
                 <h3>未使用动作</h3>
                 ${unusedAnimations.length ? `<div class="chip-row">${unusedAnimations.map((name) => `<span class="chip muted">${escapeHtml(name)}</span>`).join("")}</div>` : '<p class="field-hint">当前动作文件中的动画块都已被控制器映射使用。</p>'}
             </section>
+
+            ${renderBoneIsolationWarningSectionHtml(entity)}
 
         `;
 
@@ -2930,6 +3040,14 @@
                         <p class="field-hint">对应贴图、模型、动作输出目录。</p>
                     </div>
                     <div class="field">
+                        <label for="graphBoneIsolationEnabledSelect">普通同名骨骼隔离</label>
+                        <select id="graphBoneIsolationEnabledSelect">
+                            <option value="true" ${isBoneIsolationEnabled(entity) ? "selected" : ""}>开启</option>
+                            <option value="false" ${!isBoneIsolationEnabled(entity) ? "selected" : ""}>关闭</option>
+                        </select>
+                        <p class="field-hint">关闭后允许多个模型共享普通骨骼名；root 仍会避让整体缩放包装层。</p>
+                    </div>
+                    <div class="field">
                         <label>系统内置控制器</label>
                         <div class="readonly-field">${escapeHtml(SYSTEM_SCALE_CONTROLLER_KEY)} -> ${escapeHtml(SYSTEM_SCALE_CONTROLLER_NAME)}</div>
                         <p class="field-hint">缩放控制器固定存在，不开放连线编辑。</p>
@@ -2974,8 +3092,29 @@
                 context.titleDepthTestValue
             )}
             ${renderResourceDetailSectionsHtml(entity, context.textureResources, context.geometryResources, context.animationResources)}
+            ${renderBoneIsolationWarningSectionHtml(entity)}
             ${renderControllerKeyReferenceSectionHtml(context.renderBindings, context.animationSlotNames)}
             ${renderUnusedAnimationsSectionHtml(context.unusedAnimations)}
+        `;
+    }
+
+    /**
+     * 渲染跨模型同名骨骼提示，导出时会自动隔离这些冲突骨骼。
+     */
+    function renderBoneIsolationWarningSectionHtml(entity) {
+        const warnings = buildGeometryBoneIsolationContext(entity).warnings;
+        if (!warnings.length) {
+            return "";
+        }
+        return `
+            <section class="section-card">
+                <h3>骨骼隔离提示</h3>
+                <p class="field-hint">检测到多个模型资源存在同名骨骼。导出时会自动改名并同步改动画，避免技能模型和本体模型互相串动作。</p>
+                <div class="chip-row">
+                    ${warnings.slice(0, 12).map((warning) => `<span class="chip warn">${escapeHtml(warning)}</span>`).join("")}
+                    ${warnings.length > 12 ? `<span class="chip warn">还有 ${escapeHtml(String(warnings.length - 12))} 条未展示</span>` : ""}
+                </div>
+            </section>
         `;
     }
 
@@ -3048,7 +3187,7 @@
     /**
      * 渲染动画控制器的配置区；动作槽位会在动作通道里单独出现。
      */
-    function renderGraphAnimationControllerSetup(bindings) {
+    function renderGraphAnimationControllerSetup(entity, bindings) {
         return `
             <section class="graph-target-group graph-controller-setup">
                 <div class="detail-actions">
@@ -3065,16 +3204,37 @@
                     </div>
                 </article>
                 <div class="file-stack">
-                    ${bindings.map((binding, index) => renderGraphAnimationControllerSetupCard(binding, index, bindings.length)).join("")}
+                    ${bindings.map((binding, index) => renderGraphAnimationControllerSetupCard(binding, index, bindings.length, entity)).join("")}
                 </div>
             </section>
         `;
     }
 
     /**
+     * 渲染动画控制器的目标模型资源下拉框；自动模式按动作 key 后缀推断。
+     */
+    function renderAnimationTargetGeometryField(entity, binding, inputId) {
+        const geometryResources = getGeometryResources(entity);
+        const currentValue = normalizeAnimationTargetGeometryKey(binding.targetGeometryKey);
+        const hasCurrentGeometry = currentValue === AUTO_ANIMATION_TARGET_GEOMETRY
+            || geometryResources.some((resource) => resource.resourceKey === currentValue);
+        return `
+            <div class="field">
+                <label for="${escapeAttribute(inputId)}">目标模型资源</label>
+                <select id="${escapeAttribute(inputId)}" data-animation-binding-target-geometry="${escapeAttribute(binding.id)}">
+                    <option value="${AUTO_ANIMATION_TARGET_GEOMETRY}" ${currentValue === AUTO_ANIMATION_TARGET_GEOMETRY ? "selected" : ""}>自动推断</option>
+                    ${!hasCurrentGeometry ? `<option value="${escapeAttribute(currentValue)}" selected>${escapeHtml(currentValue)}（模型资源不存在）</option>` : ""}
+                    ${geometryResources.map((resource) => `<option value="${escapeAttribute(resource.resourceKey)}" ${currentValue === resource.resourceKey ? "selected" : ""}>${escapeHtml(resource.resourceKey)}</option>`).join("")}
+                </select>
+                <p class="field-hint">自动推断会把 <code>skill1A</code> 指向 <code>a</code>；手动选择后，该控制器全部动作按指定模型隔离骨骼。</p>
+            </div>
+        `;
+    }
+
+    /**
      * 渲染单个动画控制器配置卡片，避免控制器选择和动作连线混在一起。
      */
-    function renderGraphAnimationControllerSetupCard(binding, index, total) {
+    function renderGraphAnimationControllerSetupCard(binding, index, total, entity) {
         const currentPreset = getAnimationControllerPreset(binding.controller);
         const hasCurrentPreset = CONTROLLER_PRESETS.some((preset) => preset.name === binding.controller);
         const controllerDisplayName = formatControllerDisplayName(currentPreset, binding.controller || "未选择控制器");
@@ -3100,6 +3260,7 @@
                             ${CONTROLLER_PRESETS.map((preset) => `<option value="${preset.name}" ${preset.name === binding.controller ? "selected" : ""}>${escapeHtml(formatControllerOptionLabel(preset, preset.name))}</option>`).join("")}
                         </select>
                     </div>
+                    ${renderAnimationTargetGeometryField(entity, binding, `graphAnimationTargetGeometry-${binding.id}`)}
                 </div>
             </article>
         `;
@@ -3110,7 +3271,7 @@
      */
     function renderGraphAnimationTargetLane(entity, bindings, availableAnimations) {
         return `
-            ${renderGraphAnimationControllerSetup(bindings)}
+            ${renderGraphAnimationControllerSetup(entity, bindings)}
             <section class="graph-target-lane graph-type-animation">
                 <div class="graph-group-title">
                     <h4>动作目标槽位</h4>
@@ -3357,6 +3518,7 @@
         const baseNameInput = document.getElementById("baseNameInput");
         const identifierInput = document.getElementById("identifierInput");
         const resourceSubdirInput = document.getElementById("resourceSubdirInput");
+        const boneIsolationEnabledSelect = document.getElementById("boneIsolationEnabledSelect");
         const profileWidthInput = document.getElementById("profileWidthInput");
         const profileHeightInput = document.getElementById("profileHeightInput");
         const profileScaleInput = document.getElementById("profileScaleInput");
@@ -3405,6 +3567,11 @@
         resourceSubdirInput.addEventListener("input", (event) => {
             entity.resourceSubdir = event.target.value;
             renderOutputPreview();
+        });
+
+        boneIsolationEnabledSelect.addEventListener("change", (event) => {
+            entity.boneIsolationEnabled = event.target.value === "true";
+            render();
         });
 
         bindEntityProfileInput(profileWidthInput, entity, "width", DEFAULT_ENTITY_PROFILE.width);
@@ -3648,6 +3815,17 @@
             });
         });
 
+        elements.inspector.querySelectorAll("[data-animation-binding-target-geometry]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const binding = findAnimationControllerBinding(entity, event.target.dataset.animationBindingTargetGeometry);
+                if (!binding) {
+                    return;
+                }
+                binding.targetGeometryKey = normalizeAnimationTargetGeometryKey(event.target.value);
+                render();
+            });
+        });
+
         elements.inspector.querySelectorAll("[data-action='remove-animation-controller']").forEach((button) => {
             button.addEventListener("click", () => {
                 const bindingId = button.dataset.animationBindingId;
@@ -3675,10 +3853,12 @@
             clone.identifier = entity.identifier;
             clone.identifierMode = entity.identifierMode;
             clone.resourceSubdir = entity.resourceSubdir;
+            clone.boneIsolationEnabled = isBoneIsolationEnabled(entity);
             clone.animationControllerBindings = getAnimationControllerBindings(entity).map((binding) => ({
                 id: createId(),
                 key: binding.key,
                 controller: binding.controller,
+                targetGeometryKey: binding.targetGeometryKey,
                 animationMappings: { ...(binding.animationMappings || {}) },
             }));
             clone.entityProfile = {
@@ -3772,6 +3952,7 @@
         const baseNameInput = document.getElementById("graphBaseNameInput");
         const identifierInput = document.getElementById("graphIdentifierInput");
         const resourceSubdirInput = document.getElementById("graphResourceSubdirInput");
+        const boneIsolationEnabledSelect = document.getElementById("graphBoneIsolationEnabledSelect");
 
         if (baseNameInput) {
             baseNameInput.addEventListener("input", (event) => {
@@ -3802,6 +3983,13 @@
                 entity.resourceSubdir = event.target.value;
                 renderOutputPreview();
                 window.requestAnimationFrame(drawConnectionBoardLines);
+            });
+        }
+
+        if (boneIsolationEnabledSelect) {
+            boneIsolationEnabledSelect.addEventListener("change", (event) => {
+                entity.boneIsolationEnabled = event.target.value === "true";
+                renderWithConnectionBoardScroll();
             });
         }
     }
@@ -3886,10 +4074,12 @@
         clone.identifierMode = entity.identifierMode;
         clone.resourceSubdir = entity.resourceSubdir;
         clone.detailMode = getEntityDetailMode(entity);
+        clone.boneIsolationEnabled = isBoneIsolationEnabled(entity);
         clone.animationControllerBindings = getAnimationControllerBindings(entity).map((binding) => ({
             id: createId(),
             key: binding.key,
             controller: binding.controller,
+            targetGeometryKey: binding.targetGeometryKey,
             animationMappings: { ...(binding.animationMappings || {}) },
         }));
         clone.entityProfile = {
@@ -4142,6 +4332,17 @@
                 }
                 binding.controller = event.target.value;
                 binding.animationMappings = buildAnimationMappings(mergedAnimationFile, getControllerSlots(binding.controller), binding.animationMappings);
+                renderWithConnectionBoardScroll();
+            });
+        });
+
+        elements.inspector.querySelectorAll("[data-animation-binding-target-geometry]").forEach((select) => {
+            select.addEventListener("change", (event) => {
+                const binding = findAnimationControllerBinding(entity, event.target.dataset.animationBindingTargetGeometry);
+                if (!binding) {
+                    return;
+                }
+                binding.targetGeometryKey = normalizeAnimationTargetGeometryKey(event.target.value);
                 renderWithConnectionBoardScroll();
             });
         });
@@ -4827,6 +5028,7 @@
                         </select>
                         ${currentPreset ? buildControllerDescriptionHtml(currentPreset.description, currentPreset.source) : '<p class="field-hint">未找到该控制器的中文说明。</p>'}
                     </div>
+                    ${renderAnimationTargetGeometryField(entity, binding, `animationTargetGeometry-${binding.id}`)}
                 </div>
                 ${slotNames.length ? `
                     <div class="slot-grid">
@@ -4958,6 +5160,7 @@
             identifier: baseName ? `netease:${baseName}` : "",
             identifierMode: "auto",
             resourceSubdir: DEFAULT_SUBDIR,
+            boneIsolationEnabled: true,
             renderControllers: [
                 createRenderControllerBinding(),
             ],
@@ -4974,6 +5177,19 @@
             },
             entityProfile: createDefaultEntityProfile(),
         };
+    }
+
+    /**
+     * 读取实体的普通同名骨骼隔离开关，旧数据默认开启。
+     */
+    function isBoneIsolationEnabled(entity) {
+        if (!entity || typeof entity !== "object") {
+            return true;
+        }
+        if (typeof entity.boneIsolationEnabled !== "boolean") {
+            entity.boneIsolationEnabled = true;
+        }
+        return entity.boneIsolationEnabled;
     }
 
     /**
@@ -5038,6 +5254,7 @@
             id: normalized.id || createId(),
             key: normalized.key || DEFAULT_ANIMATION_BINDING_KEY,
             controller: normalized.controller || DEFAULT_CONTROLLER,
+            targetGeometryKey: normalizeAnimationTargetGeometryKey(normalized.targetGeometryKey),
             animationMappings: normalizeAnimationMappings(normalized.animationMappings),
         };
     }
@@ -5857,6 +6074,7 @@
                 if (!sourceName) {
                     return;
                 }
+                const targetGeometryKey = resolveAnimationTargetGeometryKey(entity, binding, slotName, sourceName);
 
                 if (!entryMap.has(slotName)) {
                     entryMap.set(slotName, {
@@ -5864,18 +6082,21 @@
                         sourceName,
                         name: `animation.${entity.baseName}.${slotName}`,
                         bindingKey: binding.key,
+                        targetGeometryKey,
                     });
                     return;
                 }
 
                 const existing = entryMap.get(slotName);
-                if (existing.sourceName !== sourceName) {
+                if (existing.sourceName !== sourceName || existing.targetGeometryKey !== targetGeometryKey) {
                     conflicts.push({
                         key: slotName,
                         firstBindingKey: existing.bindingKey,
                         firstSourceName: existing.sourceName,
+                        firstTargetGeometryKey: existing.targetGeometryKey,
                         secondBindingKey: binding.key,
                         secondSourceName: sourceName,
+                        secondTargetGeometryKey: targetGeometryKey,
                     });
                 }
             });
@@ -5885,6 +6106,57 @@
             entries: Array.from(entryMap.values()).sort((left, right) => compareSlotNames(left.key, right.key)),
             conflicts,
         };
+    }
+
+    /**
+     * 决定某个动作槽位应该按哪个模型资源的骨骼改名表导出。
+     */
+    function resolveAnimationTargetGeometryKey(entity, binding, slotName, sourceName) {
+        const geometryKeys = getGeometryResources(entity).map((resource) => resource.resourceKey);
+        if (!geometryKeys.length) {
+            return "default";
+        }
+
+        const manualTarget = normalizeAnimationTargetGeometryKey(binding && binding.targetGeometryKey);
+        if (manualTarget !== AUTO_ANIMATION_TARGET_GEOMETRY && geometryKeys.includes(manualTarget)) {
+            return manualTarget;
+        }
+
+        const inferredTarget = inferAnimationTargetGeometryKey(slotName, geometryKeys)
+            || inferAnimationTargetGeometryKey(sourceName, geometryKeys);
+        if (inferredTarget) {
+            return inferredTarget;
+        }
+
+        return geometryKeys.includes("default") ? "default" : geometryKeys[0];
+    }
+
+    /**
+     * 从动作 key 或完整动画名推断目标模型，例如 skill1A -> a。
+     */
+    function inferAnimationTargetGeometryKey(animationName, geometryKeys) {
+        const finalName = String(animationName || "")
+            .split(".")
+            .filter(Boolean)
+            .pop() || "";
+        const match = finalName.match(/^(idle|walk|skill\d+)([A-Za-z])$/i);
+        if (!match) {
+            return "";
+        }
+
+        const suffixKey = normalizeResourceKey(match[2]);
+        return geometryKeys.includes(suffixKey) ? suffixKey : "";
+    }
+
+    /**
+     * 清洗动画控制器目标模型字段，auto 表示按动作 key 自动推断。
+     */
+    function normalizeAnimationTargetGeometryKey(value) {
+        const normalized = String(value || AUTO_ANIMATION_TARGET_GEOMETRY).trim();
+        if (!normalized || normalized === AUTO_ANIMATION_TARGET_GEOMETRY) {
+            return AUTO_ANIMATION_TARGET_GEOMETRY;
+        }
+        return normalizeResourceKey(normalized);
     }
 
     /**
