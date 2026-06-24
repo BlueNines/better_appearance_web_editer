@@ -114,7 +114,17 @@
      * 延迟调度自测，确保 location 与首轮渲染都已经稳定。
      */
     function scheduleEditorSelfTest() {
-        if (typeof window === "undefined" || !shouldRunEditorSelfTest()) {
+        if (typeof window === "undefined") {
+            return;
+        }
+        if (shouldRunAnimationResourceRefreshSelfTest()) {
+            setStatus("自测开始：正在验证普通导入动作文件刷新轨道。");
+            window.setTimeout(() => {
+                void runAnimationResourceRefreshSelfTest();
+            }, 0);
+            return;
+        }
+        if (!shouldRunEditorSelfTest()) {
             return;
         }
         setStatus("自测开始：正在模拟普通多文件导入。");
@@ -159,6 +169,40 @@
         return window.location.hash === "#selftest=drag-import"
             || window.location.search.includes("selftest=drag-import")
             || href.includes("selftest=drag-import");
+    }
+
+    /**
+     * 判断是否运行动作资源刷新自测，专门覆盖普通导入后轨道动作池被裁剪的问题。
+     */
+    function shouldRunAnimationResourceRefreshSelfTest() {
+        const href = String(window.location && window.location.href ? window.location.href : "");
+        return window.location.hash === "#selftest=animation-resource-refresh"
+            || window.location.search.includes("selftest=animation-resource-refresh")
+            || href.includes("selftest=animation-resource-refresh");
+    }
+
+    /**
+     * 验证普通导入区域导入多动作 animation.json 后，连连看轨道能看到整份文件的动作片段。
+     */
+    async function runAnimationResourceRefreshSelfTest() {
+        state.entities = [];
+        state.selectedEntityId = null;
+        state.messages = [];
+        const files = createAnimationResourceRefreshSelfTestFiles();
+        await importFiles(files, { skipLooseAssembly: true });
+        const entity = findEntityByBaseName("track_refresh");
+        const assembly = entity ? getConnectionAssembly(entity) : null;
+        if (entity && assembly) {
+            ensureConnectionAssemblyEditorReady(entity);
+        }
+        const actionCount = assembly && assembly.body ? assembly.body.animationNames.length : 0;
+        const expectedCount = 8;
+        const passed = actionCount === expectedCount;
+        elements.statusText.dataset.selfTestResult = passed ? "passed" : "failed";
+        setStatus(passed
+            ? "自测通过：普通导入动作文件后轨道动作池完整刷新。"
+            : `自测失败：期望 ${expectedCount} 个动作，实际 ${actionCount} 个。`);
+        render();
     }
 
     /**
@@ -210,6 +254,42 @@
             text: async () => content,
             arrayBuffer: async () => content,
         };
+    }
+
+    /**
+     * 构造动作刷新回归测试文件，动作名覆盖 idle/walk 和多个非标准技能名。
+     */
+    function createAnimationResourceRefreshSelfTestFiles() {
+        const geometryJson = JSON.stringify({
+            format_version: "1.12.0",
+            "minecraft:geometry": [{
+                description: {
+                    identifier: "geometry.track_refresh",
+                    texture_width: 16,
+                    texture_height: 16,
+                },
+                bones: [{ name: "root", pivot: [0, 0, 0] }],
+            }],
+        });
+        const animationNames = [
+            "animation.track_refresh.jian_shi_attack1",
+            "animation.track_refresh.jian_shi_attack2",
+            "animation.track_refresh.jian_shi_attack3",
+            "animation.track_refresh.idle",
+            "animation.track_refresh.walk",
+            "animation.track_refresh.ba_dao_zhan",
+            "animation.track_refresh.jian_wu",
+            "animation.track_refresh.huan_ying_zhan",
+        ];
+        const animationJson = JSON.stringify({
+            format_version: "1.8.0",
+            animations: Object.fromEntries(animationNames.map((name) => [name, { loop: true, bones: {} }])),
+        });
+        return [
+            createEditorSelfTestFile("track_refresh.geo.json", geometryJson),
+            createEditorSelfTestFile("track_refresh.png", "png-track-refresh"),
+            createEditorSelfTestFile("track_refresh.animation.json", animationJson),
+        ];
     }
 
     function bindEvents() {
@@ -2312,27 +2392,40 @@
             const existing = assignment && assignment.resourceId
                 ? findAnimationResource(entity, assignment.resourceId)
                 : null;
+            let changedResource = null;
 
             if (existing) {
                 existing.sourceName = detected.file.name;
                 existing.sourcePath = sourcePath;
                 existing.json = detected.json;
                 existing.animationNames = [...detected.animationNames];
+                changedResource = existing;
             } else if (hasDuplicateImportResource(resources, sourcePath)) {
-                addMessage(`已跳过重复动作：${sourcePath}`, "warn");
-                return reuseDuplicateResource ? findImportResourceBySourcePath(resources, sourcePath) || false : false;
+                const duplicateResource = findImportResourceBySourcePath(resources, sourcePath);
+                if (!duplicateResource) {
+                    addMessage(`已跳过重复动作：${sourcePath}`, "warn");
+                    return false;
+                }
+                duplicateResource.sourceName = detected.file.name;
+                duplicateResource.sourcePath = sourcePath;
+                duplicateResource.json = detected.json;
+                duplicateResource.animationNames = [...detected.animationNames];
+                changedResource = duplicateResource;
+                addMessage(`已刷新重复动作：${sourcePath}`, "info");
             } else {
-                resources.push(createAnimationResource({
+                changedResource = createAnimationResource({
                     sourceName: detected.file.name,
                     sourcePath,
                     json: detected.json,
                     animationNames: detected.animationNames,
-                }));
+                });
+                resources.push(changedResource);
             }
 
             refreshAnimationBindings(entity);
+            refreshConnectionAssemblyAnimationResourceReferences(entity, changedResource);
             addMessage(`已载入动作：${detected.file.name}`, "info");
-            return existing || resources[resources.length - 1];
+            return changedResource || existing || resources[resources.length - 1];
         }
         return false;
     }
@@ -6291,6 +6384,44 @@
     }
 
     /**
+     * 动作资源被普通导入或替换后，刷新所有引用该资源的轨道动作片段缓存。
+     */
+    function refreshConnectionAssemblyAnimationResourceReferences(entity, resource) {
+        if (!entity || !resource || !resource.id) {
+            return;
+        }
+        const assembly = getConnectionAssembly(entity);
+        getConnectionAssemblyRoles(assembly).forEach((role) => {
+            if (role.animationResourceId !== resource.id) {
+                return;
+            }
+            applyConnectionAssemblyAnimationResource(role, entity, resource.id);
+        });
+    }
+
+    /**
+     * 进入连连看时按已选动作文件重建动作片段池，修复旧状态只缓存 idle/walk 的问题。
+     */
+    function refreshConnectionAssemblySelectedAnimationResources(entity, assembly) {
+        getConnectionAssemblyRoles(assembly).forEach((role) => {
+            if (!role.animationResourceId) {
+                return;
+            }
+            applyConnectionAssemblyAnimationResource(role, entity, role.animationResourceId);
+        });
+    }
+
+    /**
+     * 收集连连看里所有会绑定动作文件的轨道对象。
+     */
+    function getConnectionAssemblyRoles(assembly) {
+        if (!assembly) {
+            return [];
+        }
+        return [assembly.body, assembly.wings].concat(Array.isArray(assembly.skills) ? assembly.skills : []).filter(Boolean);
+    }
+
+    /**
      * 清理不属于当前控制器槽位的旧映射，避免动作名推断出的伪 key 混进导出。
      */
     function pruneConnectionAssemblyAnimationMappings(role, slotNames) {
@@ -7625,6 +7756,7 @@
             assembly.mode = CONNECTION_ASSEMBLY_MODE_ASSEMBLY;
         }
         autoFillConnectionAssemblyFromResources(entity, assembly);
+        refreshConnectionAssemblySelectedAnimationResources(entity, assembly);
     }
 
     /**
@@ -7648,7 +7780,7 @@
             assembly.body.animationResourceId = animationResources[0].id;
         }
         if (!assembly.body.animationNames.length) {
-            assembly.body.animationNames = inferBodyAssemblyAnimationNames(animationResources[0] ? animationResources[0].animationNames : animationNames);
+            assembly.body.animationNames = animationResources[0] ? [...animationResources[0].animationNames] : inferBodyAssemblyAnimationNames(animationNames);
         }
 
         const hasSkillSelection = (assembly.skills || []).some((skill) => skill.geometryResourceId || skill.textureResourceId || skill.animationNames.length);
