@@ -124,6 +124,13 @@
             }, 0);
             return;
         }
+        if (shouldRunAnimationResourceDropdownSelfTest()) {
+            setStatus("自测开始：正在验证动作导入后轨道下拉可见。");
+            window.setTimeout(() => {
+                void runAnimationResourceDropdownSelfTest();
+            }, 0);
+            return;
+        }
         if (!shouldRunEditorSelfTest()) {
             return;
         }
@@ -179,6 +186,56 @@
         return window.location.hash === "#selftest=animation-resource-refresh"
             || window.location.search.includes("selftest=animation-resource-refresh")
             || href.includes("selftest=animation-resource-refresh");
+    }
+
+    /**
+     * 判断是否运行轨道动作下拉自测，专门覆盖“已载入动作但下拉为空”的问题。
+     */
+    function shouldRunAnimationResourceDropdownSelfTest() {
+        const href = String(window.location && window.location.href ? window.location.href : "");
+        return window.location.hash === "#selftest=animation-resource-dropdown"
+            || window.location.search.includes("selftest=animation-resource-dropdown")
+            || href.includes("selftest=animation-resource-dropdown");
+    }
+
+    /**
+     * 验证普通导入动作文件后，业务装配本体轨道能立刻看到并选中该动作文件。
+     */
+    async function runAnimationResourceDropdownSelfTest() {
+        state.entities = [];
+        state.selectedEntityId = null;
+        state.messages = [];
+        const entity = createEntity("dropdown_refresh");
+        entity.detailMode = "graph";
+        state.entities.unshift(entity);
+        selectEntity(entity.id);
+
+        const animationNames = createAnimationResourceRefreshAnimationNames("dropdown_refresh");
+        const animationFile = createEditorSelfTestFile(
+            "dropdown_refresh.animation.json",
+            JSON.stringify(createAnimationJsonFromNames(animationNames))
+        );
+        const detected = await detectImportFileRecord(animationFile);
+        await autoAssignDetectedRecord(detected, { preferredEntity: entity });
+        render();
+
+        const animationResources = getAnimationResources(entity);
+        const assembly = getConnectionAssembly(entity);
+        const select = document.getElementById("assembly-body-animation");
+        const optionTexts = select ? Array.from(select.options).map((option) => option.textContent.trim()) : [];
+        const expectedResource = animationResources[0] || null;
+        const passed = Boolean(
+            expectedResource
+            && assembly.body.animationResourceId === expectedResource.id
+            && select
+            && select.value === expectedResource.id
+            && optionTexts.includes(expectedResource.sourceName)
+            && assembly.body.animationNames.length === animationNames.length
+        );
+        elements.statusText.dataset.selfTestResult = passed ? "passed" : "failed";
+        setStatus(passed
+            ? "自测通过：动作导入后本体轨道下拉能立刻选中动作文件。"
+            : `自测失败：动作资源 ${animationResources.length} 个，下拉选项 ${optionTexts.length} 个。`);
     }
 
     /**
@@ -1969,12 +2026,14 @@
         const geometryResources = getGeometryResources(entity);
         const shouldIsolateSharedBones = isBoneIsolationEnabled(entity);
         const boneOwners = new Map();
+        const boneNamesByResourceKey = new Map();
         const usedBoneNames = new Set();
 
         geometryResources.forEach((resource) => {
             const resourceKey = resource.resourceKey;
             usedBoneNames.add(buildResourceRootBoneName(resource));
             const boneNames = collectGeometryResourceBoneNames(resource);
+            boneNamesByResourceKey.set(resourceKey, boneNames);
             boneNames.forEach((boneName) => {
                 usedBoneNames.add(boneName);
                 if (!boneOwners.has(boneName)) {
@@ -1996,7 +2055,9 @@
                 return;
             }
 
-            const preservedOwner = isRootLikeBone ? "" : choosePreservedBoneOwner(uniqueOwners);
+            const preservedOwner = isRootLikeBone && uniqueOwners.includes(CONNECTION_BODY_RESOURCE_KEY)
+                ? CONNECTION_BODY_RESOURCE_KEY
+                : (isRootLikeBone ? "" : choosePreservedBoneOwner(uniqueOwners));
             const renamedOwners = uniqueOwners.filter((resourceKey) => resourceKey !== preservedOwner);
             if (!isRootLikeBone && renamedOwners.length) {
                 conflictRecords.push({ boneName, owners: uniqueOwners });
@@ -2009,9 +2070,22 @@
                 usedBoneNames.add(nextName);
             });
         });
+        boneNamesByResourceKey.forEach((boneNames, resourceKey) => {
+            addSkillResourceNamespaceRenames(
+                resourceKey,
+                boneNames,
+                renameMapsByResourceKey,
+                usedBoneNames
+            );
+        });
+        const exportedBoneNamesByResourceKey = buildExportedBoneNamesByResourceKey(
+            boneNamesByResourceKey,
+            renameMapsByResourceKey
+        );
 
         return {
             renameMapsByResourceKey,
+            exportedBoneNamesByResourceKey,
             conflictRecords,
             warnings: buildBoneIsolationWarnings(conflictRecords, renameMapsByResourceKey),
         };
@@ -2102,6 +2176,62 @@
             renameMapsByResourceKey.set(resourceKey, new Map());
         }
         return renameMapsByResourceKey.get(resourceKey);
+    }
+
+    /**
+     * 技能轨道模型强制进入自己的骨骼命名空间，避免技能动作反向驱动本体或其它技能模型。
+     */
+    function addSkillResourceNamespaceRenames(resourceKey, boneNames, renameMapsByResourceKey, usedBoneNames) {
+        const normalizedResourceKey = normalizeResourceKey(resourceKey);
+        if (!normalizedResourceKey || normalizedResourceKey === CONNECTION_BODY_RESOURCE_KEY) {
+            return;
+        }
+        const resourcePrefix = `${BONE_NAMESPACE_PREFIX}_${normalizeBoneNamePart(normalizedResourceKey)}_`;
+        const resourceRootName = `${resourcePrefix}root`;
+        boneNames.forEach((boneName) => {
+            if (!boneName
+                || boneName === resourceRootName
+                || boneName.startsWith(resourcePrefix)) {
+                return;
+            }
+            const renameMap = getOrCreateBoneRenameMap(renameMapsByResourceKey, normalizedResourceKey);
+            if (renameMap.has(boneName)) {
+                return;
+            }
+            const nextName = buildUniqueNamespacedBoneName(normalizedResourceKey, boneName, usedBoneNames);
+            renameMap.set(boneName, nextName);
+            usedBoneNames.add(nextName);
+        });
+    }
+
+    /**
+     * 计算每个模型资源导出后的骨骼集合，后续用于裁剪不属于目标模型的动画轨道。
+     */
+    function buildExportedBoneNamesByResourceKey(boneNamesByResourceKey, renameMapsByResourceKey) {
+        const exportedBoneNamesByResourceKey = new Map();
+        boneNamesByResourceKey.forEach((boneNames, resourceKey) => {
+            const renameMap = renameMapsByResourceKey.get(resourceKey) || new Map();
+            const isBodyResource = normalizeResourceKey(resourceKey) === CONNECTION_BODY_RESOURCE_KEY;
+            const exportedBoneNames = new Set(["root"]);
+            if (!isBodyResource) {
+                exportedBoneNames.add(buildResourceRootBoneName({ resourceKey }));
+            }
+            boneNames.forEach((boneName) => {
+                if (isBodyResource && isBodyDefaultWrapperBoneName(boneName)) {
+                    return;
+                }
+                exportedBoneNames.add(renameMap.get(boneName) || boneName);
+            });
+            exportedBoneNamesByResourceKey.set(resourceKey, exportedBoneNames);
+        });
+        return exportedBoneNamesByResourceKey;
+    }
+
+    /**
+     * 判断骨骼名是否是旧导出遗留的本体包装骨骼。
+     */
+    function isBodyDefaultWrapperBoneName(boneName) {
+        return String(boneName || "").trim() === buildResourceRootBoneName({ resourceKey: CONNECTION_BODY_RESOURCE_KEY });
     }
 
     /**
@@ -2208,6 +2338,11 @@
             geometryItem.bones = bones;
             return;
         }
+        if (isBodyGeometryResource(resource)) {
+            wrapBodyGeometryBonesWithRoot(geometryItem, bones);
+            return;
+        }
+
         if (resource && resource.hasExportRootWrapper && isGeneratedExportRootWrapperGeometry({ ...geometryItem, bones })) {
             geometryItem.bones = bones;
             return;
@@ -2241,6 +2376,60 @@
             name: "root",
             pivot: [0, 0, 0],
         }].concat(resourceRootBone ? [resourceRootBone] : [], bones);
+    }
+
+    /**
+     * 本体模型不生成 ba_default_root；回导旧导出时会折叠旧包装骨骼。
+     */
+    function wrapBodyGeometryBonesWithRoot(geometryItem, bones) {
+        const defaultWrapperName = buildResourceRootBoneName({ resourceKey: CONNECTION_BODY_RESOURCE_KEY });
+        const shouldCollapseDefaultWrapper = bones.some((bone) => isGeneratedBodyDefaultWrapperBone(bone, defaultWrapperName));
+        const hasRootBone = bones.some((bone) => bone.name === "root" && !bone.parent);
+        const outputBones = [];
+
+        bones.forEach((bone) => {
+            if (bone.name === "root") {
+                outputBones.push(bone);
+                return;
+            }
+            if (shouldCollapseDefaultWrapper && bone.name === defaultWrapperName) {
+                return;
+            }
+            if (shouldCollapseDefaultWrapper && bone.parent === defaultWrapperName) {
+                bone.parent = "root";
+                outputBones.push(bone);
+                return;
+            }
+            if (typeof bone.parent === "string" && bone.parent.trim()) {
+                outputBones.push(bone);
+                return;
+            }
+            bone.parent = "root";
+            outputBones.push(bone);
+        });
+
+        geometryItem.bones = hasRootBone ? outputBones : [{
+            name: "root",
+            pivot: [0, 0, 0],
+        }].concat(outputBones);
+    }
+
+    /**
+     * 识别旧版编辑器给本体补出来的 ba_default_root，它不是业务骨骼。
+     */
+    function isGeneratedBodyDefaultWrapperBone(bone, defaultWrapperName) {
+        if (!bone || bone.name !== defaultWrapperName || bone.parent !== "root") {
+            return false;
+        }
+        return !bone.cubes && !bone.locators && !bone.poly_mesh && !bone.texture_meshes;
+    }
+
+    /**
+     * 判断当前模型资源是否是本体 default；本体骨骼必须保持原始命名。
+     */
+    function isBodyGeometryResource(resource) {
+        const resourceKey = resource && resource.resourceKey ? resource.resourceKey : CONNECTION_BODY_RESOURCE_KEY;
+        return normalizeResourceKey(resourceKey) === CONNECTION_BODY_RESOURCE_KEY;
     }
 
     /**
@@ -2434,7 +2623,9 @@
             }
 
             addMessage(`已载入贴图：${detected.file.name}`, "info");
-            return existing || resources[resources.length - 1];
+            const appliedResource = existing || resources[resources.length - 1];
+            syncConnectionAssemblyImportedResource(entity, "texture", appliedResource);
+            return appliedResource;
         }
 
         if (detected.type === "geometry") {
@@ -2461,7 +2652,9 @@
             }
 
             addMessage(`已载入模型：${detected.file.name}`, "info");
-            return existing || resources[resources.length - 1];
+            const appliedResource = existing || resources[resources.length - 1];
+            syncConnectionAssemblyImportedResource(entity, "geometry", appliedResource);
+            return appliedResource;
         }
 
         if (detected.type === "animation") {
@@ -2500,15 +2693,64 @@
                     json: detected.json,
                     animationNames: detected.animationNames,
                 });
-                resources.push(changedResource);
             }
 
+            changedResource = ensureAnimationResourceAttached(entity, changedResource, resources);
             refreshAnimationBindings(entity);
+            changedResource = ensureAnimationResourceAttached(entity, changedResource);
             refreshConnectionAssemblyAnimationResourceReferences(entity, changedResource);
+            syncConnectionAssemblyImportedResource(entity, "animation", changedResource);
             addMessage(`已载入动作：${detected.file.name}`, "info");
             return changedResource || existing || resources[resources.length - 1];
         }
         return false;
+    }
+
+    /**
+     * 确保动作资源真实挂在实体资源列表里，防止刷新绑定时引用到临时数组。
+     */
+    function ensureAnimationResourceAttached(entity, resource, preferredResources) {
+        if (!entity || !resource || !resource.id) {
+            return resource;
+        }
+        if (!entity.files || typeof entity.files !== "object") {
+            entity.files = {};
+        }
+        const resources = Array.isArray(preferredResources)
+            ? preferredResources
+            : (Array.isArray(entity.files.animations) ? entity.files.animations : []);
+        const existingIndex = resources.findIndex((item) => item && item.id === resource.id);
+        if (existingIndex >= 0) {
+            resources[existingIndex] = createAnimationResource({
+                ...resources[existingIndex],
+                ...resource,
+            });
+        } else {
+            resources.push(createAnimationResource(resource));
+        }
+        entity.files.animations = resources;
+        return resources.find((item) => item && item.id === resource.id) || resource;
+    }
+
+    /**
+     * 普通导入资源后，补齐业务装配的空轨道，避免资源已进实体但轨道下拉仍停在空状态。
+     */
+    function syncConnectionAssemblyImportedResource(entity, type, resource) {
+        if (!entity || !resource || !resource.id) {
+            return;
+        }
+        const assembly = getConnectionAssembly(entity);
+        if (type === "geometry" && !assembly.body.geometryResourceId) {
+            assembly.body.geometryResourceId = resource.id;
+            return;
+        }
+        if (type === "texture" && !assembly.body.textureResourceId) {
+            assembly.body.textureResourceId = resource.id;
+            return;
+        }
+        if (type === "animation" && !assembly.body.animationResourceId) {
+            applyConnectionAssemblyAnimationResource(assembly.body, entity, resource.id);
+        }
     }
 
     /**
@@ -2927,13 +3169,22 @@
         const sourceAnimations = mergedAnimationFile.json.animations || {};
 
         createAnimateList(entity).forEach((entry) => {
-            if (!entry.sourceName || !sourceAnimations[entry.sourceName]) {
+            const sourceAnimation = resolveAnimationSourceBody(entity, entry, sourceAnimations);
+            if (!entry.sourceName || !sourceAnimation) {
                 return;
             }
-            renamedAnimations[entry.name] = deepClone(sourceAnimations[entry.sourceName]);
+            renamedAnimations[entry.name] = deepClone(sourceAnimation);
             renameAnimationBones(
                 renamedAnimations[entry.name],
                 getBoneRenameMapForResource(boneIsolationContext, entry.targetGeometryKey)
+            );
+            collapseBodyDefaultWrapperAnimationBone(
+                renamedAnimations[entry.name],
+                entry.targetGeometryKey
+            );
+            pruneAnimationBonesToGeometry(
+                renamedAnimations[entry.name],
+                getExportedBoneNamesForResource(boneIsolationContext, entry.targetGeometryKey)
             );
         });
 
@@ -2946,6 +3197,60 @@
     }
 
     /**
+     * 按动作资源 id 精确取源动作；旧数据没有资源 id 时才回退到合并动作表。
+     */
+    function resolveAnimationSourceBody(entity, entry, fallbackAnimations) {
+        if (entry && entry.animationResourceId) {
+            const resource = findAnimationResource(entity, entry.animationResourceId);
+            const animations = resource && resource.json && resource.json.animations;
+            if (animations && animations[entry.sourceName]) {
+                return animations[entry.sourceName];
+            }
+        }
+        return fallbackAnimations ? fallbackAnimations[entry.sourceName] : null;
+    }
+
+    /**
+     * 删除目标模型不存在的动画骨骼轨道，防止技能动作误驱动本体或其它技能模型。
+     */
+    function pruneAnimationBonesToGeometry(animationBody, allowedBoneNames) {
+        if (!allowedBoneNames || !allowedBoneNames.size || !animationBody || typeof animationBody !== "object") {
+            return;
+        }
+        const bones = animationBody.bones;
+        if (!bones || typeof bones !== "object" || Array.isArray(bones)) {
+            return;
+        }
+        Object.keys(bones).forEach((boneName) => {
+            if (!allowedBoneNames.has(boneName)) {
+                delete bones[boneName];
+            }
+        });
+    }
+
+    /**
+     * 旧版本体动作可能会写到 ba_default_root，新导出统一折叠到纯 root。
+     */
+    function collapseBodyDefaultWrapperAnimationBone(animationBody, targetGeometryKey) {
+        if (normalizeAnimationTargetGeometryKey(targetGeometryKey) !== CONNECTION_BODY_RESOURCE_KEY) {
+            return;
+        }
+        if (!animationBody || typeof animationBody !== "object") {
+            return;
+        }
+
+        const bones = animationBody.bones;
+        const defaultWrapperName = buildResourceRootBoneName({ resourceKey: CONNECTION_BODY_RESOURCE_KEY });
+        if (!bones || typeof bones !== "object" || Array.isArray(bones) || !bones[defaultWrapperName]) {
+            return;
+        }
+        if (!bones.root) {
+            bones.root = bones[defaultWrapperName];
+        }
+        delete bones[defaultWrapperName];
+    }
+
+    /**
      * 获取某个模型资源对应的骨骼改名表，没有改名需求时返回空表。
      */
     function getBoneRenameMapForResource(boneIsolationContext, resourceKey) {
@@ -2953,6 +3258,16 @@
             return new Map();
         }
         return boneIsolationContext.renameMapsByResourceKey.get(resourceKey) || new Map();
+    }
+
+    /**
+     * 获取某个模型资源导出后的骨骼集合；没有上下文时不裁剪，保证旧流程兼容。
+     */
+    function getExportedBoneNamesForResource(boneIsolationContext, resourceKey) {
+        if (!boneIsolationContext || !boneIsolationContext.exportedBoneNamesByResourceKey) {
+            return null;
+        }
+        return boneIsolationContext.exportedBoneNamesByResourceKey.get(resourceKey) || null;
     }
 
     /**
@@ -3185,6 +3500,7 @@
             key: entry.key,
             name: entry.name,
             sourceName: entry.sourceName,
+            animationResourceId: entry.animationResourceId,
             targetGeometryKey: entry.targetGeometryKey,
         }));
     }
@@ -5976,6 +6292,7 @@
                 key: binding.key,
                 controller: binding.controller,
                 targetGeometryKey: binding.targetGeometryKey,
+                animationResourceId: binding.animationResourceId || "",
                 animationMappings: { ...(binding.animationMappings || {}) },
             }));
             clone.entityProfile = {
@@ -6629,6 +6946,7 @@
             key: binding.key,
             controller: binding.controller,
             targetGeometryKey: binding.targetGeometryKey,
+            animationResourceId: binding.animationResourceId || "",
             animationMappings: { ...(binding.animationMappings || {}) },
         }));
         clone.entityProfile = {
@@ -8159,6 +8477,7 @@
             key: DEFAULT_ANIMATION_BINDING_KEY,
             controller: bodyController,
             targetGeometryKey: CONNECTION_BODY_RESOURCE_KEY,
+            animationResourceId: assembly.body.animationResourceId,
             animationMappings: buildBodyAnimationMappings(bodyController, assembly.body),
         }));
         if (assembly.wings.enabled && assembly.wings.animationNames.length) {
@@ -8166,6 +8485,7 @@
                 key: "wings",
                 controller: CONNECTION_WINGS_CONTROLLER,
                 targetGeometryKey: CONNECTION_WINGS_RESOURCE_KEY,
+                animationResourceId: assembly.wings.animationResourceId,
                 animationMappings: buildWingsAnimationMappings(assembly.wings.animationNames),
             }));
         }
@@ -8178,6 +8498,7 @@
                 key: skill.trackKey,
                 controller: skillController,
                 targetGeometryKey: skill.trackKey,
+                animationResourceId: skill.animationResourceId,
                 animationMappings: buildSkillTrackAnimationMappings(skill),
             }));
         });
@@ -8516,6 +8837,7 @@
             key: normalized.key || DEFAULT_ANIMATION_BINDING_KEY,
             controller: normalized.controller || DEFAULT_CONTROLLER,
             targetGeometryKey: normalizeAnimationTargetGeometryKey(normalized.targetGeometryKey),
+            animationResourceId: typeof normalized.animationResourceId === "string" ? normalized.animationResourceId : "",
             animationMappings: normalizeAnimationMappings(normalized.animationMappings),
         };
     }
@@ -9341,6 +9663,7 @@
                     entryMap.set(slotName, {
                         key: slotName,
                         sourceName,
+                        animationResourceId: binding.animationResourceId || "",
                         name: `animation.${entity.baseName}.${slotName}`,
                         bindingKey: binding.key,
                         targetGeometryKey,
@@ -9349,14 +9672,18 @@
                 }
 
                 const existing = entryMap.get(slotName);
-                if (existing.sourceName !== sourceName || existing.targetGeometryKey !== targetGeometryKey) {
+                if (existing.sourceName !== sourceName
+                    || existing.animationResourceId !== (binding.animationResourceId || "")
+                    || existing.targetGeometryKey !== targetGeometryKey) {
                     conflicts.push({
                         key: slotName,
                         firstBindingKey: existing.bindingKey,
                         firstSourceName: existing.sourceName,
+                        firstAnimationResourceId: existing.animationResourceId,
                         firstTargetGeometryKey: existing.targetGeometryKey,
                         secondBindingKey: binding.key,
                         secondSourceName: sourceName,
+                        secondAnimationResourceId: binding.animationResourceId || "",
                         secondTargetGeometryKey: targetGeometryKey,
                     });
                 }
