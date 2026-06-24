@@ -1470,6 +1470,8 @@
             textureResourceByKey
         );
         entity.animationControllerBindings = buildImportedAnimationControllerBindings(candidate, importedAnimationNames);
+        syncConnectionAssemblyFromLegacyEntity(entity, getConnectionAssembly(entity));
+        entity.connectionAssembly.mode = CONNECTION_ASSEMBLY_MODE_ASSEMBLY;
 
         missingMessages.slice(0, 6).forEach((message) => addMessage(message, "warn"));
         if (missingMessages.length > 6) {
@@ -1625,9 +1627,59 @@
             return createAnimationControllerBinding({
                 key: entry.key || (index === 0 ? DEFAULT_ANIMATION_BINDING_KEY : `imported${index + 1}`),
                 controller: entry.controller,
+                targetGeometryKey: inferImportedAnimationTargetGeometryKey(entry.controller, mappings),
                 animationMappings: mappings,
             });
         });
+    }
+
+    /**
+     * 资源包的 animation_controllers 没有显式目标模型，导入时从控制器名或动作 key 反推 a-z 轨道。
+     */
+    function inferImportedAnimationTargetGeometryKey(controllerName, mappings) {
+        const controllerTrackKey = inferTrackKeyFromControllerName(controllerName);
+        if (controllerTrackKey) {
+            return controllerTrackKey;
+        }
+        const mappingTrackKey = inferTrackKeyFromAnimationMappings(mappings);
+        if (mappingTrackKey) {
+            return mappingTrackKey;
+        }
+        return AUTO_ANIMATION_TARGET_GEOMETRY;
+    }
+
+    /**
+     * 从 controller.animation.xxx.a 这类控制器名末尾推断技能轨道。
+     */
+    function inferTrackKeyFromControllerName(controllerName) {
+        const match = String(controllerName || "").match(/\.([a-z])$/i);
+        if (!match) {
+            return "";
+        }
+        const trackKey = normalizeResourceKey(match[1]);
+        return CONNECTION_SKILL_TRACK_KEYS.includes(trackKey) ? trackKey : "";
+    }
+
+    /**
+     * 从 skill1A / idleA 这类映射 key 反推技能轨道。
+     */
+    function inferTrackKeyFromAnimationMappings(mappings) {
+        const trackKeys = Object.keys(mappings || {})
+            .map((slotName) => inferTrackKeyFromAnimationSlotName(slotName))
+            .filter(Boolean);
+        return trackKeys[0] || "";
+    }
+
+    /**
+     * 从单个动作槽位名中提取轨道后缀。
+     */
+    function inferTrackKeyFromAnimationSlotName(slotName) {
+        const match = String(slotName || "").match(/^(?:idle|walk|skill\d+)([A-Za-z])$/);
+        if (!match) {
+            return "";
+        }
+        const trackKey = normalizeResourceKey(match[1]);
+        return CONNECTION_SKILL_TRACK_KEYS.includes(trackKey) ? trackKey : "";
     }
 
     /**
@@ -7676,8 +7728,10 @@
         const animationBindings = getAnimationControllerBindings(entity);
         const bodyRender = findRenderBindingByResourceKey(entity, renderBindings, CONNECTION_BODY_RESOURCE_KEY);
         const wingsRender = findRenderBindingByResourceKey(entity, renderBindings, CONNECTION_WINGS_RESOURCE_KEY);
-        const bodyAnimation = animationBindings.find((binding) => normalizeAnimationTargetGeometryKey(binding.targetGeometryKey) === AUTO_ANIMATION_TARGET_GEOMETRY
-            || normalizeAnimationTargetGeometryKey(binding.targetGeometryKey) === CONNECTION_BODY_RESOURCE_KEY)
+        const bodyAnimation = animationBindings.find((binding) => normalizeAnimationTargetGeometryKey(binding.targetGeometryKey) === CONNECTION_BODY_RESOURCE_KEY)
+            || animationBindings.find((binding) => normalizeAnimationTargetGeometryKey(binding.targetGeometryKey) === AUTO_ANIMATION_TARGET_GEOMETRY
+                && !inferTrackKeyFromControllerName(binding.controller)
+                && !inferTrackKeyFromAnimationMappings(binding.animationMappings))
             || animationBindings[0]
             || null;
 
@@ -7701,7 +7755,7 @@
         return CONNECTION_SKILL_TRACK_KEYS
             .map((trackKey, index) => {
                 const renderBinding = findRenderBindingByResourceKey(entity, renderBindings, trackKey);
-                const animationBinding = animationBindings.find((binding) => normalizeAnimationTargetGeometryKey(binding.targetGeometryKey) === trackKey);
+                const animationBinding = findAnimationBindingForTrack(animationBindings, trackKey);
                 if (!renderBinding && !animationBinding) {
                     return null;
                 }
@@ -7718,6 +7772,21 @@
                 });
             })
             .filter(Boolean);
+    }
+
+    /**
+     * 按目标模型、控制器后缀和动作 key 三层规则找某条技能轨道的动画绑定。
+     */
+    function findAnimationBindingForTrack(animationBindings, trackKey) {
+        return (animationBindings || []).find((binding) => {
+            if (normalizeAnimationTargetGeometryKey(binding.targetGeometryKey) === trackKey) {
+                return true;
+            }
+            if (inferTrackKeyFromControllerName(binding.controller) === trackKey) {
+                return true;
+            }
+            return inferTrackKeyFromAnimationMappings(binding.animationMappings) === trackKey;
+        }) || null;
     }
 
     /**
