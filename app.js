@@ -156,7 +156,7 @@
             && getAnimationResources(mainEntity).length === 1
             && extraTextureEntity
             && getTextureResources(extraTextureEntity).length === 1;
-        elements.statusText.dataset.selfTestResult = passed ? "passed" : "failed";
+        elements.statusText.dataset.selfTestResult = passed && sameNamePassed ? "passed" : "failed";
         setStatus(passed ? "自测通过：普通多文件导入和重复去重正常。" : "自测失败：普通多文件导入或重复去重异常。");
         render();
     }
@@ -188,21 +188,59 @@
         state.entities = [];
         state.selectedEntityId = null;
         state.messages = [];
-        const files = createAnimationResourceRefreshSelfTestFiles();
-        await importFiles(files, { skipLooseAssembly: true });
-        const entity = findEntityByBaseName("track_refresh");
-        const assembly = entity ? getConnectionAssembly(entity) : null;
-        if (entity && assembly) {
-            ensureConnectionAssemblyEditorReady(entity);
-        }
-        const actionCount = assembly && assembly.body ? assembly.body.animationNames.length : 0;
         const expectedCount = 8;
-        const passed = actionCount === expectedCount;
-        elements.statusText.dataset.selfTestResult = passed ? "passed" : "failed";
-        setStatus(passed
-            ? "自测通过：普通导入动作文件后轨道动作池完整刷新。"
-            : `自测失败：期望 ${expectedCount} 个动作，实际 ${actionCount} 个。`);
+        const sameNamePassed = await runSameNameReferencedAnimationRefreshCheck();
         render();
+        const actionCount = countRenderedAssemblyActionChips();
+        elements.statusText.dataset.selfTestResult = sameNamePassed ? "passed" : "failed";
+        elements.statusText.dataset.sameNameRefreshResult = sameNamePassed ? "passed" : "failed";
+        setStatus(sameNamePassed
+            ? "自测通过：同名动作文件普通导入后，当前轨道动作池完整刷新。"
+            : `自测失败：期望 ${expectedCount} 个动作，实际 ${actionCount} 个。`);
+    }
+
+    /**
+     * 覆盖同名不同路径动作文件刷新：轨道已选旧文件时，普通导入应刷新被引用资源。
+     */
+    async function runSameNameReferencedAnimationRefreshCheck() {
+        const entity = createEntity("same_name_refresh");
+        state.entities.unshift(entity);
+        selectEntity(entity.id);
+        const oldAnimationResource = createAnimationResource({
+            sourceName: "test_mod_player.animation (2).json",
+            sourcePath: "old/test_mod_player.animation (2).json",
+            json: createAnimationJsonFromNames([
+                "animation.same_name_refresh.idle",
+                "animation.same_name_refresh.walk",
+            ]),
+            animationNames: [
+                "animation.same_name_refresh.idle",
+                "animation.same_name_refresh.walk",
+            ],
+        });
+        getAnimationResources(entity).push(oldAnimationResource);
+        const assembly = getConnectionAssembly(entity);
+        assembly.mode = CONNECTION_ASSEMBLY_MODE_ASSEMBLY;
+        assembly.body.animationResourceId = oldAnimationResource.id;
+        assembly.body.animationNames = [...oldAnimationResource.animationNames];
+        const fullNames = createAnimationResourceRefreshAnimationNames("same_name_refresh");
+        const fullFile = createEditorSelfTestFile(
+            "test_mod_player.animation (2).json",
+            JSON.stringify(createAnimationJsonFromNames(fullNames)),
+            "new/test_mod_player.animation (2).json"
+        );
+        const detected = await detectImportFileRecord(fullFile);
+        await autoAssignDetectedRecord(detected, { preferredEntity: entity });
+        const refreshedAssembly = getConnectionAssembly(entity);
+        return refreshedAssembly.body.animationNames.length === fullNames.length
+            && refreshedAssembly.body.animationNames.includes("animation.same_name_refresh.huan_ying_zhan");
+    }
+
+    /**
+     * 统计当前页面已经渲染出来的连连看动作片段数量。
+     */
+    function countRenderedAssemblyActionChips() {
+        return typeof document === "undefined" ? 0 : document.querySelectorAll("[data-assembly-action-name]").length;
     }
 
     /**
@@ -247,10 +285,10 @@
     /**
      * 构造最小 File-like 对象，避免自测依赖浏览器 File 构造器。
      */
-    function createEditorSelfTestFile(name, content) {
+    function createEditorSelfTestFile(name, content, relativePath) {
         return {
             name,
-            webkitRelativePath: "",
+            webkitRelativePath: relativePath || "",
             text: async () => content,
             arrayBuffer: async () => content,
         };
@@ -271,25 +309,38 @@
                 bones: [{ name: "root", pivot: [0, 0, 0] }],
             }],
         });
-        const animationNames = [
-            "animation.track_refresh.jian_shi_attack1",
-            "animation.track_refresh.jian_shi_attack2",
-            "animation.track_refresh.jian_shi_attack3",
-            "animation.track_refresh.idle",
-            "animation.track_refresh.walk",
-            "animation.track_refresh.ba_dao_zhan",
-            "animation.track_refresh.jian_wu",
-            "animation.track_refresh.huan_ying_zhan",
-        ];
-        const animationJson = JSON.stringify({
-            format_version: "1.8.0",
-            animations: Object.fromEntries(animationNames.map((name) => [name, { loop: true, bones: {} }])),
-        });
+        const animationJson = JSON.stringify(createAnimationJsonFromNames(createAnimationResourceRefreshAnimationNames("track_refresh")));
         return [
             createEditorSelfTestFile("track_refresh.geo.json", geometryJson),
             createEditorSelfTestFile("track_refresh.png", "png-track-refresh"),
             createEditorSelfTestFile("track_refresh.animation.json", animationJson),
         ];
+    }
+
+    /**
+     * 生成动作刷新自测用的完整动作名列表。
+     */
+    function createAnimationResourceRefreshAnimationNames(baseName) {
+        return [
+            `animation.${baseName}.jian_shi_attack1`,
+            `animation.${baseName}.jian_shi_attack2`,
+            `animation.${baseName}.jian_shi_attack3`,
+            `animation.${baseName}.idle`,
+            `animation.${baseName}.walk`,
+            `animation.${baseName}.ba_dao_zhan`,
+            `animation.${baseName}.jian_wu`,
+            `animation.${baseName}.huan_ying_zhan`,
+        ];
+    }
+
+    /**
+     * 按动作名构造最小 animation.json，避免自测依赖外部文件。
+     */
+    function createAnimationJsonFromNames(animationNames) {
+        return {
+            format_version: "1.8.0",
+            animations: Object.fromEntries(animationNames.map((name) => [name, { loop: true, bones: {} }])),
+        };
     }
 
     function bindEvents() {
@@ -1922,6 +1973,7 @@
 
         geometryResources.forEach((resource) => {
             const resourceKey = resource.resourceKey;
+            usedBoneNames.add(buildResourceRootBoneName(resource));
             const boneNames = collectGeometryResourceBoneNames(resource);
             boneNames.forEach((boneName) => {
                 usedBoneNames.add(boneName);
@@ -1936,16 +1988,17 @@
         const conflictRecords = [];
         boneOwners.forEach((owners, boneName) => {
             const uniqueOwners = [...new Set(owners)];
-            if (boneName !== "root" && uniqueOwners.length <= 1) {
+            const isRootLikeBone = isExportRootBoneName(boneName);
+            if (!isRootLikeBone && uniqueOwners.length <= 1) {
                 return;
             }
-            if (boneName !== "root" && !shouldIsolateSharedBones) {
+            if (!isRootLikeBone && !shouldIsolateSharedBones) {
                 return;
             }
 
-            const preservedOwner = boneName === "root" ? "" : choosePreservedBoneOwner(uniqueOwners);
+            const preservedOwner = isRootLikeBone ? "" : choosePreservedBoneOwner(uniqueOwners);
             const renamedOwners = uniqueOwners.filter((resourceKey) => resourceKey !== preservedOwner);
-            if (boneName !== "root" && renamedOwners.length) {
+            if (!isRootLikeBone && renamedOwners.length) {
                 conflictRecords.push({ boneName, owners: uniqueOwners });
             }
 
@@ -2060,11 +2113,34 @@
         const baseName = `${BONE_NAMESPACE_PREFIX}_${safeResourceKey}_${safeBoneName}`;
         let nextName = baseName;
         let suffix = 2;
-        while (usedBoneNames.has(nextName) || nextName === "root") {
+        while (hasUsedBoneNameIgnoreCase(usedBoneNames, nextName) || isExportRootBoneName(nextName)) {
             nextName = `${baseName}_${suffix}`;
             suffix += 1;
         }
         return nextName;
+    }
+
+    /**
+     * 判断骨骼名是否会和编辑器外层 root 包装层冲突；网易端解析时大小写冲突也要避让。
+     */
+    function isExportRootBoneName(boneName) {
+        return String(boneName || "").trim().toLowerCase() === "root";
+    }
+
+    /**
+     * 按大小写不敏感口径检查骨骼名占用，避免 Root 与 root 在客户端被当成同一个骨骼。
+     */
+    function hasUsedBoneNameIgnoreCase(usedBoneNames, boneName) {
+        const normalizedBoneName = String(boneName || "").trim().toLowerCase();
+        if (!normalizedBoneName) {
+            return false;
+        }
+        for (const usedBoneName of usedBoneNames) {
+            if (String(usedBoneName || "").trim().toLowerCase() === normalizedBoneName) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2371,6 +2447,7 @@
                 existing.sourceName = detected.file.name;
                 existing.sourcePath = sourcePath;
                 existing.json = detected.json;
+                existing.hasExportRootWrapper = hasGeneratedExportRootWrapper(existing);
             } else if (hasDuplicateImportResource(resources, sourcePath)) {
                 addMessage(`已跳过重复模型：${sourcePath}`, "warn");
                 return reuseDuplicateResource ? findImportResourceBySourcePath(resources, sourcePath) || false : false;
@@ -2392,14 +2469,18 @@
             const existing = assignment && assignment.resourceId
                 ? findAnimationResource(entity, assignment.resourceId)
                 : null;
+            const referencedSameName = !existing
+                ? findConnectionAssemblyReferencedAnimationResourceBySourceName(entity, detected.file.name)
+                : null;
             let changedResource = null;
 
-            if (existing) {
-                existing.sourceName = detected.file.name;
-                existing.sourcePath = sourcePath;
-                existing.json = detected.json;
-                existing.animationNames = [...detected.animationNames];
-                changedResource = existing;
+            if (existing || referencedSameName) {
+                const targetResource = existing || referencedSameName;
+                targetResource.sourceName = detected.file.name;
+                targetResource.sourcePath = sourcePath;
+                targetResource.json = detected.json;
+                targetResource.animationNames = [...detected.animationNames];
+                changedResource = targetResource;
             } else if (hasDuplicateImportResource(resources, sourcePath)) {
                 const duplicateResource = findImportResourceBySourcePath(resources, sourcePath);
                 if (!duplicateResource) {
@@ -2428,6 +2509,28 @@
             return changedResource || existing || resources[resources.length - 1];
         }
         return false;
+    }
+
+    /**
+     * 普通导入同名动作文件时，优先刷新当前轨道正在引用的同名动作资源。
+     */
+    function findConnectionAssemblyReferencedAnimationResourceBySourceName(entity, sourceName) {
+        const normalizedName = String(sourceName || "").trim().toLowerCase();
+        if (!entity || !normalizedName) {
+            return null;
+        }
+        const resources = getAnimationResources(entity);
+        const assembly = getConnectionAssembly(entity);
+        const referencedIds = getConnectionAssemblyRoles(assembly)
+            .map((role) => role.animationResourceId)
+            .filter(Boolean);
+        for (const resourceId of referencedIds) {
+            const resource = resources.find((item) => item.id === resourceId);
+            if (resource && String(resource.sourceName || "").trim().toLowerCase() === normalizedName) {
+                return resource;
+            }
+        }
+        return null;
     }
 
     /**
@@ -7870,6 +7973,7 @@
         assembly.body.geometryResourceId = findMappedResourceId(bodyRender, "geometry", CONNECTION_BODY_RESOURCE_KEY) || (geometryResources[0] ? geometryResources[0].id : "");
         assembly.body.textureResourceId = findMappedResourceId(bodyRender, "texture", CONNECTION_BODY_RESOURCE_KEY) || (textureResources[0] ? textureResources[0].id : "");
         assembly.body.animationController = bodyAnimation ? bodyAnimation.controller : DEFAULT_CONTROLLER;
+        assembly.body.animationControllerManual = Boolean(bodyAnimation);
         assembly.body.animationMappings = bodyAnimation ? normalizeAnimationMappings(bodyAnimation.animationMappings) : {};
         assembly.body.animationResourceId = findAnimationResourceIdByNames(entity, Object.values(assembly.body.animationMappings));
         assembly.body.animationNames = Object.values(assembly.body.animationMappings).filter(Boolean);
@@ -7898,6 +8002,7 @@
                     textureResourceId: findMappedResourceId(renderBinding, "texture", trackKey),
                     animationResourceId: findAnimationResourceIdByNames(entity, animationBinding ? Object.values(animationBinding.animationMappings || {}) : []),
                     animationController: animationBinding ? animationBinding.controller : resolveSkillTrackAnimationController(trackKey, []),
+                    animationControllerManual: Boolean(animationBinding),
                     animationMappings: animationBinding ? normalizeAnimationMappings(animationBinding.animationMappings) : {},
                     animationNames: animationBinding ? Object.values(animationBinding.animationMappings || {}).filter(Boolean) : [],
                     confirmed: true,
@@ -8376,13 +8481,14 @@
      */
     function createGeometryResource(options) {
         const normalized = options || {};
+        const json = normalized.json || null;
         return {
             id: normalized.id || createId(),
             resourceKey: normalizeResourceKey(normalized.resourceKey || "default"),
             sourceName: typeof normalized.sourceName === "string" ? normalized.sourceName : "",
             sourcePath: typeof normalized.sourcePath === "string" ? normalized.sourcePath : "",
-            json: normalized.json || null,
-            hasExportRootWrapper: normalized.hasExportRootWrapper === true,
+            json,
+            hasExportRootWrapper: normalized.hasExportRootWrapper === true || hasGeneratedExportRootWrapper({ json }),
         };
     }
 
