@@ -131,6 +131,13 @@
             }, 0);
             return;
         }
+        if (shouldRunSkillTrackDropSelfTest()) {
+            setStatus("自测开始：正在验证技能轨道首次拖入绑定。");
+            window.setTimeout(() => {
+                void runSkillTrackDropSelfTest();
+            }, 0);
+            return;
+        }
         if (!shouldRunEditorSelfTest()) {
             return;
         }
@@ -196,6 +203,115 @@
         return window.location.hash === "#selftest=animation-resource-dropdown"
             || window.location.search.includes("selftest=animation-resource-dropdown")
             || href.includes("selftest=animation-resource-dropdown");
+    }
+
+    /**
+     * 判断是否运行技能轨道拖入自测，专门覆盖首次拖入资源不主动选中的问题。
+     */
+    function shouldRunSkillTrackDropSelfTest() {
+        const href = String(window.location && window.location.href ? window.location.href : "");
+        return window.location.hash === "#selftest=skill-track-drop"
+            || window.location.search.includes("selftest=skill-track-drop")
+            || href.includes("selftest=skill-track-drop");
+    }
+
+    /**
+     * 验证技能轨道首次拖入模型、贴图、动作后，最新轨道对象能立刻选中对应资源。
+     */
+    async function runSkillTrackDropSelfTest() {
+        state.entities = [];
+        state.selectedEntityId = null;
+        state.messages = [];
+        const entity = createEntity("skill_track_drop");
+        entity.detailMode = "graph";
+        state.entities.unshift(entity);
+        selectEntity(entity.id);
+
+        const assembly = getConnectionAssembly(entity);
+        assembly.mode = CONNECTION_ASSEMBLY_MODE_ASSEMBLY;
+        const skill = createConnectionAssemblySkillTrack({
+            trackKey: "a",
+            skillIndex: 1,
+            confirmed: true,
+        });
+        assembly.skills = [skill];
+
+        const geometryFile = createEditorSelfTestFile(
+            "skill_track_drop.geo.json",
+            JSON.stringify({
+                format_version: "1.12.0",
+                "minecraft:geometry": [{
+                    description: {
+                        identifier: "geometry.skill_track_drop",
+                        texture_width: 16,
+                        texture_height: 16,
+                    },
+                    bones: [{ name: "skill_root", pivot: [0, 0, 0] }],
+                }],
+            })
+        );
+        const textureFile = createEditorSelfTestFile("skill_track_drop.png", "png-skill-track-drop");
+        const animationNames = createAnimationResourceRefreshAnimationNames("skill_track_drop");
+        const animationFile = createEditorSelfTestFile(
+            "skill_track_drop.animation.json",
+            JSON.stringify(createAnimationJsonFromNames(animationNames))
+        );
+        await applyDroppedFilesToConnectionAssemblyTrack(
+            entity,
+            assembly,
+            {
+                dataset: {
+                    assemblyTrackDrop: `skill-${skill.id}`,
+                    assemblyDropType: "geometry",
+                },
+            },
+            { files: [geometryFile], items: [], types: ["Files"] }
+        );
+        await applyDroppedFilesToConnectionAssemblyTrack(
+            entity,
+            assembly,
+            {
+                dataset: {
+                    assemblyTrackDrop: `skill-${skill.id}`,
+                    assemblyDropType: "texture",
+                },
+            },
+            { files: [textureFile], items: [], types: ["Files"] }
+        );
+        await applyDroppedFilesToConnectionAssemblyTrack(
+            entity,
+            assembly,
+            {
+                dataset: {
+                    assemblyTrackDrop: `skill-${skill.id}`,
+                    assemblyDropType: "animation",
+                },
+            },
+            { files: [animationFile], items: [], types: ["Files"] }
+        );
+
+        const latestAssembly = getConnectionAssembly(entity);
+        const latestSkill = findConnectionAssemblySkill(latestAssembly, skill.id);
+        const geometryResources = getGeometryResources(entity);
+        const textureResources = getTextureResources(entity);
+        const animationResources = getAnimationResources(entity);
+        const expectedGeometry = geometryResources[0] || null;
+        const expectedTexture = textureResources[0] || null;
+        const expectedResource = animationResources[0] || null;
+        const passed = Boolean(
+            expectedGeometry
+            && expectedTexture
+            && expectedResource
+            && latestSkill
+            && latestSkill.geometryResourceId === expectedGeometry.id
+            && latestSkill.textureResourceId === expectedTexture.id
+            && latestSkill.animationResourceId === expectedResource.id
+            && latestSkill.animationNames.length === animationNames.length
+        );
+        elements.statusText.dataset.selfTestResult = passed ? "passed" : "failed";
+        setStatus(passed
+            ? "自测通过：技能轨道首次拖入模型、贴图、动作后已主动选中。"
+            : "自测失败：技能轨道首次拖入后没有选中新资源。");
     }
 
     /**
@@ -6636,9 +6752,9 @@
             renderWithConnectionBoardScroll();
             return;
         }
-        const role = getConnectionAssemblyTrackTarget(assembly, slot.dataset.assemblyTrackDrop);
+        const rowKey = slot.dataset.assemblyTrackDrop;
         const expectedType = slot.dataset.assemblyDropType;
-        if (!role || !expectedType) {
+        if (!getConnectionAssemblyTrackTarget(assembly, rowKey) || !expectedType) {
             return;
         }
         for (const file of files) {
@@ -6648,7 +6764,13 @@
             }
             const resource = await applyRecordToEntity(entity, detected, null, { reuseDuplicateResource: true });
             if (resource && resource.id) {
-                bindConnectionAssemblyResourceToRole(role, entity, detected.type, resource.id);
+                const latestRole = getConnectionAssemblyTrackTarget(getConnectionAssembly(entity), rowKey);
+                if (!latestRole) {
+                    addMessage("轨道状态已刷新，未找到可绑定的目标轨道。", "warn");
+                    renderWithConnectionBoardScroll();
+                    return;
+                }
+                bindConnectionAssemblyResourceToRole(latestRole, entity, detected.type, resource.id);
                 setStatus(`已绑定${typeLabel(detected.type)}到轨道。`);
                 renderWithConnectionBoardScroll();
                 return;
