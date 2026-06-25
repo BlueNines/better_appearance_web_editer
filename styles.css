@@ -467,6 +467,267 @@ select {
     font-weight: 700;
 }
 
+.field-label-with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+}
+
+.field-label-icon {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    border-radius: 9px;
+    border: 1px solid rgba(22, 50, 39, 0.12);
+    background: linear-gradient(145deg, rgba(12, 124, 89, 0.12), rgba(255, 255, 255, 0.85));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.field-label-icon::before,
+.field-label-icon::after {
+    content: "";
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.field-label-icon-box-width::before {
+    width: 15px;
+    height: 9px;
+    border: 2px solid #0c7c59;
+    border-radius: 3px;
+}
+
+.field-label-icon-box-width::after {
+    width: 18px;
+    height: 2px;
+    background: #0c7c59;
+    border-radius: 999px;
+}
+
+.field-label-icon-box-height::before {
+    width: 9px;
+    height: 15px;
+    border: 2px solid #0c7c59;
+    border-radius: 3px;
+}
+
+.field-label-icon-box-height::after {
+    width: 2px;
+    height: 18px;
+    background: #0c7c59;
+    border-radius: 999px;
+}
+
+.field-label-icon-scale::before,
+.field-label-icon-board-scale::before {
+    width: 13px;
+    height: 13px;
+    border-top: 2px solid #0c7c59;
+    border-right: 2px solid #0c7c59;
+    transform: rotate(-45deg);
+}
+
+.field-label-icon-scale::after,
+.field-label-icon-board-scale::after {
+    width: 10px;
+    height: 10px;
+    left: 5px;
+    bottom: 5px;
+    border-left: 2px solid rgba(12, 124, 89, 0.55);
+    border-bottom: 2px solid rgba(12, 124, 89, 0.55);
+}
+
+.field-label-icon-opacity::before {
+    width: 13px;
+    height: 16px;
+    border-radius: 10px 10px 10px 3px;
+    background: linear-gradient(135deg, rgba(12, 124, 89, 0.95) 0 50%, rgba(12, 124, 89, 0.22) 50% 100%);
+    transform: rotate(35deg);
+}
+
+.field-label-icon-red::before,
+.field-label-icon-green::before,
+.field-label-icon-blue::before,
+.field-label-icon-text-color::before,
+.field-label-icon-background::before {
+    width: 13px;
+    height: 13px;
+    border-radius: 999px;
+}
+
+.field-label-icon-red::before {
+    background: #dc4b3f;
+}
+
+.field-label-icon-green::before {
+    background: #31a66a;
+}
+
+.field-label-icon-blue::before {
+    background: #3478df;
+}
+
+.field-label-icon-text-color::before {
+    background: linear-gradient(90deg, #10261e, #0c7c59);
+}
+
+.field-label-icon-text-color::after {
+    width: 12px;
+    height: 2px;
+    bottom: 5px;
+    background: #0c7c59;
+    border-radius: 999px;
+}
+
+.field-label-icon-background::before {
+    width: 15px;
+    height: 12px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #10261e, rgba(12, 124, 89, 0.45));
+}
+
+.field-label-icon-brightness::before {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: #f3b83d;
+    box-shadow: 0 0 0 4px rgba(243, 184, 61, 0.2);
+}
+
+.field-label-icon-light::before {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #f3b83d;
+}
+
+.field-label-icon-light::after {
+    width: 20px;
+    height: 2px;
+    background: rgba(22, 50, 39, 0.72);
+    transform: rotate(-35deg);
+}
+
+.field-label-icon-health::before,
+.field-label-icon-boss::before {
+    width: 16px;
+    height: 8px;
+    border: 2px solid #0c7c59;
+    border-radius: 999px;
+}
+
+.field-label-icon-health::after,
+.field-label-icon-boss::after {
+    width: 10px;
+    height: 4px;
+    background: #31a66a;
+    border-radius: 999px;
+}
+
+.field-label-icon-boss::before {
+    border-color: #a53f2b;
+}
+
+.field-label-icon-boss::after {
+    background: #a53f2b;
+}
+
+.field-label-icon-segments::before {
+    width: 16px;
+    height: 11px;
+    background:
+        linear-gradient(90deg, #0c7c59 0 2px, transparent 2px 4px) 0 0 / 4px 100%,
+        rgba(12, 124, 89, 0.18);
+    border: 1px solid rgba(12, 124, 89, 0.55);
+    border-radius: 3px;
+}
+
+.field-label-icon-sync::before {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #0c7c59;
+    border-left-color: transparent;
+    border-radius: 999px;
+}
+
+.field-label-icon-sync::after {
+    right: 4px;
+    top: 4px;
+    width: 6px;
+    height: 6px;
+    border-top: 2px solid #0c7c59;
+    border-right: 2px solid #0c7c59;
+    transform: rotate(35deg);
+}
+
+.field-label-icon-title-text::before {
+    width: 14px;
+    height: 11px;
+    border: 2px solid #0c7c59;
+    border-radius: 4px;
+}
+
+.field-label-icon-title-text::after {
+    width: 7px;
+    height: 2px;
+    background: #0c7c59;
+    border-radius: 999px;
+}
+
+.field-label-icon-offset::before {
+    width: 15px;
+    height: 2px;
+    background: #0c7c59;
+}
+
+.field-label-icon-offset::after {
+    width: 7px;
+    height: 7px;
+    right: 4px;
+    border-top: 2px solid #0c7c59;
+    border-right: 2px solid #0c7c59;
+    transform: rotate(45deg);
+}
+
+.field-label-icon-rotation::before {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #0c7c59;
+    border-right-color: transparent;
+    border-radius: 999px;
+}
+
+.field-label-icon-rotation::after {
+    right: 4px;
+    top: 5px;
+    width: 6px;
+    height: 6px;
+    border-top: 2px solid #0c7c59;
+    border-right: 2px solid #0c7c59;
+    transform: rotate(12deg);
+}
+
+.field-label-icon-depth::before {
+    width: 14px;
+    height: 10px;
+    border: 2px solid rgba(12, 124, 89, 0.55);
+    border-radius: 4px;
+    transform: translate(-2px, 2px);
+}
+
+.field-label-icon-depth::after {
+    width: 14px;
+    height: 10px;
+    border: 2px solid #0c7c59;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.4);
+    transform: translate(2px, -2px);
+}
+
 .field input,
 .field select,
 .slot-card input,

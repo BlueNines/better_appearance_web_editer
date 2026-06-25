@@ -138,6 +138,13 @@
             }, 0);
             return;
         }
+        if (shouldRunSkillTrackRemoveSelfTest()) {
+            setStatus("自测开始：正在验证技能轨道移除。");
+            window.setTimeout(() => {
+                void runSkillTrackRemoveSelfTest();
+            }, 0);
+            return;
+        }
         if (!shouldRunEditorSelfTest()) {
             return;
         }
@@ -213,6 +220,86 @@
         return window.location.hash === "#selftest=skill-track-drop"
             || window.location.search.includes("selftest=skill-track-drop")
             || href.includes("selftest=skill-track-drop");
+    }
+
+    /**
+     * 判断是否运行技能轨道移除自测，专门覆盖删除后又被自动补回的问题。
+     */
+    function shouldRunSkillTrackRemoveSelfTest() {
+        const href = String(window.location && window.location.href ? window.location.href : "");
+        return window.location.hash === "#selftest=skill-track-remove"
+            || window.location.search.includes("selftest=skill-track-remove")
+            || href.includes("selftest=skill-track-remove");
+    }
+
+    /**
+     * 验证用户删除自动生成的技能轨道后，自动装配不会把它重新补回来。
+     */
+    function runSkillTrackRemoveSelfTest() {
+        state.entities = [];
+        state.selectedEntityId = null;
+        state.messages = [];
+        const entity = createEntity("skill_track_remove");
+        entity.detailMode = "graph";
+        state.entities.unshift(entity);
+        selectEntity(entity.id);
+
+        getGeometryResources(entity).push(
+            createGeometryResource({
+                sourceName: "skill_track_remove_body.geo.json",
+                resourceKey: "default",
+                json: createSelfTestGeometryJson("geometry.skill_track_remove.body", "body_root"),
+            }),
+            createGeometryResource({
+                sourceName: "skill_track_remove_skill.geo.json",
+                resourceKey: "skill_a",
+                json: createSelfTestGeometryJson("geometry.skill_track_remove.skill", "skill_root"),
+            })
+        );
+        getTextureResources(entity).push(
+            createTextureResource({
+                sourceName: "skill_track_remove_body.png",
+                resourceKey: "default",
+                buffer: "body-texture",
+            }),
+            createTextureResource({
+                sourceName: "skill_track_remove_skill.png",
+                resourceKey: "skill_a",
+                buffer: "skill-texture",
+            })
+        );
+
+        const assembly = getConnectionAssembly(entity);
+        assembly.mode = CONNECTION_ASSEMBLY_MODE_ASSEMBLY;
+        autoFillConnectionAssemblyFromResources(entity, assembly);
+        const autoFilledCount = assembly.skills.length;
+        assembly.skills = [];
+        assembly.skillsAutoFillDisabled = true;
+        autoFillConnectionAssemblyFromResources(entity, assembly);
+        render();
+
+        const passed = autoFilledCount > 0 && getConnectionAssembly(entity).skills.length === 0;
+        elements.statusText.dataset.selfTestResult = passed ? "passed" : "failed";
+        setStatus(passed
+            ? "自测通过：技能轨道移除后不会被自动补回。"
+            : "自测失败：技能轨道移除后仍被自动补回。");
+    }
+
+    /**
+     * 构造最小模型 JSON，供连连看装配自测使用。
+     */
+    function createSelfTestGeometryJson(identifier, boneName) {
+        return {
+            format_version: "1.12.0",
+            "minecraft:geometry": [{
+                description: {
+                    identifier,
+                    texture_width: 16,
+                    texture_height: 16,
+                },
+                bones: [{ name: boneName, pivot: [0, 0, 0] }],
+            }],
+        };
     }
 
     /**
@@ -4154,47 +4241,47 @@
                 <h3>服务端实体 Profile</h3>
                     <div class="slot-grid">
                     <div class="field">
-                                                    <label for="profileWidthInput">碰撞箱宽度</label>
+                                                    ${renderFieldLabel("profileWidthInput", "碰撞箱宽度", "box-width")}
                                                     <input id="profileWidthInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.width)}">
                                                     <p class="field-hint">默认值为 <code>1</code>，支持小数，仅在服务端插件配置中使用。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileHeightInput">碰撞箱高度</label>
+                                                    ${renderFieldLabel("profileHeightInput", "碰撞箱高度", "box-height")}
                                                     <input id="profileHeightInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.height)}">
                                                     <p class="field-hint">默认值为 <code>2</code>，支持小数，仅在服务端插件配置中使用。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileScaleInput">模型缩放</label>
+                                                    ${renderFieldLabel("profileScaleInput", "模型缩放", "scale")}
                                                     <input id="profileScaleInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.scale)}">
                                                     <p class="field-hint">默认值为 <code>1</code>，支持小数。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileOpacityInput">实体透明度</label>
+                                                    ${renderFieldLabel("profileOpacityInput", "实体透明度", "opacity")}
                                                     <input id="profileOpacityInput" type="number" min="0" max="1" step="any" value="${escapeAttribute(entityProfile.opacity)}">
                                                     <p class="field-hint">默认值为 <code>1</code>，范围 <code>0..1</code>，会导出为 <code>render.alpha</code>。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileRedGainInput">红色通道增益</label>
+                                                    ${renderFieldLabel("profileRedGainInput", "红色通道增益", "red")}
                                                     <input id="profileRedGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.redGain)}">
                                                     <p class="field-hint">默认值为 <code>1</code>，最终颜色的 R 通道会乘以该值。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileGreenGainInput">绿色通道增益</label>
+                                                    ${renderFieldLabel("profileGreenGainInput", "绿色通道增益", "green")}
                                                     <input id="profileGreenGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.greenGain)}">
                                                     <p class="field-hint">默认值为 <code>1</code>，最终颜色的 G 通道会乘以该值。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileBlueGainInput">蓝色通道增益</label>
+                                                    ${renderFieldLabel("profileBlueGainInput", "蓝色通道增益", "blue")}
                                                     <input id="profileBlueGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.blueGain)}">
                                                     <p class="field-hint">默认值为 <code>1</code>，最终颜色的 B 通道会乘以该值。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileBrightnessInput">整体亮度</label>
+                                                    ${renderFieldLabel("profileBrightnessInput", "整体亮度", "brightness")}
                                                     <input id="profileBrightnessInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.brightness)}">
                                                     <p class="field-hint">默认值为 <code>1</code>，在环境光计算前乘到 RGB。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileIgnoreLightSelect">忽略环境光</label>
+                                                    ${renderFieldLabel("profileIgnoreLightSelect", "忽略环境光", "light")}
                                                     <select id="profileIgnoreLightSelect">
                                                         <option value="false" ${!entityProfile.ignoreLight ? "selected" : ""}>false</option>
                                                         <option value="true" ${entityProfile.ignoreLight ? "selected" : ""}>true</option>
@@ -4202,7 +4289,7 @@
                                                     <p class="field-hint">为 <code>true</code> 时跳过环境光乘法，但仍保留雾效。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileHealthBarVisibleSelect">显示血条</label>
+                                                    ${renderFieldLabel("profileHealthBarVisibleSelect", "显示血条", "health")}
                                                     <select id="profileHealthBarVisibleSelect">
                                                         <option value="true" ${entityProfile.healthBarVisible ? "selected" : ""}>true</option>
                                                         <option value="false" ${!entityProfile.healthBarVisible ? "selected" : ""}>false</option>
@@ -4210,7 +4297,7 @@
                                                     <p class="field-hint">默认值为 <code>true</code>，未改动时不会导出。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileBossBarVisibleSelect">显示 Boss 血条</label>
+                                                    ${renderFieldLabel("profileBossBarVisibleSelect", "显示 Boss 血条", "boss")}
                                                     <select id="profileBossBarVisibleSelect">
                                                         <option value="true" ${entityProfile.bossBarVisible ? "selected" : ""}>true</option>
                                                         <option value="false" ${!entityProfile.bossBarVisible ? "selected" : ""}>false</option>
@@ -4218,12 +4305,12 @@
                                                     <p class="field-hint">默认值为 <code>false</code>，未改动时不会导出。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileCurrentHealthCountInput">当前血条段数</label>
+                                                    ${renderFieldLabel("profileCurrentHealthCountInput", "当前血条段数", "segments")}
                                                     <input id="profileCurrentHealthCountInput" type="number" min="100" step="1" value="${escapeAttribute(entityProfile.currentHealthCount)}">
                                                     <p class="field-hint">默认值为 <code>10000</code>，必须是大于等于 <code>100</code> 的整数。</p>
                                                 </div>
                                                 <div class="field">
-                                                    <label for="profileForceSelect">强制同步 Identifier</label>
+                                                    ${renderFieldLabel("profileForceSelect", "强制同步 Identifier", "sync")}
                                                     <select id="profileForceSelect">
                                                         <option value="true" ${entityProfile.force ? "selected" : ""}>true</option>
                                                         <option value="false" ${!entityProfile.force ? "selected" : ""}>false</option>
@@ -4238,7 +4325,7 @@
                 <h3>头顶标题</h3>
                 <div class="form-grid">
                     <div class="field field-wide">
-                        <label for="titleTextInput">标题文本</label>
+                        ${renderFieldLabel("titleTextInput", "标题文本", "title-text")}
                         <input id="titleTextInput" type="text" value="${escapeAttribute(titleProfile.text)}" placeholder="例如 松鼠">
                         <p class="field-hint">默认标题配置只有改动项会导出；标题文本仍然必须非空才会生成 <code>entity_profile.title</code>。</p>
                     </div>
@@ -4246,6 +4333,7 @@
                     ${renderTitleColorField({
                         idPrefix: "titleTextColor",
                         label: "文字颜色",
+                        icon: "text-color",
                         value: titleProfile.textColor,
                         placeholder: DEFAULT_TITLE_PROFILE.textColor,
                         hint: "默认值是白色；可直接用色盘选色，透明度单独调，下方原始 RGBA 仍可手改。",
@@ -4255,6 +4343,7 @@
                     ${renderTitleColorField({
                         idPrefix: "titleBackgroundColor",
                         label: "背景颜色",
+                        icon: "background",
                         value: titleProfile.backgroundColor,
                         placeholder: DEFAULT_TITLE_PROFILE.backgroundColor,
                         hint: "默认值是半透明黑底；支持色盘与透明度，只有改动项才会导出。",
@@ -4262,25 +4351,25 @@
                     })}
 
                     <div class="field">
-                        <label for="titleOffsetInput">偏移</label>
+                        ${renderFieldLabel("titleOffsetInput", "偏移", "offset")}
                         <input id="titleOffsetInput" type="text" value="${escapeAttribute(titleProfile.offset)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.offset)}">
                         <p class="field-hint">XYZ，默认值为 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.offset)}</code>。</p>
                     </div>
 
                     <div class="field">
-                        <label for="titleRotationInput">旋转</label>
+                        ${renderFieldLabel("titleRotationInput", "旋转", "rotation")}
                         <input id="titleRotationInput" type="text" value="${escapeAttribute(titleProfile.rotation)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.rotation)}">
                         <p class="field-hint">XYZ，默认值为 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.rotation)}</code>。</p>
                     </div>
 
                     <div class="field">
-                        <label for="titleScaleInput">标题缩放</label>
+                        ${renderFieldLabel("titleScaleInput", "标题缩放", "board-scale")}
                         <input id="titleScaleInput" type="text" value="${escapeAttribute(titleProfile.scale)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.scale)}">
                         <p class="field-hint">默认值是 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.scale)}</code>。</p>
                     </div>
 
                     <div class="field">
-                        <label for="titleDepthTestSelect">深度测试</label>
+                        ${renderFieldLabel("titleDepthTestSelect", "深度测试", "depth")}
                         <select id="titleDepthTestSelect">
                             <option value="" ${titleDepthTestValue === "" ? "selected" : ""}>使用默认值（true）</option>
                             <option value="true" ${titleDepthTestValue === "true" ? "selected" : ""}>true</option>
@@ -4428,47 +4517,47 @@
                 <h3>服务端实体 Profile</h3>
                 <div class="slot-grid">
                     <div class="field">
-                        <label for="profileWidthInput">碰撞箱宽度</label>
+                        ${renderFieldLabel("profileWidthInput", "碰撞箱宽度", "box-width")}
                         <input id="profileWidthInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.width)}">
                         <p class="field-hint">默认值为 <code>1</code>，支持小数，仅在服务端插件配置中使用。</p>
                     </div>
                     <div class="field">
-                        <label for="profileHeightInput">碰撞箱高度</label>
+                        ${renderFieldLabel("profileHeightInput", "碰撞箱高度", "box-height")}
                         <input id="profileHeightInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.height)}">
                         <p class="field-hint">默认值为 <code>2</code>，支持小数，仅在服务端插件配置中使用。</p>
                     </div>
                     <div class="field">
-                        <label for="profileScaleInput">模型缩放</label>
+                        ${renderFieldLabel("profileScaleInput", "模型缩放", "scale")}
                         <input id="profileScaleInput" type="number" min="0.01" step="any" value="${escapeAttribute(entityProfile.scale)}">
                         <p class="field-hint">默认值为 <code>1</code>，支持小数。</p>
                     </div>
                     <div class="field">
-                        <label for="profileOpacityInput">实体透明度</label>
+                        ${renderFieldLabel("profileOpacityInput", "实体透明度", "opacity")}
                         <input id="profileOpacityInput" type="number" min="0" max="1" step="any" value="${escapeAttribute(entityProfile.opacity)}">
                         <p class="field-hint">默认值为 <code>1</code>，范围 <code>0..1</code>，会导出为 <code>render.alpha</code>。</p>
                     </div>
                     <div class="field">
-                        <label for="profileRedGainInput">红色通道增益</label>
+                        ${renderFieldLabel("profileRedGainInput", "红色通道增益", "red")}
                         <input id="profileRedGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.redGain)}">
                         <p class="field-hint">默认值为 <code>1</code>，最终颜色的 R 通道会乘以该值。</p>
                     </div>
                     <div class="field">
-                        <label for="profileGreenGainInput">绿色通道增益</label>
+                        ${renderFieldLabel("profileGreenGainInput", "绿色通道增益", "green")}
                         <input id="profileGreenGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.greenGain)}">
                         <p class="field-hint">默认值为 <code>1</code>，最终颜色的 G 通道会乘以该值。</p>
                     </div>
                     <div class="field">
-                        <label for="profileBlueGainInput">蓝色通道增益</label>
+                        ${renderFieldLabel("profileBlueGainInput", "蓝色通道增益", "blue")}
                         <input id="profileBlueGainInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.blueGain)}">
                         <p class="field-hint">默认值为 <code>1</code>，最终颜色的 B 通道会乘以该值。</p>
                     </div>
                     <div class="field">
-                        <label for="profileBrightnessInput">整体亮度</label>
+                        ${renderFieldLabel("profileBrightnessInput", "整体亮度", "brightness")}
                         <input id="profileBrightnessInput" type="number" min="0" max="16" step="any" value="${escapeAttribute(entityProfile.brightness)}">
                         <p class="field-hint">默认值为 <code>1</code>，在环境光计算前乘到 RGB。</p>
                     </div>
                     <div class="field">
-                        <label for="profileIgnoreLightSelect">忽略环境光</label>
+                        ${renderFieldLabel("profileIgnoreLightSelect", "忽略环境光", "light")}
                         <select id="profileIgnoreLightSelect">
                             <option value="false" ${!entityProfile.ignoreLight ? "selected" : ""}>false</option>
                             <option value="true" ${entityProfile.ignoreLight ? "selected" : ""}>true</option>
@@ -4476,7 +4565,7 @@
                         <p class="field-hint">为 <code>true</code> 时跳过环境光乘法，但仍保留雾效。</p>
                     </div>
                     <div class="field">
-                        <label for="profileHealthBarVisibleSelect">显示血条</label>
+                        ${renderFieldLabel("profileHealthBarVisibleSelect", "显示血条", "health")}
                         <select id="profileHealthBarVisibleSelect">
                             <option value="true" ${entityProfile.healthBarVisible ? "selected" : ""}>true</option>
                             <option value="false" ${!entityProfile.healthBarVisible ? "selected" : ""}>false</option>
@@ -4484,7 +4573,7 @@
                         <p class="field-hint">默认值为 <code>true</code>，未改动时不会导出。</p>
                     </div>
                     <div class="field">
-                        <label for="profileBossBarVisibleSelect">显示 Boss 血条</label>
+                        ${renderFieldLabel("profileBossBarVisibleSelect", "显示 Boss 血条", "boss")}
                         <select id="profileBossBarVisibleSelect">
                             <option value="true" ${entityProfile.bossBarVisible ? "selected" : ""}>true</option>
                             <option value="false" ${!entityProfile.bossBarVisible ? "selected" : ""}>false</option>
@@ -4492,12 +4581,12 @@
                         <p class="field-hint">默认值为 <code>false</code>，未改动时不会导出。</p>
                     </div>
                     <div class="field">
-                        <label for="profileCurrentHealthCountInput">当前血条段数</label>
+                        ${renderFieldLabel("profileCurrentHealthCountInput", "当前血条段数", "segments")}
                         <input id="profileCurrentHealthCountInput" type="number" min="100" step="1" value="${escapeAttribute(entityProfile.currentHealthCount)}">
                         <p class="field-hint">默认值为 <code>10000</code>，必须是大于等于 <code>100</code> 的整数。</p>
                     </div>
                     <div class="field">
-                        <label for="profileForceSelect">强制同步 Identifier</label>
+                        ${renderFieldLabel("profileForceSelect", "强制同步 Identifier", "sync")}
                         <select id="profileForceSelect">
                             <option value="true" ${entityProfile.force ? "selected" : ""}>true</option>
                             <option value="false" ${!entityProfile.force ? "selected" : ""}>false</option>
@@ -4518,7 +4607,7 @@
                 <h3>头顶标题</h3>
                 <div class="form-grid">
                     <div class="field field-wide">
-                        <label for="titleTextInput">标题文本</label>
+                        ${renderFieldLabel("titleTextInput", "标题文本", "title-text")}
                         <input id="titleTextInput" type="text" value="${escapeAttribute(titleProfile.text)}" placeholder="例如 松鼠">
                         <p class="field-hint">默认标题配置只有改动项会导出；标题文本仍然必须非空才会生成 <code>entity_profile.title</code>。</p>
                     </div>
@@ -4526,6 +4615,7 @@
                     ${renderTitleColorField({
                         idPrefix: "titleTextColor",
                         label: "文字颜色",
+                        icon: "text-color",
                         value: titleProfile.textColor,
                         placeholder: DEFAULT_TITLE_PROFILE.textColor,
                         hint: "默认值是白色；可直接用色盘选色，透明度单独调，下方原始 RGBA 仍可手改。",
@@ -4535,6 +4625,7 @@
                     ${renderTitleColorField({
                         idPrefix: "titleBackgroundColor",
                         label: "背景颜色",
+                        icon: "background",
                         value: titleProfile.backgroundColor,
                         placeholder: DEFAULT_TITLE_PROFILE.backgroundColor,
                         hint: "默认值是半透明黑底；支持色盘与透明度，只有改动项才会导出。",
@@ -4542,25 +4633,25 @@
                     })}
 
                     <div class="field">
-                        <label for="titleOffsetInput">偏移</label>
+                        ${renderFieldLabel("titleOffsetInput", "偏移", "offset")}
                         <input id="titleOffsetInput" type="text" value="${escapeAttribute(titleProfile.offset)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.offset)}">
                         <p class="field-hint">XYZ，默认值为 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.offset)}</code>。</p>
                     </div>
 
                     <div class="field">
-                        <label for="titleRotationInput">旋转</label>
+                        ${renderFieldLabel("titleRotationInput", "旋转", "rotation")}
                         <input id="titleRotationInput" type="text" value="${escapeAttribute(titleProfile.rotation)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.rotation)}">
                         <p class="field-hint">XYZ，默认值为 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.rotation)}</code>。</p>
                     </div>
 
                     <div class="field">
-                        <label for="titleScaleInput">标题缩放</label>
+                        ${renderFieldLabel("titleScaleInput", "标题缩放", "board-scale")}
                         <input id="titleScaleInput" type="text" value="${escapeAttribute(titleProfile.scale)}" placeholder="${escapeAttribute(DEFAULT_TITLE_PROFILE.scale)}">
                         <p class="field-hint">默认值是 <code>${escapeHtml(DEFAULT_TITLE_PROFILE.scale)}</code>。</p>
                     </div>
 
                     <div class="field">
-                        <label for="titleDepthTestSelect">深度测试</label>
+                        ${renderFieldLabel("titleDepthTestSelect", "深度测试", "depth")}
                         <select id="titleDepthTestSelect">
                             <option value="" ${titleDepthTestValue === "" ? "selected" : ""}>使用默认值（true）</option>
                             <option value="true" ${titleDepthTestValue === "true" ? "selected" : ""}>true</option>
@@ -4570,6 +4661,18 @@
                     </div>
                 </div>
             </section>
+        `;
+    }
+
+    /**
+     * 渲染带图形提示的字段标题，帮助用户快速识别该控件作用。
+     */
+    function renderFieldLabel(inputId, text, iconName) {
+        return `
+            <label class="field-label-with-icon" for="${escapeAttribute(inputId)}">
+                <span class="field-label-icon field-label-icon-${escapeAttribute(iconName)}" aria-hidden="true"></span>
+                <span>${escapeHtml(text)}</span>
+            </label>
         `;
     }
 
@@ -6621,6 +6724,7 @@
 
         elements.inspector.querySelectorAll("[data-action='add-connection-skill']").forEach((button) => {
             button.addEventListener("click", () => {
+                assembly.skillsAutoFillDisabled = false;
                 assembly.skills.push(createNextConnectionAssemblySkillTrack(assembly));
                 renderWithConnectionBoardScroll();
             });
@@ -6629,6 +6733,7 @@
         elements.inspector.querySelectorAll("[data-action='remove-connection-skill']").forEach((button) => {
             button.addEventListener("click", () => {
                 assembly.skills = assembly.skills.filter((skill) => skill.id !== button.dataset.assemblySkillId);
+                assembly.skillsAutoFillDisabled = true;
                 renderWithConnectionBoardScroll();
             });
         });
@@ -8043,7 +8148,7 @@
     function renderTitleColorField(options) {
         return `
             <div class="field">
-                <label for="${escapeAttribute(options.idPrefix)}Input">${escapeHtml(options.label)}</label>
+                ${renderFieldLabel(`${options.idPrefix}Input`, options.label, options.icon || "text-color")}
                 <div class="color-editor">
                     <div class="color-editor-main">
                         <input
@@ -8181,6 +8286,7 @@
                 enabled: false,
             },
             skills: [],
+            skillsAutoFillDisabled: false,
             diagnostics: {
                 errors: [],
                 warnings: [],
@@ -8248,6 +8354,7 @@
                     skillIndex: skill && Number.isInteger(skill.skillIndex) ? skill.skillIndex : index + 1,
                 }))
                 : [],
+            skillsAutoFillDisabled: rawAssembly.skillsAutoFillDisabled === true,
             diagnostics: normalizeConnectionAssemblyDiagnostics(rawAssembly.diagnostics),
         };
         entity.connectionAssembly = assembly;
@@ -8324,6 +8431,10 @@
         }
         if (!assembly.body.animationNames.length) {
             assembly.body.animationNames = animationResources[0] ? [...animationResources[0].animationNames] : inferBodyAssemblyAnimationNames(animationNames);
+        }
+
+        if (assembly.skillsAutoFillDisabled === true) {
+            return;
         }
 
         const hasSkillSelection = (assembly.skills || []).some((skill) => skill.geometryResourceId || skill.textureResourceId || skill.animationNames.length);
