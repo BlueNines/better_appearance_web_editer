@@ -3389,6 +3389,7 @@
                 renamedAnimations[entry.name],
                 getExportedBoneNamesForResource(boneIsolationContext, entry.targetGeometryKey)
             );
+            applyEntityAnimationSpeedTimeUpdate(renamedAnimations[entry.name], entry.key);
         });
 
         baseJson.animations = renamedAnimations;
@@ -3397,6 +3398,32 @@
         }
         padScaleTracksToLinearTail(baseJson);
         return baseJson;
+    }
+
+    /**
+     * 给普通实体技能动作补播放速度 Molang；idle、walk、scale 不参与第一版变速。
+     */
+    function applyEntityAnimationSpeedTimeUpdate(animationBody, animationKey) {
+        if (!animationBody || typeof animationBody !== "object") {
+            return;
+        }
+        const speedKey = getEntityAnimationSpeedKey(animationKey);
+        if (!speedKey) {
+            return;
+        }
+        const speedMolang = `query.mod.entity_animation_speed_${speedKey}`;
+        animationBody.anim_time_update = `query.anim_time + query.delta_time * (${speedMolang} > 0 ? ${speedMolang} : 1)`;
+    }
+
+    /**
+     * 把动作槽 key 转成速度 Molang 后缀，只允许 skill* 动作进入。
+     */
+    function getEntityAnimationSpeedKey(animationKey) {
+        const key = String(animationKey || "").trim().toLowerCase();
+        if (!/^skill[0-9]+[a-z]?$/.test(key)) {
+            return "";
+        }
+        return key;
     }
 
     /**
