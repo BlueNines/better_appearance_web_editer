@@ -7,6 +7,7 @@
     const ENTITY_ROOT = "客户端组件/betterappearance/behavior_packs/better_appearance_beh/entities";
     const SERVER_ROOT = "服务端插件/ActionEffect/GeoAction/LivingEntityAction";
     const DEFAULT_SUBDIR = "monster";
+    const EXPORT_FORMAT_VERSION = "1.12.2";
     const DEFAULT_RENDER_CONTROLLER = "controller.render.entity_default.third_person";
     const DEFAULT_CONTROLLER = "controller.animation.entity_idle.default";
     const DEFAULT_ANIMATION_BINDING_KEY = "default";
@@ -2273,6 +2274,11 @@
                 usedBoneNames.add(nextName);
             });
         });
+        addBodyRootLikeBoneRenames(
+            boneNamesByResourceKey.get(CONNECTION_BODY_RESOURCE_KEY),
+            renameMapsByResourceKey,
+            usedBoneNames
+        );
         boneNamesByResourceKey.forEach((boneNames, resourceKey) => {
             addSkillResourceNamespaceRenames(
                 resourceKey,
@@ -2382,6 +2388,24 @@
     }
 
     /**
+     * 本体不加 ba 前缀，但大小写 root 仍必须避让最终包装 root。
+     */
+    function addBodyRootLikeBoneRenames(boneNames, renameMapsByResourceKey, usedBoneNames) {
+        if (!boneNames || !boneNames.size) {
+            return;
+        }
+        const renameMap = getOrCreateBoneRenameMap(renameMapsByResourceKey, CONNECTION_BODY_RESOURCE_KEY);
+        boneNames.forEach((boneName) => {
+            if (!isExportRootBoneName(boneName) || boneName === "root" || renameMap.has(boneName)) {
+                return;
+            }
+            const nextName = buildUniquePlainBoneName("root_inner", usedBoneNames);
+            renameMap.set(boneName, nextName);
+            usedBoneNames.add(nextName);
+        });
+    }
+
+    /**
      * 技能轨道模型强制进入自己的骨骼命名空间，避免技能动作反向驱动本体或其它技能模型。
      */
     function addSkillResourceNamespaceRenames(resourceKey, boneNames, renameMapsByResourceKey, usedBoneNames) {
@@ -2448,6 +2472,20 @@
         let suffix = 2;
         while (hasUsedBoneNameIgnoreCase(usedBoneNames, nextName) || isExportRootBoneName(nextName)) {
             nextName = `${baseName}_${suffix}`;
+            suffix += 1;
+        }
+        return nextName;
+    }
+
+    /**
+     * 生成不带轨道前缀的安全骨骼名，专门给本体 root 避让使用。
+     */
+    function buildUniquePlainBoneName(baseName, usedBoneNames) {
+        const safeBaseName = normalizeBoneNamePart(baseName || "bone");
+        let nextName = safeBaseName;
+        let suffix = 2;
+        while (hasUsedBoneNameIgnoreCase(usedBoneNames, nextName) || isExportRootBoneName(nextName)) {
+            nextName = `${safeBaseName}_${suffix}`;
             suffix += 1;
         }
         return nextName;
@@ -2585,6 +2623,7 @@
      * 本体模型不生成 ba_default_root；回导旧导出时会折叠旧包装骨骼。
      */
     function wrapBodyGeometryBonesWithRoot(geometryItem, bones) {
+        normalizeBodyDuplicateRootBones(bones);
         const defaultWrapperName = buildResourceRootBoneName({ resourceKey: CONNECTION_BODY_RESOURCE_KEY });
         const shouldCollapseDefaultWrapper = bones.some((bone) => isGeneratedBodyDefaultWrapperBone(bone, defaultWrapperName));
         const hasRootBone = bones.some((bone) => bone.name === "root" && !bone.parent);
@@ -2615,6 +2654,37 @@
             name: "root",
             pivot: [0, 0, 0],
         }].concat(outputBones);
+    }
+
+    /**
+     * 兜底处理本体里多个 root/root-like 骨骼，最终只允许一个包装 root 留下。
+     */
+    function normalizeBodyDuplicateRootBones(bones) {
+        const usedBoneNames = new Set(
+            bones
+                .map((bone) => (bone && typeof bone.name === "string" ? bone.name.trim() : ""))
+                .filter(Boolean)
+        );
+        let hasExportRoot = false;
+        bones.forEach((bone) => {
+            if (!bone || typeof bone.name !== "string" || !isExportRootBoneName(bone.name)) {
+                return;
+            }
+            if (bone.name === "root" && !bone.parent && !hasExportRoot) {
+                hasExportRoot = true;
+                return;
+            }
+            usedBoneNames.delete(bone.name);
+            const nextName = buildUniquePlainBoneName("root_inner", usedBoneNames);
+            const oldName = bone.name;
+            bone.name = nextName;
+            usedBoneNames.add(nextName);
+            bones.forEach((candidate) => {
+                if (candidate && candidate.parent === oldName && oldName !== "root") {
+                    candidate.parent = nextName;
+                }
+            });
+        });
     }
 
     /**
@@ -3335,15 +3405,10 @@
     function normalizeGeometryJson(entity, boneIsolationContext) {
         const geometryResources = getGeometryResources(entity);
         const mergedGeometries = [];
-        let formatVersion = "1.12.0";
 
         geometryResources.forEach((resource) => {
             if (!resource.json || typeof resource.json !== "object") {
                 return;
-            }
-
-            if (resource.json.format_version) {
-                formatVersion = resource.json.format_version;
             }
 
             const geometries = Array.isArray(resource.json["minecraft:geometry"])
@@ -3360,7 +3425,7 @@
         });
 
         return {
-            format_version: formatVersion,
+            format_version: EXPORT_FORMAT_VERSION,
             "minecraft:geometry": mergedGeometries,
         };
     }
@@ -3393,10 +3458,8 @@
         });
 
         baseJson.animations = renamedAnimations;
-        if (!baseJson.format_version) {
-            baseJson.format_version = "1.8.0";
-        }
         padScaleTracksToLinearTail(baseJson);
+        baseJson.format_version = EXPORT_FORMAT_VERSION;
         return baseJson;
     }
 

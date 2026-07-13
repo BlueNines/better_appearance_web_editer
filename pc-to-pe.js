@@ -1117,7 +1117,8 @@
      */
     function isPlayerRootBoneName(boneName) {
         return Object.prototype.hasOwnProperty.call(BONE_NAME_MAP, boneName)
-            || PE_PLAYER_BONE_NAMES.includes(boneName);
+            || PE_PLAYER_BONE_NAMES.includes(boneName)
+            || isRootLikeBoneName(boneName);
     }
 
     /**
@@ -1135,8 +1136,12 @@
                 return;
             }
             const sourceName = String(bone.name);
-            const mustRename = reservedNames.has(sourceName) || Object.prototype.hasOwnProperty.call(BONE_NAME_MAP, sourceName);
-            const targetName = createUniqueBoneName(sourceName, usedNames, sourceNameSet, !mustRename && sourceNameCounts[sourceName] === 1);
+            const mustRename = reservedNames.has(sourceName)
+                || hasNameIgnoreCase(reservedNames, sourceName)
+                || Object.prototype.hasOwnProperty.call(BONE_NAME_MAP, sourceName)
+                || isRootLikeBoneName(sourceName);
+            const baseName = isRootLikeBoneName(sourceName) ? "root_inner" : sourceName;
+            const targetName = createUniqueBoneName(baseName, usedNames, sourceNameSet, !mustRename && sourceNameCounts[sourceName] === 1);
             renameMap[sourceName] = targetName;
         });
 
@@ -1157,8 +1162,8 @@
 
         if (sourceBone.parent && renameMap[sourceBone.parent]) {
             convertedBone.parent = renameMap[sourceBone.parent];
-        } else if (!sourceBone.parent && BONE_NAME_MAP[originalName]) {
-            convertedBone.parent = BONE_NAME_MAP[originalName];
+        } else if (!sourceBone.parent && getPlayerBoneTargetName(originalName)) {
+            convertedBone.parent = getPlayerBoneTargetName(originalName);
         } else if (!sourceBone.parent) {
             convertedBone.parent = COSTUME_EXTRA_ROOT_PARENT;
         }
@@ -1170,14 +1175,21 @@
      * 创建不冲突的骨骼名。
      */
     function createUniqueBoneName(baseName, usedNames, sourceNameSet, allowOriginal) {
-        if (allowOriginal && !usedNames.has(baseName)) {
+        if (allowOriginal && !hasNameIgnoreCase(usedNames, baseName) && !isRootLikeBoneName(baseName)) {
+            usedNames.add(baseName);
+            return baseName;
+        }
+        if (!allowOriginal
+            && !hasNameIgnoreCase(usedNames, baseName)
+            && !hasNameIgnoreCase(sourceNameSet, baseName)
+            && !isRootLikeBoneName(baseName)) {
             usedNames.add(baseName);
             return baseName;
         }
 
         let index = 2;
         let candidate = `${baseName}${index}`;
-        while (usedNames.has(candidate) || sourceNameSet.has(candidate)) {
+        while (hasNameIgnoreCase(usedNames, candidate) || hasNameIgnoreCase(sourceNameSet, candidate) || isRootLikeBoneName(candidate)) {
             index += 1;
             candidate = `${baseName}${index}`;
         }
@@ -1330,10 +1342,43 @@
     function convertActionBones(bones) {
         const convertedBones = {};
         Object.entries(bones).forEach(([boneName, boneTrack]) => {
-            const targetName = BONE_NAME_MAP[boneName] || boneName;
+            const targetName = getPlayerBoneTargetName(boneName) || boneName;
             convertedBones[targetName] = mergeBoneTracks(convertedBones[targetName], boneTrack);
         });
         return convertedBones;
+    }
+
+    /**
+     * PC 玩家根骨骼按大小写不敏感口径统一映射到 PE 的 rootw。
+     */
+    function getPlayerBoneTargetName(boneName) {
+        if (Object.prototype.hasOwnProperty.call(BONE_NAME_MAP, boneName)) {
+            return BONE_NAME_MAP[boneName];
+        }
+        return isRootLikeBoneName(boneName) ? "rootw" : "";
+    }
+
+    /**
+     * 判断骨骼名是否会和 PE 最外层 root 冲突。
+     */
+    function isRootLikeBoneName(boneName) {
+        return String(boneName || "").trim().toLowerCase() === "root";
+    }
+
+    /**
+     * 按大小写不敏感口径判断名称是否已占用。
+     */
+    function hasNameIgnoreCase(names, candidate) {
+        const normalized = String(candidate || "").trim().toLowerCase();
+        if (!normalized) {
+            return false;
+        }
+        for (const name of names) {
+            if (String(name || "").trim().toLowerCase() === normalized) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
