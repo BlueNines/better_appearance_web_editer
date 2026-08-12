@@ -5,6 +5,42 @@
     const DEFAULT_COSTUME_OUTPUT_NAME = "test_mod_costume";
     const COSTUME_EXTRA_ROOT_PARENT = "rootmove";
     const FALLBACK_ACTION_PREFIX = "action";
+    const COSTUME_ARMOR_PARTS = [
+        { key: "head", suffix: "head" },
+        { key: "chest", suffix: "chest" },
+        { key: "leggings", suffix: "leggings" },
+        { key: "boots", suffix: "boots" },
+    ];
+    const COSTUME_ARMOR_PART_BY_BONE = {
+        head: "head",
+        hat: "head",
+        body: "chest",
+        jacketbody: "chest",
+        upbody: "chest",
+        jacket: "chest",
+        leftarm: "chest",
+        leftsleeve: "chest",
+        leftforearm: "chest",
+        leftforesleeve: "chest",
+        leftitem: "chest",
+        ieftitem: "chest",
+        lefttrail: "chest",
+        rightarm: "chest",
+        rightsleeve: "chest",
+        rightforearm: "chest",
+        rightforesleeve: "chest",
+        rightitem: "chest",
+        righttrail: "chest",
+        waist: "leggings",
+        leftleg: "leggings",
+        leftpantsleg: "leggings",
+        rightleg: "leggings",
+        rightpantsleg: "leggings",
+        leftforeleg: "boots",
+        leftpantsforeleg: "boots",
+        rightforeleg: "boots",
+        rightpantsforeleg: "boots",
+    };
 
     const PE_EMPTY_PLAYER_BONES = [
         { name: "root", pivot: [0, 12, 0] },
@@ -164,6 +200,73 @@
     }
 
     /**
+     * 按头、胸甲、裤腿和鞋子四个部位拆分 PC 时装。
+     */
+    async function splitCostumeArmor(params) {
+        const input = params || {};
+        const outputName = normalizeAssetName(input.outputName || DEFAULT_COSTUME_OUTPUT_NAME);
+        if (!outputName) {
+            throw new Error("outputName 格式不正确。");
+        }
+        if (!input.geometryJson) {
+            throw new Error("缺少 geometryJson。");
+        }
+        if (!input.texturePng) {
+            throw new Error("缺少 texturePng。");
+        }
+
+        const splitPlan = createCostumeArmorSplitPlan(input.geometryJson);
+        const assignedBoneCount = COSTUME_ARMOR_PARTS.reduce(function (count, part) {
+            return count + splitPlan.parts[part.key].contentBoneNames.size;
+        }, 0);
+        if (!assignedBoneCount) {
+            throw new Error("未识别到可按头、胸甲、裤腿或鞋子拆分的骨骼。");
+        }
+
+        const textureSize = await readPngSize(input.texturePng);
+        const files = [];
+        const parts = {};
+        COSTUME_ARMOR_PARTS.forEach(function (part) {
+            const partPlan = splitPlan.parts[part.key];
+            const baseName = `${outputName}_${part.suffix}`;
+            const geometry = convertCostumeGeometry(
+                input.geometryJson,
+                baseName,
+                textureSize,
+                {
+                    allowedSourceBoneNames: partPlan.boneNames,
+                    contentSourceBoneNames: partPlan.contentBoneNames,
+                }
+            );
+            const animation = input.animationJson
+                ? convertCostumeAnimation(input.animationJson, baseName, geometry.renameMap, partPlan.boneNames, input)
+                : null;
+            const partFiles = buildCostumePartFiles(part.key, baseName, geometry, animation, input.texturePng);
+            files.push(...partFiles);
+            parts[part.key] = {
+                baseName,
+                boneCount: geometry.boneCount,
+                contentBoneCount: partPlan.contentBoneNames.size,
+                animationCount: animation ? animation.animationCount : 0,
+            };
+        });
+
+        const zipBlob = await buildZipBlob(files, input);
+        return {
+            zipBlob,
+            files,
+            parts,
+            report: {
+                outputName,
+                unassignedBoneNames: Array.from(splitPlan.unassignedBoneNames),
+                warnings: splitPlan.unassignedVisualBoneNames.size
+                    ? [`${splitPlan.unassignedVisualBoneNames.size} 个带模型内容的骨骼无法判定身体部位，未进入四件套。`]
+                    : [],
+            },
+        };
+    }
+
+    /**
      * 转换 PC 玩家动作为 PE 玩家动作 ZIP。
      */
     async function convertPlayerActions(params) {
@@ -297,6 +400,7 @@
         }
 
         const allowedSourceBoneNames = options && options.allowedSourceBoneNames ? options.allowedSourceBoneNames : null;
+        const contentSourceBoneNames = options && options.contentSourceBoneNames ? options.contentSourceBoneNames : null;
         const sourceBones = filterSourceBones(
             Array.isArray(sourceGeometry.bones) ? sourceGeometry.bones : [],
             allowedSourceBoneNames
@@ -304,7 +408,7 @@
         const sourceDescription = sourceGeometry.description || {};
         const textureWidth = normalizeTextureSize(sourceDescription.texture_width, textureSize ? textureSize.width : 0, 64);
         const textureHeight = normalizeTextureSize(sourceDescription.texture_height, textureSize ? textureSize.height : 0, 64);
-        const renameResult = renameCostumeBones(sourceBones);
+        const renameResult = renameCostumeBones(sourceBones, contentSourceBoneNames);
         const convertedGeometry = deepClone(sourceGeometry);
         convertedGeometry.description = {
             ...sourceDescription,
@@ -390,6 +494,91 @@
     }
 
     /**
+     * 创建头、胸甲、裤腿和鞋子的骨骼拆分计划。
+     */
+    function createCostumeArmorSplitPlan(sourceJson) {
+        const sourceGeometry = getFirstGeometry(sourceJson);
+        const sourceBones = sourceGeometry && Array.isArray(sourceGeometry.bones) ? sourceGeometry.bones : [];
+        const boneByName = new Map();
+        const parts = {};
+        const unassignedBoneNames = new Set();
+        const unassignedVisualBoneNames = new Set();
+
+        COSTUME_ARMOR_PARTS.forEach(function (part) {
+            parts[part.key] = {
+                boneNames: new Set(),
+                contentBoneNames: new Set(),
+            };
+        });
+        sourceBones.forEach(function (bone) {
+            if (bone && bone.name) {
+                boneByName.set(String(bone.name), bone);
+            }
+        });
+
+        sourceBones.forEach(function (bone) {
+            if (!bone || !bone.name) {
+                return;
+            }
+            const boneName = String(bone.name);
+            const partKey = findCostumeArmorPart(boneName, boneByName);
+            if (!partKey) {
+                unassignedBoneNames.add(boneName);
+                if (hasBoneVisualContent(bone)) {
+                    unassignedVisualBoneNames.add(boneName);
+                }
+                return;
+            }
+            parts[partKey].contentBoneNames.add(boneName);
+        });
+
+        COSTUME_ARMOR_PARTS.forEach(function (part) {
+            const partPlan = parts[part.key];
+            partPlan.contentBoneNames.forEach(function (boneName) {
+                addBoneAndAncestors(boneName, boneByName, partPlan.boneNames);
+            });
+        });
+
+        return {
+            parts,
+            unassignedBoneNames,
+            unassignedVisualBoneNames,
+        };
+    }
+
+    /**
+     * 从当前骨骼向父级查找最近的四件套归属部位。
+     */
+    function findCostumeArmorPart(boneName, boneByName) {
+        const visited = new Set();
+        let currentName = boneName;
+        while (currentName && !visited.has(currentName)) {
+            visited.add(currentName);
+            const partKey = COSTUME_ARMOR_PART_BY_BONE[String(currentName).trim().toLowerCase()];
+            if (partKey) {
+                return partKey;
+            }
+            const currentBone = boneByName.get(currentName);
+            currentName = currentBone && currentBone.parent ? String(currentBone.parent) : "";
+        }
+        return "";
+    }
+
+    /**
+     * 把目标骨骼及其有效父级加入结构骨骼集合。
+     */
+    function addBoneAndAncestors(boneName, boneByName, targetNames) {
+        const visited = new Set();
+        let currentName = boneName;
+        while (currentName && !visited.has(currentName) && boneByName.has(currentName)) {
+            visited.add(currentName);
+            targetNames.add(currentName);
+            const currentBone = boneByName.get(currentName);
+            currentName = currentBone && currentBone.parent ? String(currentBone.parent) : "";
+        }
+    }
+
+    /**
      * 获取骨骼所属树的顶层祖先名。
      */
     function getTopAncestorName(boneName, boneByName, topAncestorCache) {
@@ -425,7 +614,7 @@
     /**
      * 重命名时装骨骼并挂载到 PE 玩家骨架。
      */
-    function renameCostumeBones(sourceBones) {
+    function renameCostumeBones(sourceBones, contentSourceBoneNames) {
         const reservedNames = new Set(PE_PLAYER_BONE_NAMES);
         const sourceNameCounts = countSourceBoneNames(sourceBones);
         const sourceNameSet = new Set(Object.keys(sourceNameCounts));
@@ -450,7 +639,8 @@
                 return bone && bone.name;
             })
             .map(function (bone) {
-                return convertCostumeBone(bone, renameMap);
+                const keepsContent = !contentSourceBoneNames || contentSourceBoneNames.has(String(bone.name));
+                return convertCostumeBone(bone, renameMap, keepsContent);
             });
 
         return { bones, renameMap };
@@ -459,20 +649,46 @@
     /**
      * 转换单个时装骨骼。
      */
-    function convertCostumeBone(sourceBone, renameMap) {
+    function convertCostumeBone(sourceBone, renameMap, keepsContent) {
         const originalName = String(sourceBone.name);
         const convertedBone = deepClone(sourceBone);
         convertedBone.name = renameMap[originalName] || originalName;
 
+        if (keepsContent === false) {
+            removeBoneVisualContent(convertedBone);
+        }
+
         if (sourceBone.parent && renameMap[sourceBone.parent]) {
             convertedBone.parent = renameMap[sourceBone.parent];
-        } else if (!sourceBone.parent && getPlayerBoneTargetName(originalName)) {
+        } else if (getPlayerBoneTargetName(originalName)) {
             convertedBone.parent = getPlayerBoneTargetName(originalName);
-        } else if (!sourceBone.parent) {
+        } else if (!sourceBone.parent || !renameMap[sourceBone.parent]) {
             convertedBone.parent = COSTUME_EXTRA_ROOT_PARENT;
         }
 
         return convertedBone;
+    }
+
+    /**
+     * 清除仅用于维持父级链的骨骼上的模型和挂点内容。
+     */
+    function removeBoneVisualContent(bone) {
+        delete bone.cubes;
+        delete bone.locators;
+        delete bone.poly_mesh;
+        delete bone.texture_meshes;
+    }
+
+    /**
+     * 判断骨骼是否携带会出现在模型中的方块、网格或挂点内容。
+     */
+    function hasBoneVisualContent(bone) {
+        return Boolean(
+            (Array.isArray(bone.cubes) && bone.cubes.length)
+            || (bone.locators && Object.keys(bone.locators).length)
+            || bone.poly_mesh
+            || (Array.isArray(bone.texture_meshes) && bone.texture_meshes.length)
+        );
     }
 
     /**
@@ -923,8 +1139,10 @@
     global.BetterPcToPe = {
         convertCostume,
         splitCostume,
+        splitCostumeArmor,
         convertPlayerActions,
         createCostumeSplitPlan,
-        version: "1.0.0",
+        createCostumeArmorSplitPlan,
+        version: "1.1.0",
     };
 })(typeof window !== "undefined" ? window : globalThis);

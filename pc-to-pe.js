@@ -252,8 +252,9 @@
                     <div class="detail-actions">
                         <h3>拆分导出</h3>
                         <button class="button primary" type="button" data-action="split-costume-download" ${canSplit ? "" : "disabled"}>导出纯人物 + 纯额外组 ZIP</button>
+                        <button class="button primary" type="button" data-action="split-costume-armor-download" ${canConvert ? "" : "disabled"}>导出头 + 胸甲 + 裤腿 + 鞋子 ZIP</button>
                     </div>
-                    <p class="field-hint">这个按钮不会影响上面的完整导出，会额外生成 <code>person/</code> 和 <code>extra/</code> 两套结果。只有识别到额外顶层组时才可点击。</p>
+                    <p class="field-hint">纯人物拆分会生成 <code>person/</code> 和 <code>extra/</code>；四件套拆分会生成 <code>head/</code>、<code>chest/</code>、<code>leggings/</code> 和 <code>boots/</code>。两者都不影响上面的完整导出。</p>
                 </section>
             </div>
         `;
@@ -589,6 +590,10 @@
         }
         if (action === "split-costume-download") {
             await downloadCostumeSplitZip();
+            return;
+        }
+        if (action === "split-costume-armor-download") {
+            await downloadCostumeArmorSplitZip();
             return;
         }
     }
@@ -1497,6 +1502,41 @@
         const downloadName = `pc-to-pe-costume-split-${splitResult.outputName}-${createTimestamp()}.zip`;
         downloadBlob(blob, downloadName);
         setStatus(`已下载拆分结果：${downloadName}`);
+        render();
+    }
+
+    /**
+     * 按头、胸甲、裤腿和鞋子四个部位拆分并下载时装 ZIP。
+     */
+    async function downloadCostumeArmorSplitZip() {
+        const costume = state.costume;
+        const converter = window.BetterPcToPe;
+        if (!converter || typeof converter.splitCostumeArmor !== "function") {
+            costume.errors = ["四件套拆分转换器未正常加载。"];
+            render();
+            return;
+        }
+
+        setStatus("正在拆分头、胸甲、裤腿和鞋子并生成 ZIP…");
+        try {
+            const result = await converter.splitCostumeArmor({
+                outputName: costume.outputName,
+                geometryJson: costume.geometryFile ? costume.geometryFile.json : null,
+                texturePng: costume.textureFile ? costume.textureFile.file : null,
+                animationJson: costume.animationFile ? costume.animationFile.json : null,
+                JSZip: window.JSZip,
+                pinyin,
+            });
+            const downloadName = `pc-to-pe-costume-armor-${result.report.outputName}-${createTimestamp()}.zip`;
+            downloadBlob(result.zipBlob, downloadName);
+            costume.errors = [];
+            const warningText = result.report.warnings.length ? ` ${result.report.warnings.join(" ")}` : "";
+            render();
+            setStatus(`已下载四件套拆分结果：${downloadName}${warningText}`);
+            return;
+        } catch (error) {
+            costume.errors = [error.message || "时装四件套拆分导出失败。"];
+        }
         render();
     }
 
